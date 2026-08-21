@@ -9,6 +9,12 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
+<script>
+/* Gespeichertes Thema sofort anwenden, damit nichts aufblitzt */
+try{var t=localStorage.getItem('puckero.thema');
+    if(t==='verspielt')document.documentElement.setAttribute('data-thema','verspielt');}catch(e){}
+</script>
+
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='12' fill='%230b1220' stroke='%2338d1ff' stroke-width='3'/></svg>">
 </head>
 <body data-nav="Herausforderungen">
