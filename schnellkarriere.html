@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Schnellkarriere – ganze Eishockey-Laufbahn per Klick | Puckero</title>
+<meta name="description" content="Eine komplette Eishockey-Karriere ohne Draft und ohne Entscheidungen: Spieler würfeln lassen, Laufbahn ansehen, wiederholen.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='12' fill='%230b1220' stroke='%2338d1ff' stroke-width='3'/></svg>">
+</head>
+<body data-nav="Spiele">
+<div id="hdr"></div>
+
+<section class="block tight">
+  <div class="wrap">
+    <span class="eyebrow">Zwei Minuten</span>
+    <h1 style="font-size:clamp(34px,5vw,58px)">Schnellkarriere</h1>
+    <p class="lead">Keine Fragen, kein Draft. Puckero würfelt Identität und Stilkarten aus
+      und spielt die komplette Laufbahn durch. Ideal, um die Simulation kennenzulernen –
+      oder um zu sehen, wie oft aus einem Zufallsspieler eine Legende wird.</p>
+
+    <div class="row mt-l">
+      <button class="btn btn-primary" id="roll">Karriere würfeln</button>
+      <button class="btn btn-ghost" id="roll10">Zehn Karrieren vergleichen</button>
+    </div>
+
+    <div class="panel mt-l" id="game"></div>
+    <div id="batch" class="mt-l"></div>
+  </div>
+</section>
+
+<div id="ftr"></div>
+
+<script src="assets/data.js"></script>
+<script src="assets/draft.js"></script>
+<script src="assets/engine.js"></script>
+<script src="assets/ereignisse.js"></script>
+<script src="assets/wappen.js"></script>
+<script src="assets/ui.js"></script>
+<script src="assets/game.js"></script>
+<script>
+const root = document.getElementById('game');
+let game;
+
+function roll(){
+  document.getElementById('batch').innerHTML = '';
+  const seed = 'schnell-' + Date.now() + '-' + Math.random();
+  const r = PUCKERO.rng(seed);
+  const ident = PUCKERO.randomIdentity(r);
+  ident.mode = 'klassisch';
+  if (!game) game = CareerGame(root, { skipInitial: true, onAgain: roll });
+  game.quickRun(seed, ident);
+}
+
+function rollBatch(){
+  const rows = [];
+  for (let i = 0; i < 10; i++){
+    const seed = 'batch-' + Date.now() + '-' + i + '-' + Math.random();
+    const r = PUCKERO.rng(seed);
+    const ident = PUCKERO.randomIdentity(r);
+    const p = PUCKERO.autoDraft(PUCKERO.newPlayer({ ...ident, mode:'klassisch', seed }));
+    rows.push(PUCKERO.simulate(p));
+  }
+  rows.sort((a, b) => b.legacy - a.legacy);
+  document.getElementById('batch').innerHTML = `
+    <h2>Zehn Zufallskarrieren</h2>
+    <p class="lead">Sortiert nach Legendenpunkten. So sieht die Verteilung aus, wenn niemand draftet.</p>
+    <div class="table-scroll card" style="padding:8px 16px">
+      <table class="stats">
+        <thead><tr><th>Spieler</th><th>Pos</th><th>Saisons</th><th>Bestwert</th><th>Titel</th><th>Punkte/Siege</th><th>Legende</th><th>Rang</th></tr></thead>
+        <tbody>${rows.map(res => `<tr>
+          <td>${res.player.name}</td>
+          <td>${res.player.pos}</td>
+          <td>${res.seasons.length}</td>
+          <td>${res.peak}</td>
+          <td>${res.trophies.reduce((s,x)=>s+x.x,0)}</td>
+          <td>${res.isG ? res.totals.wins : res.totals.p}</td>
+          <td><b>${res.legacy}</b></td>
+          <td>${res.rank.n}</td></tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  document.getElementById('batch').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+document.getElementById('roll').onclick = roll;
+document.getElementById('roll10').onclick = rollBatch;
+roll();
+</script>
+</body>
+</html>

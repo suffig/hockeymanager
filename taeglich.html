@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Tageskarriere – jeden Tag derselbe Spieler | Puckero</title>
+<meta name="description" content="Jeden Tag stellt Puckero allen Spielerinnen und Spielern denselben Eishockey-Nachwuchsmann. Nur der Draft entscheidet, wie weit er kommt.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='12' fill='%230b1220' stroke='%2338d1ff' stroke-width='3'/></svg>">
+</head>
+<body data-nav="Spiele">
+<div id="hdr"></div>
+
+<section class="block tight">
+  <div class="wrap">
+    <span class="eyebrow" id="datum">Heute</span>
+    <h1 style="font-size:clamp(34px,5vw,58px)">Tageskarriere</h1>
+    <p class="lead">Alle bekommen heute denselben Nachwuchsspieler mit denselben Draftkarten in
+      derselben Reihenfolge. Der einzige Unterschied bist du. Morgen kommt ein neuer.</p>
+
+    <div class="card mt-l" id="steckbrief"></div>
+
+    <div class="panel mt-l" id="game"></div>
+
+    <div class="card mt-l" id="tagesbestwert"></div>
+  </div>
+</section>
+
+<div id="ftr"></div>
+
+<script src="assets/data.js"></script>
+<script src="assets/draft.js"></script>
+<script src="assets/engine.js"></script>
+<script src="assets/ereignisse.js"></script>
+<script src="assets/wappen.js"></script>
+<script src="assets/ui.js"></script>
+<script src="assets/game.js"></script>
+<script>
+const heute = new Date();
+const tagKey = heute.getFullYear() + '-' + String(heute.getMonth() + 1).padStart(2, '0')
+             + '-' + String(heute.getDate()).padStart(2, '0');
+const seed = 'tag:' + tagKey;
+const r = PUCKERO.rng(seed);
+const ident = PUCKERO.randomIdentity(r);
+ident.mode = 'klassisch';
+
+document.getElementById('datum').textContent =
+  heute.toLocaleDateString('de-DE', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+
+const nat = PUCKERO.nation(ident.nation);
+document.getElementById('steckbrief').innerHTML = `
+  <div class="row between">
+    <div class="row" style="gap:16px">
+      <div class="ovr"><b>${ident.num}</b><span>Nummer</span></div>
+      <div>
+        <h3 style="margin-bottom:2px">${ident.name}</h3>
+        <p class="small mb0">${nat.flag} ${nat.n} · ${PUCKERO.pos(ident.pos).n} · 18 Jahre · Juniorenliga</p>
+        <p style="color:var(--muted);margin:8px 0 0;max-width:52ch">${PUCKERO.pos(ident.pos).desc}</p>
+      </div>
+    </div>
+    <div><span class="pill">Seed ${seed}</span></div>
+  </div>`;
+
+const BEST_KEY = 'puckero.tagesbestwert';
+function ladeBest(){
+  try { return JSON.parse(localStorage.getItem(BEST_KEY) || '{}'); } catch(e){ return {}; }
+}
+function zeigeBest(){
+  const b = ladeBest();
+  const eintrag = b[tagKey];
+  document.getElementById('tagesbestwert').innerHTML = eintrag
+    ? `<h3>Dein heutiger Bestwert</h3>
+       <div class="row" style="gap:22px">
+         <span class="pill gold">${eintrag.legacy} Legendenpunkte</span>
+         <span class="pill">${eintrag.rank}</span>
+         <span class="pill">Bestwert ${eintrag.peak}</span>
+         <span class="pill">${eintrag.titles} Trophäen</span>
+         <span class="pill">${eintrag.versuche} Versuche heute</span>
+       </div>
+       <p class="small mt">Der Wert bleibt bis Mitternacht stehen. Ein besserer Durchlauf ersetzt ihn.</p>`
+    : `<h3>Noch kein Ergebnis für heute</h3>
+       <p class="small mb0">Spiel die Karriere zu Ende, dann erscheint hier dein Tagesbestwert.</p>`;
+}
+zeigeBest();
+
+function schreibeErgebnis(res){
+  const b = ladeBest();
+  const alt = b[tagKey];
+  const titles = res.trophies.reduce((s, x) => s + x.x, 0);
+  const versuche = (alt ? alt.versuche : 0) + 1;
+  if (!alt || res.legacy > alt.legacy){
+    b[tagKey] = { legacy: res.legacy, rank: res.rank.n, peak: res.peak, titles, versuche };
+  } else {
+    alt.versuche = versuche; b[tagKey] = alt;
+  }
+  try { localStorage.setItem(BEST_KEY, JSON.stringify(b)); } catch(e){}
+  zeigeBest();
+}
+
+const spiel = CareerGame(document.getElementById('game'), {
+  seed, ident, skipInitial: true,
+  onFinish: schreibeErgebnis,
+  onAgain(){ spiel.startDraft(seed, ident); }
+});
+spiel.startDraft(seed, ident);
+</script>
+</body>
+</html>

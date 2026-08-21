@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Guides – besser draften, länger spielen | Puckero</title>
+<meta name="description" content="Puckero-Guides: welche Attribute je Position zählen, wie die Gesamtwertung entsteht, wie Alterskurve und Verletzungen wirken und wie man Legendenpunkte maximiert.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='12' fill='%230b1220' stroke='%2338d1ff' stroke-width='3'/></svg>">
+</head>
+<body data-nav="Guides">
+<div id="hdr"></div>
+
+<section class="block tight">
+  <div class="wrap">
+    <span class="eyebrow">Vier Guides</span>
+    <h1 style="font-size:clamp(34px,5vw,58px)">Guides</h1>
+    <p class="lead">Alles, was die Simulation im Hintergrund rechnet – offen erklärt.
+      Wer die Regeln kennt, draftet anders.</p>
+  </div>
+</section>
+
+<!-- ============ POSITIONEN ============ -->
+<section class="block tight" id="positionen">
+  <div class="wrap">
+    <h2>Welche Attribute zählen auf welcher Position?</h2>
+    <p class="lead">Jede Position gewichtet die zehn Attribute unterschiedlich. Die Tabelle zeigt die
+      tatsächlichen Gewichte aus der Simulation. Alles über 1,2 ist ein Schwerpunkt,
+      alles unter 0,9 nahezu vernachlässigbar.</p>
+    <div id="gewichte" class="mt-l"></div>
+
+    <div class="grid g2 mt-l">
+      <div class="card">
+        <h3>Die häufigsten Draftfehler</h3>
+        <ul style="color:var(--muted);padding-left:20px;margin:0">
+          <li>Eine Karte mit hohen Zahlen nehmen, obwohl sie auf Attribute zielt,
+            die deine Position kaum gewichtet.</li>
+          <li>Minuswerte vermeiden, auch wenn sie wirkungslos wären.</li>
+          <li>Nervenstärke ignorieren – sie zählt auf jeder Position und entscheidet Playoffs mit.</li>
+          <li>Als Verteidiger nur auf Schusskraft gehen. Defensive wiegt mit 1,6 deutlich schwerer.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Ein guter Draftplan</h3>
+        <ol style="color:var(--muted);padding-left:20px;margin:0">
+          <li>Runde 1 bis 3: die zwei bis drei am höchsten gewichteten Attribute stapeln.</li>
+          <li>Runde 4 bis 6: Lücken schliessen, damit kein Wert unter 45 fällt.</li>
+          <li>Runde 7 und 8: eine Charakterkarte für die Alterskurve oder die Playoffs.</li>
+        </ol>
+        <p class="small mt">Die drei Neumischungen im klassischen Modus sind kein Notnagel, sondern
+          Teil des Plans: Heb dir mindestens eine für die späten Runden auf, in denen der Kartenstapel
+          dünner wird.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ============ WERTUNG ============ -->
+<section class="block tight" id="wertung">
+  <div class="wrap">
+    <div class="grid g2" style="gap:40px;align-items:start">
+      <div>
+        <h2>So entsteht die Gesamtwertung</h2>
+        <p style="color:var(--muted)">Die Gesamtwertung ist ein gewichteter Mittelwert deiner Attribute –
+          nicht ihr Durchschnitt. Formel:</p>
+        <div class="card" style="font-family:ui-monospace,Consolas,monospace;font-size:14px;color:var(--accent)">
+          GES = Summe(Attribut × Gewicht) ÷ Summe(Gewichte)
+        </div>
+        <p style="color:var(--muted)" class="mt">Daraus folgen zwei Dinge. Erstens: ein sehr hoher Wert
+          auf einem stark gewichteten Attribut hebt die Gesamtwertung mehr als zwei mittlere Werte
+          auf unwichtigen. Zweitens: eine ausgeglichene Verteilung ist selten optimal.</p>
+        <p style="color:var(--muted)">Wichtig ist der Unterschied zwischen Grundwerten und Saisonwerten.
+          Was du im Draft baust, ist dein Potenzial. Was in einer Saison auf dem Eis steht,
+          ist dieses Potenzial multipliziert mit deiner Altersform.</p>
+      </div>
+      <div>
+        <h2>Alterskurve</h2>
+        <p style="color:var(--muted)">Der Normalverlauf hat seinen Scheitel bei 27 Jahren.
+          Zwei Karten verschieben ihn: „Das Wunderkind“ zieht die Kurve nach vorn und lässt sie früher
+          abfallen, „Der Spätzünder“ tut das Gegenteil.</p>
+        <div class="card">
+          <canvas id="kurve" width="520" height="260" style="width:100%;height:auto"></canvas>
+          <div class="row mt" style="gap:16px;font-size:13px">
+            <span style="color:var(--accent)">■ Normalverlauf</span>
+            <span style="color:var(--gold)">■ Wunderkind</span>
+            <span style="color:var(--green)">■ Spätzünder</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ============ PUNKTE ============ -->
+<section class="block tight" id="legendenpunkte">
+  <div class="wrap">
+    <h2>Legendenpunkte maximieren</h2>
+    <p class="lead">Am Ende zählt eine Zahl. Diese Tabelle zeigt, was sie füttert –
+      und wo sich Aufwand lohnt.</p>
+    <div class="table-scroll card mt-l" style="padding:8px 18px">
+      <table class="stats">
+        <thead><tr><th>Erfolg</th><th>Punkte</th><th>Wie oft erreichbar</th></tr></thead>
+        <tbody id="pkt-tabelle"></tbody>
+      </table>
+    </div>
+    <div class="grid g3 mt-l">
+      <div class="card">
+        <h3>Liga schlägt Spielzeit</h3>
+        <p style="color:var(--muted);font-size:15px;margin:0">Ein Meistertitel in der stärksten Liga
+          bringt mehr als vier Titel in einer mittleren. Wer Legendenpunkte will, muss nach oben.</p>
+      </div>
+      <div class="card">
+        <h3>Nation ist nicht egal</h3>
+        <p style="color:var(--muted);font-size:15px;margin:0">Olympiagold ist der wertvollste Einzeltitel.
+          Wer für eine starke Hockeynation spielt, bekommt öfter die Chance darauf – dafür ist
+          die Nominierung schwerer.</p>
+      </div>
+      <div class="card">
+        <h3>Länge zahlt sich aus</h3>
+        <p style="color:var(--muted);font-size:15px;margin:0">Jede zusätzliche Saison bringt Punkte,
+          Statistik und weitere Titelchancen. „Der Eisenmann“ und „Der Spätzünder“ sind deshalb
+          unterschätzte Karten.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ============ TRANSFERS ============ -->
+<section class="block tight" id="transfers">
+  <div class="wrap">
+    <h2>Angebote richtig lesen</h2>
+    <p class="lead">Bei jedem Vertragsende stehen zwei bis drei Klubs zur Wahl. Die Entscheidung
+      wirkt harmlos, entscheidet aber über den Großteil deiner Legendenpunkte.</p>
+
+    <div class="grid g3 mt-l">
+      <div class="card">
+        <h3>Teamstärke schlägt Gehalt</h3>
+        <p style="color:var(--muted);font-size:15px;margin:0">Geld bringt keine Legendenpunkte.
+          Die Teamstärke bestimmt, ob du die Playoffs erreichst und wie hoch deine Titelchance ist –
+          und Titel sind die größte Einzelquelle in der Wertung.</p>
+      </div>
+      <div class="card">
+        <h3>Aber nur, wenn du mitspielst</h3>
+        <p style="color:var(--muted);font-size:15px;margin:0">Deine Statistik hängt vom Abstand
+          zwischen deiner Wertung und dem Niveau der Liga ab. Wer mit 78 in die stärkste Liga wechselt,
+          sammelt dort weniger als mit 78 in einer mittleren Liga.</p>
+      </div>
+      <div class="card">
+        <h3>Lange Verträge sind ein Risiko</h3>
+        <p style="color:var(--muted);font-size:15px;margin:0">Vier Jahre bei einem Aufbauteam heißen
+          vier Jahre ohne Titelchance – auch wenn du in dieser Zeit deinen Höhepunkt erreichst.
+          In der Prime lohnt der kürzere Vertrag beim besseren Klub.</p>
+      </div>
+    </div>
+
+    <div class="card mt-l">
+      <h3>Faustregel nach Karrierephase</h3>
+      <div class="table-scroll">
+        <table class="stats">
+          <thead><tr><th>Alter</th><th>Ziel</th><th>Warum</th></tr></thead>
+          <tbody>
+            <tr><td>18–21</td><td>Eiszeit vor Prestige</td>
+              <td class="small">Junge Spieler stehen weit unter ihrem Potenzial. In einer zu starken
+                Liga sitzt du nur da und sammelst nichts.</td></tr>
+            <tr><td>22–25</td><td>Höchste erreichbare Liga</td>
+              <td class="small">Hier entsteht dein Bestwert – und Meistertitel wiegen nach Prestige
+                der Liga.</td></tr>
+            <tr><td>26–30</td><td>Titelkandidaten</td>
+              <td class="small">Deine Prime. Jede Saison ohne Titelchance ist verschenkt.</td></tr>
+            <tr><td>ab 31</td><td>Kurze Verträge, starke Teams</td>
+              <td class="small">Die Form fällt. Ein letzter Titel bringt mehr als drei ruhige Jahre
+                im Mittelfeld.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ============ TORHUETER ============ -->
+<section class="block tight" id="torhueter">
+  <div class="wrap narrow">
+    <h2>Sonderfall Torhüter</h2>
+    <p style="color:var(--muted)">Torhüter spielen ein anderes Spiel. Sie haben eigene Attribute,
+      eine eigene Statistik und eine eigene Punktequelle: Siege und Shutouts statt Toren und Vorlagen.</p>
+    <div class="grid g2 mt">
+      <div class="card">
+        <h3>Was du bauen solltest</h3>
+        <p style="color:var(--muted);font-size:15px;margin:0">Reflexe, Stellungsspiel und Konstanz sind
+          mit Abstand am höchsten gewichtet. Puckspiel dagegen ist ein Luxus – schön, aber es
+          gewinnt keine Serie.</p>
+      </div>
+      <div class="card">
+        <h3>Warum du mehr Einfluss hast</h3>
+        <p style="color:var(--muted);font-size:15px;margin:0">Der Einfluss eines Torhüters auf den
+          Teamerfolg ist in der Simulation deutlich höher als der eines Feldspielers.
+          Ein herausragender Schlussmann trägt auch ein mittelmäßiges Team in die Playoffs.</p>
+      </div>
+    </div>
+    <p class="small mt-l">Ein Nachteil bleibt: Die Einsatzzeit hängt von der Wertung ab.
+      Ein schwacher Torhüter sitzt auf der Bank und sammelt weder Statistik noch Punkte.</p>
+  </div>
+</section>
+
+<section class="block tight">
+  <div class="wrap center">
+    <h2>Bereit für den nächsten Versuch?</h2>
+    <div class="row" style="justify-content:center">
+      <a class="btn btn-primary" href="index.html#spielen">Karriere starten</a>
+      <a class="btn btn-ghost" href="taeglich.html">Tageskarriere spielen</a>
+    </div>
+  </div>
+</section>
+
+<div id="ftr"></div>
+
+<script src="assets/data.js"></script>
+<script src="assets/draft.js"></script>
+<script src="assets/engine.js"></script>
+<script src="assets/wappen.js"></script>
+<script src="assets/ui.js"></script>
+<script>
+/* ---- Gewichtstabelle ---- */
+(function(){
+  const skater = PUCKERO_DATA.POSITIONS.filter(p => p.group === 'skater');
+  const attrs = PUCKERO_DATA.ATTRS.skater;
+  const farbe = v => v >= 1.3 ? 'var(--green)' : (v <= .9 ? 'var(--dim)' : 'var(--text)');
+  const feld = `
+    <div class="table-scroll card" style="padding:8px 18px">
+      <table class="stats">
+        <thead><tr><th>Attribut</th>${skater.map(p => `<th>${p.k}</th>`).join('')}<th>Torhüter</th></tr></thead>
+        <tbody>
+          ${attrs.map(a => `<tr><td>${a.n}</td>${skater.map(p =>
+            `<td style="color:${farbe(p.w[a.k])}">${p.w[a.k].toFixed(2)}</td>`).join('')}
+            <td class="small">–</td></tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="table-scroll card mt" style="padding:8px 18px">
+      <table class="stats">
+        <thead><tr><th>Torhüter-Attribut</th><th>Gewicht</th></tr></thead>
+        <tbody>${PUCKERO_DATA.ATTRS.goalie.map(a => {
+          const w = PUCKERO.pos('G').w[a.k];
+          return `<tr><td>${a.n}</td><td style="color:${farbe(w)}">${w.toFixed(2)}</td></tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>`;
+  document.getElementById('gewichte').innerHTML = feld;
+})();
+
+/* ---- Punktetabelle ---- */
+(function(){
+  const zeilen = [];
+  PUCKERO_DATA.LEAGUES.filter(l => l.prestige >= 44).forEach(l =>
+    zeilen.push([l.title, l.prestige, 'einmal pro Saison']));
+  Object.values(PUCKERO_DATA.AWARDS).forEach(a => zeilen.push([a.n, a.pts, 'einmal pro Saison']));
+  Object.values(PUCKERO_DATA.INTL).forEach(a => zeilen.push([a.n, a.pts,
+    a.n.indexOf('Olympia') === 0 ? 'alle vier Jahre' : 'einmal pro Jahr']));
+  zeilen.push(['Je Punkt in der Karriere', '0,5', 'laufend']);
+  zeilen.push(['Je Sieg als Torhüter', '0,55', 'laufend']);
+  zeilen.push(['Je Shutout', '2,4', 'laufend']);
+  zeilen.push(['Je Profisaison', '3', 'laufend']);
+  zeilen.push(['Höchster Gesamtwert', '× 2,2', 'einmalig']);
+  zeilen.sort((a, b) => (parseFloat(b[1]) || 0) - (parseFloat(a[1]) || 0));
+  document.getElementById('pkt-tabelle').innerHTML = zeilen.map(z =>
+    `<tr><td>${z[0]}</td><td><b>${z[1]}</b></td><td class="small">${z[2]}</td></tr>`).join('');
+})();
+
+/* ---- Alterskurve ---- */
+(function(){
+  const c = document.getElementById('kurve');
+  if (!c || !c.getContext) return;
+  const ctx = c.getContext('2d');
+  const W = c.width, H = c.height, pad = 34;
+  const x = age => pad + (age - 18) / (40 - 18) * (W - pad * 2);
+  const y = f => H - pad - (f - .25) / (1.1 - .25) * (H - pad * 2);
+
+  ctx.strokeStyle = '#22304d'; ctx.lineWidth = 1;
+  ctx.fillStyle = '#64769a'; ctx.font = '11px Inter, sans-serif';
+  [18, 24, 27, 30, 34, 38].forEach(a => {
+    ctx.beginPath(); ctx.moveTo(x(a), pad - 8); ctx.lineTo(x(a), H - pad); ctx.stroke();
+    ctx.fillText(a, x(a) - 6, H - pad + 16);
+  });
+
+  const zeichne = (traits, farbe) => {
+    ctx.beginPath(); ctx.lineWidth = 2.5; ctx.strokeStyle = farbe;
+    for (let a = 18; a <= 40; a += 0.5){
+      const f = PUCKERO.formFactor(a, traits);
+      a === 18 ? ctx.moveTo(x(a), y(f)) : ctx.lineTo(x(a), y(f));
+    }
+    ctx.stroke();
+  };
+  zeichne({ jung:0, langlebig:0 }, '#38d1ff');
+  zeichne({ jung:16, langlebig:-10 }, '#ffc861');
+  zeichne({ jung:-6, langlebig:14 }, '#3ee08f');
+})();
+</script>
+</body>
+</html>

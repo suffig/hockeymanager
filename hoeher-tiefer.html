@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Höher oder tiefer – Stilkarten vergleichen | Puckero</title>
+<meta name="description" content="Zwei Eishockey-Stilkarten, ein Attribut, eine Frage: Welche Karte gibt mehr? Läuft, bis du dich zum ersten Mal irrst.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='12' fill='%230b1220' stroke='%2338d1ff' stroke-width='3'/></svg>">
+</head>
+<body data-nav="Spiele">
+<div id="hdr"></div>
+
+<section class="block tight">
+  <div class="wrap narrow">
+    <span class="eyebrow">Endlosmodus</span>
+    <h1 style="font-size:clamp(34px,5vw,58px)">Höher oder tiefer</h1>
+    <p class="lead">Links steht eine Stilkarte mit aufgedecktem Wert. Rechts eine zweite.
+      Gibt die rechte Karte auf demselben Attribut mehr oder weniger? Ein Fehler beendet die Serie.</p>
+
+    <div class="panel mt-l" id="spiel"></div>
+  </div>
+</section>
+
+<div id="ftr"></div>
+
+<script src="assets/data.js"></script>
+<script src="assets/draft.js"></script>
+<script src="assets/engine.js"></script>
+<script src="assets/wappen.js"></script>
+<script src="assets/ui.js"></script>
+<script>
+const root = document.getElementById('spiel');
+const ATTR_ALL = PUCKERO_DATA.ATTRS.skater.concat(PUCKERO_DATA.ATTRS.goalie);
+const NAME = k => (ATTR_ALL.find(a => a.k === k) || {}).n || k;
+const REKORD_KEY = 'puckero.hoehertiefer';
+
+let serie = 0, links = null, rechts = null, attr = null, r = null, gesperrt = false;
+
+function rekord(){ try { return +(localStorage.getItem(REKORD_KEY) || 0); } catch(e){ return 0; } }
+function setRekord(v){ try { localStorage.setItem(REKORD_KEY, String(v)); } catch(e){} }
+
+function wertVon(karte, k){ return karte.b[k] === undefined ? 0 : karte.b[k]; }
+
+/* Wählt ein Attribut, das die linke Karte hat, und eine rechte Karte,
+   die dasselbe Attribut ebenfalls verändert – sonst wäre der Vergleich beliebig. */
+function naechstesPaar(){
+  const keys = PUCKERO.shuffle(r, Object.keys(links.b));
+  for (const k of keys){
+    const pool = PUCKERO_DATA.LEGENDS.filter(l => l.id !== links.id && l.b[k] !== undefined);
+    if (pool.length){
+      attr = k;
+      rechts = PUCKERO.pick(r, pool);
+      return true;
+    }
+  }
+  return false;
+}
+
+function start(){
+  r = PUCKERO.rng(String(Date.now()) + Math.random());
+  serie = 0; gesperrt = false;
+  do { links = PUCKERO.pick(r, PUCKERO_DATA.LEGENDS); } while (!naechstesPaar());
+  zeichne();
+}
+
+function karteHtml(k, wertSichtbar, wert){
+  return `<div class="legend-card" style="cursor:default;text-align:center">
+    <span class="lc-tag">${k.tag}</span>
+    <div class="lc-name" style="font-size:27px">${k.n}</div>
+    <div class="lc-meta">${k.era} · ${k.pos.join('/')}</div>
+    <p class="small" style="color:var(--muted);min-height:40px">${k.desc}</p>
+    <div style="font-family:var(--display);font-size:46px;line-height:1;
+      color:${wertSichtbar ? (wert < 0 ? 'var(--red)' : 'var(--green)') : 'var(--dim)'}">
+      ${wertSichtbar ? (wert > 0 ? '+' : '') + wert : '?'}
+    </div>
+    <div class="small" style="letter-spacing:.1em;text-transform:uppercase">${NAME(attr)}</div>
+  </div>`;
+}
+
+function zeichne(feedback){
+  const lw = wertVon(links, attr);
+  root.innerHTML = `
+    <div class="panel-head">
+      <h3>Serie: ${serie}</h3>
+      <span class="pill gold">Rekord ${rekord()}</span>
+    </div>
+    <div class="panel-body">
+      <div class="grid g2">
+        ${karteHtml(links, true, lw)}
+        ${karteHtml(rechts, !!feedback, wertVon(rechts, attr))}
+      </div>
+      <div class="row mt-l" style="justify-content:center" id="knoepfe">
+        ${feedback ? '' : `
+          <button class="btn btn-primary" data-w="hoch">Mehr ▲</button>
+          <button class="btn btn-ghost" data-w="gleich">Gleich =</button>
+          <button class="btn btn-primary" data-w="tief">Weniger ▼</button>`}
+      </div>
+      <div id="fb" class="center mt-l">${feedback || ''}</div>
+    </div>`;
+  root.querySelectorAll('#knoepfe .btn').forEach(b => b.onclick = () => antwort(b.dataset.w));
+}
+
+function antwort(wahl){
+  if (gesperrt) return;
+  gesperrt = true;
+  const lw = wertVon(links, attr), rw = wertVon(rechts, attr);
+  const richtig = (wahl === 'hoch' && rw > lw) || (wahl === 'tief' && rw < lw) || (wahl === 'gleich' && rw === lw);
+
+  if (richtig){
+    serie++;
+    if (serie > rekord()) setRekord(serie);
+    zeichne(`<p style="color:var(--green);font-weight:700;font-size:18px">Richtig – ${serie} in Folge</p>
+      <button class="btn btn-primary mt" id="weiter">Weiter</button>`);
+    document.getElementById('weiter').onclick = () => {
+      links = rechts;
+      if (!naechstesPaar()){ start(); return; }
+      gesperrt = false;
+      zeichne();
+    };
+  } else {
+    zeichne(`<p style="color:var(--red);font-weight:700;font-size:18px">Vorbei.
+      ${rechts.n} gibt ${rw > 0 ? '+' : ''}${rw} auf ${NAME(attr)}.</p>
+      <p class="lead" style="margin:0 auto">Endstand: ${serie} richtige Vergleiche.</p>
+      <div class="row mt-l" style="justify-content:center">
+        <button class="btn btn-primary" id="nochmal">Nochmal</button>
+        <a class="btn btn-ghost" href="index.html#spielen">Karriere starten</a>
+      </div>`);
+    document.getElementById('nochmal').onclick = start;
+  }
+}
+
+start();
+</script>
+</body>
+</html>

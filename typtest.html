@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Welcher Eishockeytyp bist du? – Test | Puckero</title>
+<meta name="description" content="Acht Fragen zu Risiko, Verantwortung und Nerven. Am Ende steht deine Position, dein Spielstil und eine passende Startkarte für die Karriere.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='12' fill='%230b1220' stroke='%2338d1ff' stroke-width='3'/></svg>">
+</head>
+<body data-nav="Spiele">
+<div id="hdr"></div>
+
+<section class="block tight">
+  <div class="wrap narrow">
+    <span class="eyebrow">Acht Fragen</span>
+    <h1 style="font-size:clamp(34px,5vw,58px)">Welcher Eishockeytyp bist du?</h1>
+    <p class="lead">Keine Trickfragen, keine Punkte. Nur acht Situationen und die Frage,
+      was du in ihnen tun würdest.</p>
+    <div class="panel mt-l" id="test"></div>
+  </div>
+</section>
+
+<div id="ftr"></div>
+
+<script src="assets/data.js"></script>
+<script src="assets/draft.js"></script>
+<script src="assets/engine.js"></script>
+<script src="assets/wappen.js"></script>
+<script src="assets/ui.js"></script>
+<script>
+/* Achsen: T = Tempo/Risiko, S = Struktur/Defensive, F = Führung, A = Abschluss, G = Torhüter-Neigung */
+const FRAGEN = [
+  { q:'Dein Team führt 2:1, noch zwei Minuten. Der Puck liegt vor dir an der eigenen blauen Linie.',
+    a:[
+      { t:'Rausschiessen. Uhr läuft, Risiko null.', v:{ S:3 } },
+      { t:'Kurzer Pass an die Bande, ruhig aufbauen.', v:{ S:2, F:1 } },
+      { t:'Selbst laufen – ein Konter beendet das Spiel.', v:{ T:3, A:1 } },
+      { t:'Ich stehe sowieso im Tor und rufe die Anweisung.', v:{ G:3, F:1 } }
+    ]},
+  { q:'Der Trainer sucht jemanden für die letzte Reihe im Überzahlspiel.',
+    a:[
+      { t:'Halblinks in den Onetimer-Kreis.', v:{ A:3 } },
+      { t:'An die blaue Linie, ich verteile.', v:{ F:2, S:1 } },
+      { t:'Vor das Tor, ich nehme die Schläge.', v:{ S:2, A:1 } },
+      { t:'Ich nutze die Pause und trinke was.', v:{ G:2 } }
+    ]},
+  { q:'Ein Gegner checkt deinen jungen Mitspieler von hinten.',
+    a:[
+      { t:'Ich stehe sofort daneben, das klärt sich jetzt.', v:{ F:3, S:1 } },
+      { t:'Ich hole mir das Tor als Antwort.', v:{ A:2, T:1 } },
+      { t:'Ich hole den Schiedsrichter dazu.', v:{ S:2 } },
+      { t:'Ich bleibe im Tor und schreie von hinten.', v:{ G:2, F:1 } }
+    ]},
+  { q:'Was ist dir in einem Spiel am wichtigsten?',
+    a:[
+      { t:'Kein Gegentor bei eigenem Bully.', v:{ S:3 } },
+      { t:'Mindestens ein Scorerpunkt.', v:{ A:3 } },
+      { t:'Die höchste Eiszeit der Mannschaft.', v:{ F:2, S:1 } },
+      { t:'Ein Spiel ohne Gegentor.', v:{ G:3 } }
+    ]},
+  { q:'Penaltyschiessen, Stand unentschieden. Du bist dran.',
+    a:[
+      { t:'Handgelenkschuss unter die Latte, kein Zögern.', v:{ A:3 } },
+      { t:'Tempo aufnehmen und in die Ecke ziehen.', v:{ T:3 } },
+      { t:'Ich lasse jemand anderem den Vortritt.', v:{ S:2 } },
+      { t:'Ich freue mich, weil ich haltend dran bin.', v:{ G:3 } }
+    ]},
+  { q:'Wie bereitest du dich auf ein Spitzenspiel vor?',
+    a:[
+      { t:'Videostudium der gegnerischen Formation.', v:{ S:2, F:1 } },
+      { t:'Musik laut, Kopf leer, Adrenalin hoch.', v:{ T:3 } },
+      { t:'Kabinenansprache, ich rede gern.', v:{ F:3 } },
+      { t:'Immer exakt dieselbe Routine, Minute für Minute.', v:{ G:2, S:1 } }
+    ]},
+  { q:'Du hast fünf Spiele ohne Punkt. Was jetzt?',
+    a:[
+      { t:'Mehr schiessen. Irgendwann fällt einer.', v:{ A:3 } },
+      { t:'Auf die anderen Aufgaben konzentrieren.', v:{ S:3 } },
+      { t:'Zusatzschichten aufs Eis, bis es sitzt.', v:{ F:2, T:1 } },
+      { t:'Ruhig bleiben, Statistik ist ein langer Zeitraum.', v:{ G:2, S:1 } }
+    ]},
+  { q:'Welche Auszeichnung wäre dir am liebsten?',
+    a:[
+      { t:'Torjägerkanone.', v:{ A:3 } },
+      { t:'Bester Verteidiger.', v:{ S:3 } },
+      { t:'Playoff-MVP.', v:{ F:3 } },
+      { t:'Bester Torhüter.', v:{ G:3 } }
+    ]}
+];
+
+const root = document.getElementById('test');
+let i = 0;
+const score = { T:0, S:0, F:0, A:0, G:0 };
+
+function zeige(){
+  if (i >= FRAGEN.length) return auswertung();
+  const f = FRAGEN[i];
+  root.innerHTML = `
+    <div class="panel-head">
+      <h3>Frage ${i + 1} von ${FRAGEN.length}</h3>
+      <div class="step-dots">${FRAGEN.map((_, n) =>
+        `<span class="dot ${n <= i ? 'on' : ''}"></span>`).join('')}</div>
+    </div>
+    <div class="panel-body">
+      <p class="lead" style="color:var(--text);font-size:19px">${f.q}</p>
+      <div class="grid mt-l" id="opts">
+        ${f.a.map((o, n) => `<button class="choice" data-n="${n}"
+           style="text-align:left;padding:15px 18px;border-radius:12px;font-weight:550">${o.t}</button>`).join('')}
+      </div>
+    </div>`;
+  root.querySelectorAll('#opts .choice').forEach(b => b.onclick = () => {
+    Object.entries(f.a[+b.dataset.n].v).forEach(([k, v]) => score[k] += v);
+    i++; zeige();
+  });
+}
+
+function auswertung(){
+  const gesamt = Object.values(score).reduce((a, b) => a + b, 0) || 1;
+  let posK, typ, text;
+  if (score.G >= 9){
+    posK = 'G'; typ = 'Der ruhige Rückhalt';
+    text = 'Du willst die Verantwortung, aber nicht das Rampenlicht. '
+         + 'Im Tor entscheidet Konstanz über ganze Serien – und Konstanz ist deine Sache.';
+  } else if (score.A >= score.S && score.A >= score.F && score.A >= score.T){
+    posK = 'RW'; typ = 'Der Abschlussjäger';
+    text = 'Du misst dich an Ergebnissen. Fünf Torschüsse ohne Treffer sind für dich ein schlechter Abend, '
+         + 'auch wenn das Team gewinnt.';
+  } else if (score.S > score.F && score.S >= score.T){
+    posK = 'D'; typ = 'Der Absicherer';
+    text = 'Du denkst zuerst an das eigene Drittel. Deine Stärke fällt niemandem auf, '
+         + 'solange sie da ist – und sofort, wenn sie fehlt.';
+  } else if (score.F >= score.T){
+    posK = 'C'; typ = 'Der Taktgeber';
+    text = 'Du übernimmst, wenn es unangenehm wird. Bullys, Unterzahl, letzte Minute: '
+         + 'Du willst auf dem Eis stehen, wenn es zählt.';
+  } else {
+    posK = 'LW'; typ = 'Der Tempospieler';
+    text = 'Du suchst die Lücke, nicht die Absicherung. Das geht oft schief – und wenn es klappt, '
+         + 'sieht es aus wie ein Highlight.';
+  }
+
+  const P = PUCKERO.pos(posK);
+  const karten = PUCKERO_DATA.LEGENDS.filter(l => l.pos.includes(posK));
+  const empfehlung = karten.slice().sort((a, b) => {
+    const w = P.w, s = o => Object.entries(o.b).reduce((t, [k, v]) => t + v * (w[k] || 0), 0);
+    return s(b) - s(a);
+  })[0];
+
+  const werte = [
+    ['Tempo &amp; Risiko', score.T], ['Struktur', score.S],
+    ['Führung', score.F], ['Abschluss', score.A], ['Torhüter-Neigung', score.G]
+  ];
+
+  root.innerHTML = `
+    <div class="panel-head"><h3>Dein Ergebnis</h3><span class="pill">${P.n}</span></div>
+    <div class="panel-body">
+      <h2 style="margin-bottom:6px">${typ}</h2>
+      <p class="lead">${text}</p>
+
+      <div class="grid g2 mt-l">
+        <div class="card">
+          <h3>Deine Position</h3>
+          <p style="color:var(--muted);margin-bottom:12px">${P.n} – ${P.desc}</p>
+          <h3 class="mt">Empfohlene Startkarte</h3>
+          <div class="legend-card" style="cursor:default">
+            <span class="lc-tag">${empfehlung.tag}</span>
+            <div class="lc-name">${empfehlung.n}</div>
+            <div class="lc-meta">${empfehlung.era} · ${empfehlung.pos.join('/')}</div>
+            <p class="small" style="margin:0;color:var(--muted)">${empfehlung.desc}</p>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Dein Profil</h3>
+          <div class="attrs" style="grid-template-columns:1fr">
+            ${werte.map(([n, v]) => `<div class="attr">
+              <span class="n">${n}</span>
+              <span class="bar"><i style="width:${Math.round(v / gesamt * 260)}%"></i></span>
+              <span class="v">${v}</span></div>`).join('')}
+          </div>
+        </div>
+      </div>
+
+      <div class="row mt-l">
+        <a class="btn btn-primary" href="index.html#spielen">Als ${P.n} Karriere starten</a>
+        <button class="btn btn-ghost" id="nochmal">Test wiederholen</button>
+      </div>
+    </div>`;
+  document.getElementById('nochmal').onclick = () => {
+    i = 0; Object.keys(score).forEach(k => score[k] = 0); zeige();
+  };
+}
+
+zeige();
+</script>
+</body>
+</html>

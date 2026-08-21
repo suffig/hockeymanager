@@ -1,0 +1,694 @@
+/* ==========================================================
+   Puckero - Eishockey-Karriere-Simulator
+   Gemeinsames Stylesheet
+   ========================================================== */
+
+:root{
+  --ice-900:#05080f;
+  --ice-850:#080d18;
+  --ice-800:#0b1220;
+  --ice-700:#111a2c;
+  --ice-600:#1a2540;
+  --line:#22304d;
+  --line-soft:#1a2338;
+
+  --text:#e8eefc;
+  --muted:#8ea1c4;
+  --dim:#64769a;
+
+  --accent:#38d1ff;
+  --accent-2:#7c6bff;
+  --gold:#ffc861;
+  --green:#3ee08f;
+  --red:#ff6b7a;
+
+  --radius:16px;
+  --radius-sm:10px;
+  --maxw:1140px;
+  --shadow:0 18px 50px -20px rgba(0,0,0,.85);
+  --font:"Inter","Segoe UI",system-ui,-apple-system,sans-serif;
+  --display:"Bebas Neue","Arial Narrow",Impact,sans-serif;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0;
+  font-family:var(--font);
+  color:var(--text);
+  background:
+    radial-gradient(1100px 600px at 15% -10%, rgba(56,209,255,.14), transparent 60%),
+    radial-gradient(900px 600px at 90% 0%, rgba(124,107,255,.13), transparent 55%),
+    var(--ice-900);
+  background-attachment:fixed;
+  line-height:1.6;
+  -webkit-font-smoothing:antialiased;
+}
+img{max-width:100%;display:block}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 20px}
+.narrow{max-width:820px}
+
+h1,h2,h3{line-height:1.15;margin:0 0 .5em}
+h1{font-family:var(--display);font-size:clamp(38px,6.4vw,74px);letter-spacing:.5px;font-weight:400}
+h2{font-family:var(--display);font-size:clamp(28px,3.6vw,42px);letter-spacing:.5px;font-weight:400}
+h3{font-size:19px;font-weight:650;letter-spacing:-.01em}
+p{margin:0 0 1em}
+.lead{font-size:18px;color:var(--muted);max-width:62ch}
+.small{font-size:13px;color:var(--dim)}
+.center{text-align:center}
+.center .lead{margin-left:auto;margin-right:auto}
+
+/* ---------- Header ---------- */
+header.site{
+  position:sticky;top:0;z-index:50;
+  backdrop-filter:blur(14px);
+  background:rgba(5,8,15,.82);
+  border-bottom:1px solid var(--line-soft);
+}
+.nav{display:flex;align-items:center;gap:26px;height:64px}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-size:26px;letter-spacing:1px;color:var(--text)}
+.brand:hover{text-decoration:none}
+.brand .puck{
+  width:26px;height:26px;border-radius:50%;
+  background:linear-gradient(160deg,#2b3550,#0a0f1c);
+  border:2px solid var(--accent);
+  box-shadow:0 0 18px rgba(56,209,255,.45);
+}
+.nav nav{display:flex;gap:22px;margin-left:auto;flex-wrap:wrap}
+.nav nav a{color:var(--muted);font-size:14.5px;font-weight:550}
+.nav nav a:hover,.nav nav a.active{color:var(--text);text-decoration:none}
+.menu-btn{display:none;margin-left:auto;background:none;border:1px solid var(--line);color:var(--text);
+  border-radius:9px;padding:7px 11px;font-size:16px;cursor:pointer}
+
+/* ---------- Buttons ---------- */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  padding:13px 24px;border-radius:999px;border:1px solid transparent;
+  font-weight:650;font-size:15px;cursor:pointer;font-family:var(--font);
+  transition:transform .12s ease, filter .18s ease, background .18s ease;
+  text-decoration:none;
+}
+.btn:hover{text-decoration:none;transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn-primary{background:linear-gradient(120deg,var(--accent),#4aa8ff);color:#04121c;box-shadow:0 10px 28px -12px rgba(56,209,255,.8)}
+.btn-primary:hover{filter:brightness(1.08)}
+.btn-ghost{background:rgba(255,255,255,.04);border-color:var(--line);color:var(--text)}
+.btn-ghost:hover{background:rgba(255,255,255,.08)}
+.btn-gold{background:linear-gradient(120deg,var(--gold),#ffa63d);color:#241500}
+.btn-sm{padding:9px 16px;font-size:13.5px}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* ---------- Cards ---------- */
+.card{
+  background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));
+  border:1px solid var(--line-soft);
+  border-radius:var(--radius);
+  padding:22px;
+}
+.card.pad-lg{padding:28px}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(2,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g4{grid-template-columns:repeat(4,1fr)}
+
+section.block{padding:64px 0}
+section.block.tight{padding:40px 0}
+
+.eyebrow{
+  display:inline-block;font-size:12px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--accent);font-weight:700;margin-bottom:12px;
+}
+.divider{height:1px;background:var(--line-soft);border:0;margin:0}
+
+/* ---------- Hero ---------- */
+.hero{padding:72px 0 44px;position:relative;overflow:hidden}
+.hero .rink-lines{
+  position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background:
+    linear-gradient(90deg,transparent 49.7%,rgba(255,80,90,.18) 49.7%,rgba(255,80,90,.18) 50.3%,transparent 50.3%),
+    radial-gradient(circle at 50% 120%, rgba(56,209,255,.10), transparent 55%);
+}
+.hero h1{margin-bottom:14px}
+.hero .lead{font-size:19px}
+.hero-cta{display:flex;gap:12px;flex-wrap:wrap;margin-top:26px}
+.badges{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+.badge{
+  font-size:12.5px;color:var(--muted);border:1px solid var(--line);
+  padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.03)
+}
+
+/* ---------- Game panel ---------- */
+.panel{
+  border:1px solid var(--line);
+  border-radius:20px;
+  background:linear-gradient(180deg,var(--ice-800),var(--ice-850));
+  box-shadow:var(--shadow);
+  overflow:hidden;
+}
+.panel-head{
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:16px 22px;border-bottom:1px solid var(--line-soft);
+  background:rgba(255,255,255,.02);
+}
+.panel-head h2,.panel-head h3{margin:0}
+.panel-body{padding:26px 22px}
+.step-dots{display:flex;gap:6px;margin-left:auto}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--line);transition:.2s}
+.dot.on{background:var(--accent);box-shadow:0 0 10px var(--accent)}
+
+/* ---------- Forms ---------- */
+label.field{display:block;margin-bottom:16px}
+label.field > span{display:block;font-size:12.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:7px;font-weight:700}
+input[type=text],input[type=number],select{
+  width:100%;padding:12px 14px;border-radius:var(--radius-sm);
+  background:var(--ice-700);border:1px solid var(--line);color:var(--text);
+  font-size:15px;font-family:var(--font);
+}
+input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(56,209,255,.15)}
+.choice-row{display:flex;gap:9px;flex-wrap:wrap}
+.choice{
+  padding:10px 16px;border-radius:999px;border:1px solid var(--line);
+  background:rgba(255,255,255,.03);color:var(--muted);cursor:pointer;font-size:14px;
+  font-weight:600;transition:.15s;font-family:var(--font);
+}
+.choice:hover{border-color:var(--accent);color:var(--text)}
+.choice.on{background:var(--accent);border-color:var(--accent);color:#04121c}
+
+/* ---------- Draft-Karten ---------- */
+.draft-grid{display:grid;gap:14px;grid-template-columns:repeat(3,1fr)}
+.legend-card{
+  position:relative;text-align:left;cursor:pointer;
+  border:1px solid var(--line);border-radius:14px;padding:18px;
+  background:linear-gradient(180deg,rgba(56,209,255,.06),rgba(255,255,255,.015));
+  color:var(--text);font-family:var(--font);transition:.16s;
+}
+.legend-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 14px 34px -18px rgba(56,209,255,.7)}
+.legend-card .lc-name{font-family:var(--display);font-size:24px;letter-spacing:.5px;line-height:1}
+.legend-card .lc-meta{font-size:12px;color:var(--dim);margin:6px 0 12px;text-transform:uppercase;letter-spacing:.08em}
+.legend-card .lc-tag{
+  display:inline-block;font-size:11px;padding:3px 9px;border-radius:999px;
+  background:rgba(56,209,255,.14);color:var(--accent);margin-bottom:10px;font-weight:700;
+  letter-spacing:.06em;text-transform:uppercase;
+}
+.lc-boosts{display:flex;flex-direction:column;gap:5px;font-size:13px}
+.lc-boosts .b{display:flex;justify-content:space-between;color:var(--muted)}
+.lc-boosts .b b{color:var(--green);font-variant-numeric:tabular-nums}
+.lc-boosts .b b.neg{color:var(--red)}
+
+/* ---------- Attributsbalken ---------- */
+.attrs{display:grid;gap:9px;grid-template-columns:repeat(2,1fr)}
+.attr{display:grid;grid-template-columns:124px 1fr 34px;align-items:center;gap:10px;font-size:13px}
+.attr .n{color:var(--muted)}
+.attr .v{text-align:right;font-weight:700;font-variant-numeric:tabular-nums}
+.bar{height:7px;border-radius:99px;background:var(--ice-600);overflow:hidden}
+.bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .5s ease}
+.bar i.hi{background:linear-gradient(90deg,var(--green),#9ff59b)}
+.bar i.lo{background:linear-gradient(90deg,#f2705f,var(--red))}
+
+/* ---------- Gesamtwertung ---------- */
+.ovr{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  width:96px;height:96px;border-radius:20px;flex:none;
+  background:linear-gradient(155deg,var(--accent),var(--accent-2));
+  color:#04121c;
+}
+.ovr b{font-family:var(--display);font-size:44px;line-height:.9}
+.ovr span{font-size:10px;letter-spacing:.16em;text-transform:uppercase;font-weight:800}
+.ovr.gold{background:linear-gradient(155deg,var(--gold),#ff9d33);color:#2a1800}
+
+/* ---------- Saison / Verlauf ---------- */
+.season{
+  border:1px solid var(--line-soft);border-radius:14px;padding:16px 18px;
+  background:rgba(255,255,255,.025);margin-bottom:12px;
+}
+.season-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px}
+.season-head .yr{font-family:var(--display);font-size:22px;letter-spacing:1px;color:var(--accent)}
+.season-head .club{font-weight:700}
+.season-head .lg{font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}
+.statline{display:flex;gap:18px;flex-wrap:wrap;font-size:13.5px;color:var(--muted)}
+.statline b{color:var(--text);font-variant-numeric:tabular-nums}
+.season .events{margin-top:10px;display:flex;flex-direction:column;gap:5px;font-size:13.5px;color:var(--muted)}
+.season .events .ev::before{content:"\25B8  ";color:var(--accent)}
+.season .events .ev.good::before{content:"\2605  ";color:var(--gold)}
+.season .events .ev.bad::before{content:"\2715  ";color:var(--red)}
+
+.trophy-list{display:flex;flex-wrap:wrap;gap:8px}
+.trophy{
+  display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;
+  padding:7px 13px;border-radius:999px;
+  background:rgba(255,200,97,.1);border:1px solid rgba(255,200,97,.28);color:var(--gold);
+}
+.trophy .x{color:var(--muted);font-weight:700}
+
+table.stats{width:100%;border-collapse:collapse;font-size:13.5px}
+table.stats th,table.stats td{padding:9px 10px;text-align:right;border-bottom:1px solid var(--line-soft)}
+table.stats th:first-child,table.stats td:first-child{text-align:left}
+table.stats th{color:var(--dim);font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+table.stats td{font-variant-numeric:tabular-nums}
+table.stats tr.total td{font-weight:800;border-top:2px solid var(--line);border-bottom:0}
+.table-scroll{overflow-x:auto}
+
+/* ---------- Spiele-Kacheln ---------- */
+.tile{
+  display:block;border:1px solid var(--line-soft);border-radius:var(--radius);
+  padding:20px;background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.012));
+  color:var(--text);transition:.16s;height:100%;
+}
+.tile:hover{text-decoration:none;border-color:var(--accent);transform:translateY(-3px)}
+.tile .ico{font-size:26px;margin-bottom:10px}
+.tile h3{margin-bottom:6px}
+.tile p{font-size:14px;color:var(--muted);margin:0}
+.tile .time{font-size:11.5px;color:var(--accent);letter-spacing:.08em;text-transform:uppercase;font-weight:700;margin-top:10px;display:block}
+
+/* ---------- FAQ ---------- */
+details.faq{border-bottom:1px solid var(--line-soft);padding:16px 0}
+details.faq summary{cursor:pointer;font-weight:650;font-size:16px;list-style:none;display:flex;gap:12px;align-items:flex-start}
+details.faq summary::-webkit-details-marker{display:none}
+details.faq summary::before{content:"+";color:var(--accent);font-weight:800;font-size:19px;line-height:1.3}
+details.faq[open] summary::before{content:"\2013"}
+details.faq p{margin:12px 0 0 24px;color:var(--muted);font-size:15px}
+
+/* ---------- Schritte ---------- */
+.steps{counter-reset:s;display:grid;gap:18px}
+.step{position:relative;padding-left:56px}
+.step::before{
+  counter-increment:s;content:counter(s);
+  position:absolute;left:0;top:0;width:38px;height:38px;border-radius:11px;
+  display:grid;place-items:center;font-family:var(--display);font-size:21px;
+  background:rgba(56,209,255,.12);color:var(--accent);border:1px solid rgba(56,209,255,.3);
+}
+
+/* ---------- Footer ---------- */
+footer.site{border-top:1px solid var(--line-soft);padding:44px 0 30px;margin-top:40px;background:rgba(0,0,0,.25)}
+footer.site .cols{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:26px}
+footer.site h4{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin:0 0 12px}
+footer.site ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px}
+footer.site a{color:var(--muted);font-size:14px}
+footer.site a:hover{color:var(--text)}
+.foot-bottom{margin-top:30px;padding-top:18px;border-top:1px solid var(--line-soft);
+  display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--dim)}
+
+/* ---------- Hilfsklassen ---------- */
+.hidden{display:none !important}
+.row{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.row.between{justify-content:space-between}
+.mt{margin-top:18px}
+.mt-l{margin-top:32px}
+.mb0{margin-bottom:0}
+.pill{font-size:12px;padding:4px 11px;border-radius:999px;background:rgba(255,255,255,.06);color:var(--muted);border:1px solid var(--line)}
+.pill.gold{background:rgba(255,200,97,.12);color:var(--gold);border-color:rgba(255,200,97,.3)}
+.pill.green{background:rgba(62,224,143,.12);color:var(--green);border-color:rgba(62,224,143,.3)}
+.toast{
+  position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+  background:var(--ice-700);border:1px solid var(--line);padding:12px 20px;border-radius:999px;
+  font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:99;
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+@media (max-width:900px){
+  .g4{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(2,1fr)}
+  footer.site .cols{grid-template-columns:1fr 1fr}
+}
+@media (max-width:680px){
+  .nav nav{display:none;width:100%;flex-direction:column;gap:2px;padding-bottom:14px}
+  .nav.open{height:auto;flex-wrap:wrap;padding-bottom:8px}
+  .nav.open nav{display:flex}
+  .menu-btn{display:block}
+  .g2,.g3,.g4{grid-template-columns:1fr}
+  .draft-grid{grid-template-columns:1fr}
+  .attrs{grid-template-columns:1fr}
+  section.block{padding:44px 0}
+  .hero{padding:44px 0 30px}
+}
+
+/* ==========================================================
+   Animationen und Farbakzente
+   ========================================================== */
+
+@keyframes fadeUp   { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:none} }
+@keyframes popIn    { 0%{opacity:0;transform:scale(.86)} 60%{transform:scale(1.04)} 100%{opacity:1;transform:scale(1)} }
+@keyframes glanz    { 0%{background-position:-220% 0} 100%{background-position:220% 0} }
+@keyframes pulsRing { 0%{box-shadow:0 0 0 0 rgba(255,200,97,.55)} 70%{box-shadow:0 0 0 16px rgba(255,200,97,0)} 100%{box-shadow:0 0 0 0 rgba(255,200,97,0)} }
+@keyframes konfetti { 0%{transform:translateY(-10vh) rotate(0);opacity:1} 100%{transform:translateY(105vh) rotate(720deg);opacity:0} }
+@keyframes barGrow  { from{width:0} }
+@keyframes wippe    { 0%,100%{transform:rotate(-6deg)} 50%{transform:rotate(6deg)} }
+
+.anim      { animation:fadeUp .4s ease both }
+.anim-pop  { animation:popIn .35s ease both }
+.stagger > *          { animation:fadeUp .4s ease both }
+.stagger > *:nth-child(1){animation-delay:.04s}
+.stagger > *:nth-child(2){animation-delay:.10s}
+.stagger > *:nth-child(3){animation-delay:.16s}
+.stagger > *:nth-child(4){animation-delay:.22s}
+.stagger > *:nth-child(5){animation-delay:.28s}
+.stagger > *:nth-child(6){animation-delay:.34s}
+
+.bar i { animation:barGrow .7s cubic-bezier(.2,.8,.25,1) both }
+
+/* Frisch gespielte Saison hervorheben */
+.season.neu{
+  border-color:rgba(56,209,255,.45);
+  box-shadow:0 0 0 1px rgba(56,209,255,.18), 0 18px 40px -26px rgba(56,209,255,.9);
+  animation:fadeUp .45s ease both;
+}
+.season.titel{
+  border-color:rgba(255,200,97,.5);
+  background:linear-gradient(180deg,rgba(255,200,97,.09),rgba(255,255,255,.02));
+}
+.season.sternstunde{
+  border-color:rgba(124,107,255,.55);
+  background:linear-gradient(180deg,rgba(124,107,255,.12),rgba(255,255,255,.02));
+}
+
+/* Ligafarben */
+.lgtag{
+  display:inline-block;font-size:11px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+  padding:3px 9px;border-radius:6px;border:1px solid currentColor;
+}
+.lg-NHL{color:#6fb4ff;background:rgba(111,180,255,.12)}
+.lg-KHL{color:#ff8f8f;background:rgba(255,143,143,.12)}
+.lg-SHL{color:#ffd76a;background:rgba(255,215,106,.12)}
+.lg-NL {color:#ff9d9d;background:rgba(255,157,157,.12)}
+.lg-LII{color:#8fd6ff;background:rgba(143,214,255,.12)}
+.lg-DEL{color:#ffb27a;background:rgba(255,178,122,.12)}
+.lg-CZE{color:#a0e6ff;background:rgba(160,230,255,.12)}
+.lg-AHL{color:#a9b6cf;background:rgba(169,182,207,.1)}
+.lg-JUN{color:#8ee6b8;background:rgba(142,230,184,.12)}
+
+/* Goldener Glanz auf Titeln */
+.trophy.gross{
+  font-size:14px;padding:9px 15px;
+  background:linear-gradient(100deg,rgba(255,200,97,.14),rgba(255,200,97,.28),rgba(255,200,97,.14));
+  background-size:220% 100%;
+  animation:glanz 3.4s linear infinite;
+}
+.ovr.puls{ animation:pulsRing 2.2s ease-out 3 }
+
+/* Statistikraster */
+.statgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:10px}
+.statbox{
+  background:rgba(255,255,255,.04);border:1px solid var(--line-soft);
+  border-radius:12px;padding:11px 13px;text-align:center;
+}
+.statbox b{display:block;font-family:var(--display);font-size:27px;line-height:1.05;color:var(--accent)}
+.statbox b.gold{color:var(--gold)}
+.statbox b.gruen{color:var(--green)}
+.statbox span{font-size:11px;color:var(--dim);letter-spacing:.07em;text-transform:uppercase}
+
+/* Erzähltext */
+.story{
+  margin-top:10px;padding:9px 14px;border-left:3px solid var(--accent-2);
+  background:rgba(124,107,255,.08);border-radius:0 10px 10px 0;
+  font-size:14px;color:var(--muted);font-style:italic;
+}
+
+/* Nationalmannschaft */
+.natzeile{
+  display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center;
+  padding:9px 0;border-bottom:1px solid var(--line-soft);font-size:14px;
+}
+.natzeile .jahr{font-family:var(--display);font-size:19px;color:var(--accent);letter-spacing:.5px}
+.medaille{font-size:19px;display:inline-block}
+.medaille.gold{animation:wippe 2.6s ease-in-out infinite;transform-origin:50% 0}
+
+/* Konfetti bei Titeln */
+.konfetti{position:fixed;inset:0;pointer-events:none;z-index:80;overflow:hidden}
+.konfetti i{
+  position:absolute;top:0;width:9px;height:14px;border-radius:2px;
+  animation:konfetti linear forwards;
+}
+
+/* Kapitänsbinde */
+.kapitaen-c{
+  display:inline-grid;place-items:center;width:20px;height:20px;border-radius:5px;
+  background:var(--gold);color:#241500;font-weight:900;font-size:12px;
+}
+
+@media (prefers-reduced-motion: reduce){
+  .anim,.anim-pop,.stagger > *,.season.neu,.bar i,.trophy.gross,.ovr.puls,.medaille.gold{
+    animation:none !important;
+  }
+  .konfetti{display:none}
+}
+
+/* ==========================================================
+   Wappen und Pokalvitrine
+   ========================================================== */
+
+.wappen{
+  flex:none;display:inline-block;vertical-align:middle;
+  filter:drop-shadow(0 3px 6px rgba(0,0,0,.5));
+  animation:popIn .38s ease both;
+}
+.klubname{display:inline-flex;align-items:center;gap:9px}
+
+.panel-head .wappen{margin-right:-4px}
+
+/* Vitrine */
+.vitrine{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:12px;
+}
+.pokalkarte{
+  position:relative;text-align:center;padding:14px 8px 11px;border-radius:14px;
+  background:linear-gradient(180deg,rgba(255,200,97,.10),rgba(255,255,255,.02));
+  border:1px solid rgba(255,200,97,.24);
+  transition:transform .18s ease, box-shadow .18s ease;
+}
+.pokalkarte:hover{
+  transform:translateY(-4px);
+  box-shadow:0 16px 34px -20px rgba(255,200,97,.9);
+}
+.pokalbild{display:grid;place-items:center;height:52px;margin-bottom:8px}
+.pokalbild .pokal{filter:drop-shadow(0 4px 8px rgba(0,0,0,.55));animation:popIn .4s ease both}
+.pokalname{
+  font-size:11.5px;line-height:1.3;color:var(--muted);
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;
+}
+.pokalzahl{
+  position:absolute;top:7px;right:7px;
+  background:var(--gold);color:#241500;font-weight:800;font-size:11px;
+  padding:1px 7px;border-radius:999px;
+}
+
+/* Ligapyramide auf der Startseite */
+.pyramide{display:grid;gap:8px}
+.pyramide .stufe{
+  display:grid;grid-template-columns:120px 1fr auto;gap:14px;align-items:center;
+  padding:11px 15px;border-radius:12px;border:1px solid var(--line-soft);
+  background:rgba(255,255,255,.03);
+}
+.pyramide .stufe b{font-size:14px}
+.pyramide .stufe .klubs{font-size:12.5px;color:var(--dim)}
+
+@media (max-width:680px){
+  .vitrine{grid-template-columns:repeat(auto-fill,minmax(94px,1fr))}
+  .pyramide .stufe{grid-template-columns:1fr;gap:4px}
+}
+
+/* ==========================================================
+   Karriereansicht in drei Spalten
+   ========================================================== */
+.karriere{
+  display:grid;grid-template-columns:288px minmax(0,1fr) 320px;gap:18px;align-items:start;
+}
+.k-spalte{min-width:0}
+.k-rechts{position:sticky;top:78px}
+
+/* ---- Spielerkarte ---- */
+.spielerkarte{
+  border:1px solid var(--line);border-radius:16px;overflow:hidden;
+  background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
+}
+.sk-kopf{display:flex;gap:13px;padding:15px;align-items:center}
+.sk-kopf .ovr{width:74px;height:74px;border-radius:14px}
+.sk-kopf .ovr b{font-size:34px}
+.sk-tags{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+.sk-tags .pill{font-size:11px;padding:2px 8px}
+.sk-name{font-family:var(--display);font-size:28px;line-height:1;letter-spacing:.5px}
+.sk-klub{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--muted);margin-top:5px}
+.sk-raster{display:grid;grid-template-columns:repeat(3,1fr);border-top:1px solid var(--line-soft)}
+.sk-raster:has(.sk-zelle:nth-child(2):last-child){grid-template-columns:repeat(2,1fr)}
+.sk-zelle{
+  padding:10px 12px;border-right:1px solid var(--line-soft);min-width:0;
+}
+.sk-zelle:last-child{border-right:0}
+.sk-zelle span{display:block;font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim)}
+.sk-zelle b{font-size:17px;font-variant-numeric:tabular-nums}
+.sk-vitrine{
+  display:flex;justify-content:space-between;align-items:center;gap:8px;
+  padding:11px 14px;border-top:1px solid var(--line-soft);font-size:12px;color:var(--dim);
+  letter-spacing:.08em;text-transform:uppercase;
+}
+.sk-vitrine b{font-size:16px}
+.sk-vitrine b.gold{color:var(--gold)}
+
+/* ---- Ligatabelle ---- */
+.ligatabelle{padding:14px}
+.lt-zeile{
+  display:grid;grid-template-columns:22px 1fr auto;gap:9px;align-items:center;
+  padding:6px 6px;border-radius:8px;font-size:13px;
+}
+.lt-zeile.eigen{background:rgba(56,209,255,.13);font-weight:700}
+.lt-platz{color:var(--dim);font-variant-numeric:tabular-nums;text-align:right}
+.lt-klub{display:flex;align-items:center;gap:7px;min-width:0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lt-punkte{font-variant-numeric:tabular-nums;color:var(--muted)}
+
+/* ---- Altersraster ---- */
+.altersraster{
+  border:1px solid var(--line);border-radius:16px;overflow:hidden;
+  background:rgba(255,255,255,.025);
+}
+.ar-kopf,.ar-zeile{
+  display:grid;grid-template-columns:34px minmax(0,1fr) 34px 30px 28px 28px;
+  gap:6px;align-items:center;padding:7px 11px;font-size:12px;
+}
+.ar-kopf{
+  color:var(--dim);font-size:10px;letter-spacing:.08em;text-transform:uppercase;
+  border-bottom:1px solid var(--line);background:rgba(255,255,255,.03);font-weight:700;
+}
+.ar-kopf span:not(:nth-child(2)),.ar-zeile span:not(.ar-klub){text-align:right}
+.ar-koerper{max-height:min(60vh,560px);overflow-y:auto}
+.ar-zeile{border-bottom:1px solid var(--line-soft);font-variant-numeric:tabular-nums}
+.ar-zeile.leer{color:var(--dim);opacity:.55}
+.ar-zeile.titel{background:rgba(255,200,97,.09)}
+.ar-alter{color:var(--muted);font-weight:700}
+.ar-klub{display:flex;align-items:center;gap:6px;min-width:0}
+.ar-klub span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ar-ovr{
+  background:var(--ice-600);border-radius:6px;padding:1px 0;font-weight:800;
+  color:var(--text);text-align:center !important;
+}
+.ar-zeile.titel .ar-ovr{background:var(--gold);color:#241500}
+.ar-ovr.stern{background:var(--accent-2);color:#fff}
+.ar-zeile.national{
+  border-top:2px solid var(--line);background:rgba(56,209,255,.08);border-bottom:0;font-weight:650;
+}
+
+/* ---- Ereignis ---- */
+.ereignis{border:1px solid var(--line);border-radius:18px;overflow:hidden;background:var(--ice-800)}
+.ereignis-bild{position:relative;height:230px;background:#05070c}
+.ereignis-bild .szene{width:100%;height:100%;display:block}
+.ereignis-text{padding:18px 20px 4px}
+.ereignis-tag{
+  font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--green);
+}
+.ereignis-wahl{padding:8px 12px 14px}
+.wahlzeile{
+  display:grid;grid-template-columns:minmax(0,1fr) 190px 22px;gap:14px;align-items:center;
+  width:100%;text-align:left;padding:12px 10px;border:0;border-top:1px solid var(--line-soft);
+  background:none;color:var(--text);cursor:pointer;font-family:var(--font);transition:.15s;
+}
+.wahlzeile:hover{background:rgba(56,209,255,.07)}
+.wz-text b{display:block;font-size:15px;margin-bottom:2px}
+.wz-balken{display:flex;height:26px;border-radius:7px;overflow:hidden;font-size:11px;font-weight:800}
+.wz-balken i{
+  display:grid;place-items:center;font-style:normal;color:#08130c;
+  animation:barGrow .6s cubic-bezier(.2,.8,.25,1) both;
+}
+.wz-balken i.gut{background:linear-gradient(180deg,#3ee08f,#2bb673)}
+.wz-balken i.schlecht{background:linear-gradient(180deg,#ff6b7a,#d8414f);color:#2a0409}
+.wz-pfeil{color:var(--dim);font-size:18px}
+.wahlzeile:hover .wz-pfeil{color:var(--accent);transform:translateX(3px)}
+
+/* Folge einer Entscheidung */
+.folge{
+  border-radius:12px;padding:13px 16px;margin-bottom:16px;
+  border-left:4px solid var(--green);background:rgba(62,224,143,.09);
+}
+.folge.schlecht{border-left-color:var(--red);background:rgba(255,107,122,.09)}
+.folge-kopf{
+  font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--green);margin-bottom:5px;
+}
+.folge.schlecht .folge-kopf{color:var(--red)}
+
+/* ---- Jugend- und Angebotskarten ---- */
+.jugendkarte{
+  display:block;width:100%;text-align:center;cursor:pointer;font-family:var(--font);
+  border:1px solid var(--line);border-radius:15px;padding:15px 12px;color:var(--text);
+  background:linear-gradient(180deg,rgba(62,224,143,.05),rgba(255,255,255,.015));
+  transition:.16s;
+}
+.jugendkarte:hover{
+  border-color:var(--green);transform:translateY(-4px);
+  box-shadow:0 16px 34px -20px rgba(62,224,143,.85);
+}
+.jk-liga{
+  font-size:10.5px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;
+  color:var(--green);line-height:1.35;min-height:28px;
+}
+.jk-wappen{display:grid;place-items:center;margin:10px 0}
+.jk-name{font-family:var(--display);font-size:22px;letter-spacing:.5px;line-height:1.05}
+.jk-land{font-size:12.5px;color:var(--muted);margin-top:6px}
+.sterne{color:var(--gold);letter-spacing:1px;margin-left:5px}
+.sterne .leer{color:var(--line)}
+.jk-minuten{
+  margin-top:9px;font-size:11.5px;font-weight:800;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--green);
+}
+
+@media (max-width:1120px){
+  .karriere{grid-template-columns:250px minmax(0,1fr)}
+  .k-rechts{grid-column:1 / -1;position:static}
+  .ar-koerper{max-height:320px}
+}
+@media (max-width:760px){
+  .karriere{grid-template-columns:1fr}
+  .wahlzeile{grid-template-columns:minmax(0,1fr) 120px 18px;gap:9px}
+  .ereignis-bild{height:170px}
+}
+
+
+/* Breites Karriereraster in der Abschlussbilanz */
+.altersraster.breit .ar-kopf,
+.altersraster.breit .ar-zeile{
+  grid-template-columns:44px minmax(0,1fr) 46px 40px 34px 40px 34px 34px;
+}
+.altersraster.breit .ar-koerper.offen{max-height:none;overflow:visible}
+.altersraster.breit .lgtag{padding:1px 5px;text-align:center}
+@media (max-width:680px){
+  .altersraster.breit .ar-kopf,
+  .altersraster.breit .ar-zeile{
+    grid-template-columns:34px minmax(0,1fr) 34px 30px 28px 28px;
+  }
+  .altersraster.breit .lgtag,
+  .altersraster.breit .ar-kopf span:nth-child(3){display:none}
+}
+
+/* ==========================================================
+   Charakterdraft und Ereignisfolgen
+   ========================================================== */
+.charakterkarte{display:flex;flex-direction:column}
+.charakterkarte .lc-name{font-size:26px}
+.kk-eig{
+  border-left:3px solid var(--accent-2);background:rgba(124,107,255,.10);
+  border-radius:0 9px 9px 0;padding:7px 11px;margin-bottom:7px;
+}
+.kk-eig b{display:block;font-size:13px;color:var(--text);margin-bottom:2px}
+.kk-eig span{font-size:11.5px;color:var(--muted);line-height:1.4}
+
+.eig-liste{display:flex;flex-wrap:wrap;gap:7px}
+.eig{
+  display:inline-flex;align-items:center;gap:5px;cursor:help;
+  font-size:12px;font-weight:650;padding:5px 11px;border-radius:999px;
+  background:rgba(124,107,255,.14);border:1px solid rgba(124,107,255,.34);color:#c9c1ff;
+}
+
+/* Auswirkungen einer Entscheidung */
+.folge-kopf{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.folge-kopf .wurf{
+  font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--dim);
+  text-transform:none;
+}
+.wirkungen{display:flex;flex-wrap:wrap;gap:6px}
+.wirkung{
+  font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;
+  animation:popIn .3s ease both;
+}
+.wirkung.gut{background:rgba(62,224,143,.16);color:var(--green);border:1px solid rgba(62,224,143,.34)}
+.wirkung.schlecht{background:rgba(255,107,122,.16);color:var(--red);border:1px solid rgba(255,107,122,.34)}

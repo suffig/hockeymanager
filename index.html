@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Puckero – Eishockey-Karriere-Simulator kostenlos online spielen</title>
+<meta name="description" content="Puckero ist ein kostenloser Eishockey-Karriere-Simulator im Browser: Spieler erstellen, Stilkarten draften und eine ganze Laufbahn mit Transfers, Toren, Pokalen und Rücktritt erleben. Ohne Anmeldung.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='12' fill='%230b1220' stroke='%2338d1ff' stroke-width='3'/></svg>">
+</head>
+<body data-nav="Spielen">
+<div id="hdr"></div>
+
+<!-- ================= HERO ================= -->
+<section class="hero">
+  <div class="rink-lines"></div>
+  <div class="wrap">
+    <span class="eyebrow">Kostenlos · ohne Anmeldung · im Browser</span>
+    <h1>Eine ganze Eishockey&shy;karriere<br>in fünfzehn Minuten</h1>
+    <p class="lead">Erstelle deinen Spieler, drafte acht Stilkarten und schau zu, wie aus einem
+      Juniorentalent ein Kapitän, ein Wandersöldner oder eine Legende wird.
+      Tore, Transfers, Verletzungen, Pokale, Rücktritt – alles in einem Durchlauf.</p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="#spielen">Karriere starten</a>
+      <a class="btn btn-ghost" href="spiele.html">Alle Spiele ansehen</a>
+    </div>
+    <div class="badges">
+      <span class="badge">Kein Konto nötig</span>
+      <span class="badge">Keine Downloads</span>
+      <span class="badge">Funktioniert offline</span>
+      <span class="badge">Handy &amp; Desktop</span>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SPIEL ================= -->
+<section class="block tight" id="spielen">
+  <div class="wrap">
+    <h2>Eislegende</h2>
+    <p class="lead" style="margin-bottom:22px">Das Hauptspiel: Identität festlegen, acht Runden draften,
+      Karriere ausspielen. Jeder Durchlauf ist einzigartig – dieselbe Ausgangslage aber immer
+      exakt reproduzierbar.</p>
+    <div class="panel" id="game"></div>
+  </div>
+</section>
+
+<!-- ================= WEITERE SPIELE ================= -->
+<section class="block" id="spiele">
+  <div class="wrap">
+    <h2>Mehr Eishockey auf Puckero</h2>
+    <p class="lead">Sieben weitere Spielarten für zwischendurch – alle ohne Anmeldung.</p>
+    <div class="grid g3 mt-l">
+      <a class="tile" href="schnellkarriere.html">
+        <div class="ico">⚡</div><h3>Schnellkarriere</h3>
+        <p>Kein Draft, keine Entscheidungen. Ein Klick, eine komplette Laufbahn.</p>
+        <span class="time">2 Minuten</span>
+      </a>
+      <a class="tile" href="taeglich.html">
+        <div class="ico">📅</div><h3>Tageskarriere</h3>
+        <p>Jeden Tag derselbe Spieler für alle. Wer holt mehr aus ihm heraus?</p>
+        <span class="time">Täglich neu</span>
+      </a>
+      <a class="tile" href="errate.html">
+        <div class="ico">🕵</div><h3>Errate den Stil</h3>
+        <p>Drei Attributwerte, eine Stilkarte. Erkennst du den Spielertyp?</p>
+        <span class="time">5 Runden</span>
+      </a>
+      <a class="tile" href="typtest.html">
+        <div class="ico">🧠</div><h3>Welcher Typ bist du?</h3>
+        <p>Acht Fragen über dein Spielverständnis – am Ende steht dein Eishockey-Ich.</p>
+        <span class="time">3 Minuten</span>
+      </a>
+      <a class="tile" href="aufstellung.html">
+        <div class="ico">🥅</div><h3>Beste Aufstellung</h3>
+        <p>Fünf Positionen, ein Gehaltsbudget. Bau die stärkste Reihe.</p>
+        <span class="time">Strategie</span>
+      </a>
+      <a class="tile" href="herausforderungen.html">
+        <div class="ico">🎯</div><h3>Herausforderungen</h3>
+        <p>Vierzehn Langzeitziele vom Stanley Cup bis zum Einvereinsmann. Jede Karriere zählt automatisch.</p>
+        <span class="time">Langzeit</span>
+      </a>
+      <a class="tile" href="hoeher-tiefer.html">
+        <div class="ico">📊</div><h3>Höher oder tiefer</h3>
+        <p>Zwei Stilkarten, ein Attribut. Welche Karte gibt mehr?</p>
+        <span class="time">Endlos</span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<hr class="divider">
+
+<!-- ================= SO SPIELST DU ================= -->
+<section class="block" id="anleitung">
+  <div class="wrap">
+    <div class="grid g2" style="gap:44px;align-items:start">
+      <div>
+        <span class="eyebrow">So funktioniert es</span>
+        <h2>In drei Phasen zur Legende</h2>
+        <div class="steps mt-l">
+          <div class="step">
+            <h3>Identität festlegen</h3>
+            <p style="color:var(--muted)">Name, Nummer, Nation und Position. Die Nation gibt dir einen
+              kleinen Startbonus, die Position entscheidet, welche Attribute später zählen.</p>
+          </div>
+          <div class="step">
+            <h3>Acht Stilkarten draften</h3>
+            <p style="color:var(--muted)">Pro Runde stehen drei Karten zur Wahl. Jede formt deinen Spieler
+              in eine Richtung – und oft kostet ein starker Wert an anderer Stelle etwas.
+              Im klassischen Modus darfst du dreimal neu mischen, wenn dir nichts passt.</p>
+          </div>
+          <div class="step">
+            <h3>Karriere ausspielen</h3>
+            <p style="color:var(--muted)">Geh Jahr für Jahr durch die Laufbahn und entscheide bei jedem
+              Vertragsende zwischen zwei bis drei Angeboten – oder lass alles bis zum Rücktritt
+              automatisch durchlaufen.</p>
+          </div>
+        </div>
+      </div>
+      <div class="card pad-lg">
+        <span class="eyebrow">Bewertung</span>
+        <h3 style="font-family:var(--display);font-size:30px;font-weight:400;letter-spacing:.5px">
+          Wie Puckero deine Karriere bewertet</h3>
+        <p style="color:var(--muted)">Am Ende steht eine Zahl: die Legendenpunkte. Sie setzen sich zusammen aus</p>
+        <ul style="color:var(--muted);padding-left:20px;margin:0 0 18px">
+          <li><b style="color:var(--text)">Titeln</b> – Meisterschaften wiegen nach Liga unterschiedlich schwer</li>
+          <li><b style="color:var(--text)">Einzelehrungen</b> – MVP, Topscorer, bester Torhüter, Playoff-MVP</li>
+          <li><b style="color:var(--text)">Internationalem</b> – Olympiagold zählt am meisten, WM-Titel folgen</li>
+          <li><b style="color:var(--text)">Produktion</b> – Punkte bzw. Siege und Shutouts</li>
+          <li><b style="color:var(--text)">Bestwert und Länge</b> – dein höchster Gesamtwert und jede Saison</li>
+        </ul>
+        <div class="trophy-list">
+          <span class="trophy gross">🏆 Unsterblich ab 1700</span>
+          <span class="trophy">⭐ Hall of Fame ab 1300</span>
+          <span class="pill">Franchise-Ikone ab 1050</span>
+          <span class="pill">Topstar ab 870</span>
+          <span class="pill">Leistungsträger ab 700</span>
+        </div>
+        <p class="small mt">Ein sauber gedrafteter Spieler landet meist zwischen Topstar und
+          Franchise-Ikone. Alles darüber braucht Titel – und etwas Glück.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= TAKTIK ================= -->
+<section class="block tight">
+  <div class="wrap">
+    <h2>Worauf du beim Draften achten solltest</h2>
+    <div class="grid g3 mt">
+      <div class="card">
+        <h3>Positionen belohnen anderes</h3>
+        <p style="color:var(--muted);font-size:15px;margin:0">Ein Center lebt von Übersicht und Passspiel,
+          ein Flügel von Antritt und Abschluss, ein Verteidiger von Defensive und Zweikampf.
+          Eine starke Karte auf der falschen Position bringt fast nichts.</p>
+      </div>
+      <div class="card">
+        <h3>Minuswerte sind kein Ausschluss</h3>
+        <p style="color:var(--muted);font-size:15px;margin:0">Ein Abzug auf einem Attribut, das deine Position
+          kaum gewichtet, ist praktisch gratis. Ein Flügelstürmer darf ruhig schlecht verteidigen.</p>
+      </div>
+      <div class="card">
+        <h3>Charakterkarten wirken später</h3>
+        <p style="color:var(--muted);font-size:15px;margin:0">Karten wie Spätzünder oder Playoff-Mann
+          verändern keine Zahl im Draft, sondern die Alterskurve und die Erfolge in der K.-o.-Phase.
+          Sie entscheiden oft über die letzten fünf Saisons.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= FAQ ================= -->
+<section class="block" id="faq">
+  <div class="wrap narrow">
+    <h2>Häufige Fragen</h2>
+
+    <details class="faq" open><summary>Kostet Puckero etwas?</summary>
+      <p>Nein. Es gibt keine Bezahlschranke, keine Abos und keine Vorteile für Geld.
+        Die Seite läuft vollständig in deinem Browser.</p></details>
+
+    <details class="faq"><summary>Brauche ich ein Konto?</summary>
+      <p>Nein. Es gibt keine Registrierung. Abgeschlossene Karrieren werden nur lokal in deinem Browser
+        gespeichert und verlassen dein Gerät nicht.</p></details>
+
+    <details class="faq"><summary>Wie zufällig ist eine Karriere wirklich?</summary>
+      <p>Jede Karriere hängt an einem Startwert, dem Seed. Gleicher Seed und gleiche Draftentscheidungen
+        ergeben immer dieselbe Laufbahn. Der Zufall ist also reproduzierbar, nicht willkürlich.</p></details>
+
+    <details class="faq"><summary>Was ist der Unterschied zwischen Klassisch und Purist?</summary>
+      <p>Im klassischen Modus siehst du alle Zahlen einer Stilkarte, deine aktuellen Werte und deine
+        Gesamtwertung in jeder Saison. Dazu darfst du dreimal eine Draftrunde neu mischen lassen.
+        Im Puristenmodus gibt es keine Zahlen und keine Neumischung: Du entscheidest allein nach
+        Spielstil und siehst deine Werte erst am Karriereende.</p></details>
+
+    <details class="faq"><summary>Muss ich jede Saison einzeln durchklicken?</summary>
+      <p>Nein. Nach dem Draft wählst du zwischen „Saison für Saison“ und „Bis zum Rücktritt“.
+        Auch mitten in einer Laufbahn kannst du jederzeit auf automatisch umschalten.</p></details>
+
+    <details class="faq"><summary>Wie oft kann ich den Klub wechseln?</summary>
+      <p>Jeder Vertrag läuft ein bis vier Jahre. Erst danach bekommst du neue Angebote –
+        es sei denn, deine Leistung fällt unter das Niveau der Liga oder ein deutlich größerer
+        Klub kauft dich vorzeitig heraus.</p></details>
+
+    <details class="faq"><summary>Warum wird mein Torhüter anders bewertet?</summary>
+      <p>Torhüter haben eigene Attribute wie Reflexe, Stellungsspiel und Rebound-Kontrolle
+        und eine eigene Statistik mit Fangquote, Gegentorschnitt und Shutouts.
+        Ihre Legendenpunkte entstehen aus Siegen und Shutouts statt aus Toren.</p></details>
+
+    <details class="faq"><summary>Warum verpasse ich ständig Spiele?</summary>
+      <p>Verletzungen sind Teil der Simulation und werden mit dem Alter wahrscheinlicher.
+        Die Stilkarte Eisenmann senkt das Risiko deutlich und verkürzt Ausfälle.</p></details>
+
+    <details class="faq"><summary>Kann ich eine Karriere nochmal spielen?</summary>
+      <p>Ja. Im Pokalraum steht bei jeder gespeicherten Karriere ein „Nachspielen“-Knopf.
+        Er öffnet den Draft mit demselben Seed, sodass dir dieselben Karten in derselben
+        Reihenfolge angeboten werden – mit anderen Entscheidungen und anderem Ausgang.</p></details>
+
+    <details class="faq"><summary>Sind die Klubs und Wettbewerbe echt?</summary>
+      <p>Die Namen ja – NHL, DEL, SHL, Liiga, National League, KHL und Extraliga mit ihren echten
+        Vereinen, dazu Stanley Cup, Gagarin Cup, Hart Trophy und Vezina Trophy.
+        Die Stärkewerte der Klubs sind dagegen unsere eigene Einschätzung für die Simulation
+        und keine Aussage über die reale Leistungsfähigkeit. Puckero ist ein nicht lizenziertes
+        Fanprojekt ohne Verbindung zu Ligen, Verbänden oder Vereinen.</p></details>
+
+    <details class="faq"><summary>Bekomme ich in der DEL eine Hart Trophy?</summary>
+      <p>Nein. Auszeichnungen tragen den Namen der jeweiligen Liga: In der NHL gewinnst du
+        Hart, Art Ross, Norris oder Vezina, in Europa die entsprechenden Ligaehrungen.
+        Dazu kommen Champions Hockey League, Spengler Cup, WM und Olympia.</p></details>
+  </div>
+</section>
+
+<div id="ftr"></div>
+
+<script src="assets/data.js"></script>
+<script src="assets/draft.js"></script>
+<script src="assets/engine.js"></script>
+<script src="assets/ereignisse.js"></script>
+<script src="assets/wappen.js"></script>
+<script src="assets/ui.js"></script>
+<script src="assets/game.js"></script>
+<script>
+  const urlSeed = new URLSearchParams(location.search).get('seed');
+  CareerGame(document.getElementById('game'), { startSeed: urlSeed || null });
+  if (urlSeed) document.getElementById('spielen').scrollIntoView();
+</script>
+</body>
+</html>
