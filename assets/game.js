@@ -678,7 +678,12 @@ function CareerGame(root, cfg){
     /* Reihenfolge: erst die Folge der Entscheidung, dann die Zahlen der
        gerade gespielten Saison, danach der naechste Schritt. Vorher sprangen
        Training und Vertragsfragen heraus, ohne dass man das Ergebnis sah. */
-    const bilanz = letzte ? UI.seasonCard(letzte, isG, blind(), true, mobil()) : '';
+    /* Im App-Aufbau reicht der Zahlenstreifen: die vollstaendige Karte
+       steht im Bereich "Verlauf", und beides uebereinander sprengt den
+       Bildschirm (gemessen 951 statt 578 Pixel). */
+    const bilanz = !letzte ? ''
+      : alsApp ? UI.bilanzStreifen(letzte, isG)
+      : UI.seasonCard(letzte, isG, blind(), true, mobil());
 
     if (st.jugend)        return kopf + jugendHtml(st.jugend);
     if (st.ereignis)      return kopf + ereignisHtml(st.ereignis);

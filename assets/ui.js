@@ -319,6 +319,29 @@ const UI = (() => {
     </div>`;
   }
 
+  /* Nur die Zahlen der letzten Saison, ohne Kopf und Beiwerk.
+     Gemessen kostete die volle Karte im Spielbereich 346 Pixel - der
+     Streifen kommt mit rund einem Sechstel aus, und die vollstaendige
+     Karte steht ohnehin im Bereich "Verlauf". */
+  function bilanzStreifen(s, isG){
+    if (!s) return '';
+    const z = (ik, wert, kurz) =>
+      `<span class="bs-wert" title="${esc(kurz)}">${ikone(ik, 13)}<b>${wert}</b></span>`;
+    return `<div class="bilanzstreifen">
+      <span class="bs-jahr">${s.year}/${String(s.year + 1).slice(2)}</span>
+      ${isG
+        ? z('kalender', s.gp, 'Spiele')
+          + z('waage', s.wins + '-' + (s.losses || 0) + '-' + (s.otl || 0), 'Bilanz')
+          + z('schild', (s.sv * 100).toFixed(1) + '%', 'Fangquote')
+          + z('haken', s.so, 'Shutouts')
+        : z('kalender', s.gp, 'Spiele')
+          + z('tor', s.g, 'Tore')
+          + z('gruppe', s.a, 'Vorlagen')
+          + z(s.plus >= 0 ? 'hoch' : 'runter', (s.plus > 0 ? '+' : '') + s.plus, 'Plus-Minus')
+          + z('uhr', s.toi || 0, 'Eiszeit')}
+    </div>`;
+  }
+
   /* Saisonvorgaben des Klubs – vorher als Auftrag, nachher als Abrechnung. */
   const ZIEL_ICON = { titel:'pokal', runden:'medaille', playoffs:'ziel', platz:'schild',
                       punkte:'hoch', tore:'tor', siege:'haken', spiele:'uhr' };
@@ -1278,6 +1301,7 @@ const UI = (() => {
            trophyList, klubKarten, natKarte, ligaBilanz, shareText, rankLeiste, karriereKarte,
            statBoxen, natTabelle, rivaleKarte, vermaechtnisKarte, zeremonie, formKurve,
            eisfeld, serienBaum, meilensteinJagd, jahrgangTabelle, zielKarte,
+           bilanzStreifen,
            ikone, kennzahl, IKONEN, wendepunkte, jahrgangVerlauf,
            konfetti, zahlHoch, alleZahlenHoch, toast, copy };
 })();

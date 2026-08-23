@@ -2101,3 +2101,74 @@ footer.site a:hover{color:var(--text)}
   .fb-wahl,.fb-text,.fb-wirkungen .fk,.fb-weiter{animation:none}
   .fb-nadel{transition:none}
 }
+
+/* Zahlenstreifen der letzten Saison, direkt ueber der Entscheidung */
+.bilanzstreifen{
+  display:flex;align-items:center;gap:9px;flex-wrap:wrap;
+  padding:8px 11px;margin-bottom:10px;
+  background:var(--ice-800);border:1px solid var(--line-soft);
+  border-radius:var(--radius-sm);
+}
+.bs-jahr{
+  font-family:var(--display);font-size:14px;color:var(--dim);
+  letter-spacing:.03em;flex:0 0 auto;
+}
+.bs-wert{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:12px;color:var(--dim);cursor:help;
+}
+.bs-wert b{color:var(--text);font-weight:700;font-size:13px}
+
+/* ==========================================================
+   Dichte im Spielbereich
+   Gemessen: eine Entscheidung war 795 px hoch, davon 444 in den
+   Wahlzeilen (vier zu je 110) und 112 im Szenenbild. Der Text selbst
+   machte nur 108 aus - gekuerzt wird also die Bauform, nicht der Inhalt.
+   ========================================================== */
+@media (max-width:760px){
+  .app .ereignis-bild{max-height:76px}
+  .app .ereignis-text{padding:11px 13px 9px}
+  .app .ereignis-text h2,.app .wf-text h2{font-size:17px;line-height:1.25;margin-bottom:5px}
+  .app .ereignis-text p,.app .wf-text p{font-size:13px;line-height:1.45;margin:0}
+  .app .wf-text{padding:12px 13px 10px}
+  .app .wf-kopf{padding:8px 13px;font-size:10.5px}
+  .app .wf-stand{margin-top:9px;gap:6px}
+
+  /* Die Wahlzeilen tragen die meiste Hoehe - hier liegt der Hebel */
+  .app .wahlzeile{
+    padding:8px 11px;gap:9px;align-items:center;
+    display:grid;grid-template-columns:auto 1fr auto;
+  }
+  .app .wz-ikone{width:28px;height:28px;border-radius:8px}
+  .app .wz-text b{font-size:12.5px;line-height:1.25}
+  .app .wz-text .small{font-size:10.5px;line-height:1.3;display:block}
+  /* Chancenbalken schmal und rechts statt in voller Breite darunter */
+  .app .wz-balken{
+    width:56px;flex:0 0 auto;height:16px;font-size:9px;
+  }
+  .app .wz-pfeil{display:none}
+  .app .wz-sicher{font-size:9px;padding:2px 7px}
+  .app .ereignis-wahl{gap:5px;padding:9px}
+}
+
+/* Angebots- und Rollenkarten im App-Aufbau
+   Gemessen 184 px je Angebotskarte, dreimal davon fuellen den Bildschirm.
+   Das Wappen faellt kleiner aus, die Zeilen ruecken zusammen - der
+   Inhalt bleibt vollstaendig. */
+@media (max-width:760px){
+  .app .jugendkarte{padding:9px 10px;gap:2px}
+  .app .jk-wappen svg,.app .jk-wappen img{width:38px;height:38px}
+  .app .jk-wappen{margin:2px 0}
+  .app .jk-liga{font-size:9px;letter-spacing:.06em}
+  .app .jk-name{font-size:13px;line-height:1.2}
+  .app .jk-land{font-size:10.5px}
+  .app .jk-minuten{font-size:10px}
+  .app .jk-zahlen{gap:4px}
+  .app .jk-zahlen span,.app .jk-zeile{font-size:10.5px}
+
+  /* Rollenkarten */
+  .app [data-rolle]{padding:9px 11px}
+  .app [data-rolle] b{font-size:12.5px}
+  .app [data-rolle] .small{font-size:10.5px;line-height:1.3}
+  .app .rollen-raster,.app .rollenwahl{gap:5px}
+}
