@@ -650,7 +650,61 @@ const PUCKERO_DATA = (() => {
 
     { id:'spaetform', icon:'🕰', n:'Späte Blüte',
       d:'Gewinn mit 33 Jahren oder älter noch eine Einzelauszeichnung.',
-      pruef: res => res.seasons.some(s => s.age >= 33 && s.awards && s.awards.length > 0) }
+      pruef: res => res.seasons.some(s => s.age >= 33 && s.awards && s.awards.length > 0) },
+
+    /* ---- Ziele fuer die Entscheidungen einer Laufbahn.
+       Die Schwellen sind an gemessenen Verlaeufen geeicht: mehr als drei
+       Erzaehlstraenge kamen in 250 Karrieren nie vor, und der Median
+       liegt bei 21 erfuellten Saisonzielen. ---- */
+
+    { id:'ausstieg', icon:'🛫', n:'Der Ausstieg',
+      d:'Handle eine Ausstiegsklausel aus und verlass den Klub damit mitten in der Saison.',
+      pruef: res => (res.verlauf || []).some(v =>
+                      v.gelungen && /Ausstiegsklausel/.test(v.wahl || ''))
+                 && res.seasons.some(s => s.wechselVon) },
+
+    { id:'faeden', icon:'🧵', n:'Drei Fäden',
+      d:'Öffne in einer Laufbahn drei verschiedene Erzählstränge.',
+      pruef: res => (res.freigeschaltet || []).length >= 3 },
+
+    { id:'jahrgangsbester', icon:'🥇', n:'Bester deines Jahrgangs',
+      d:'Beende die Karriere an der Spitze deines Draftjahrgangs.',
+      pruef: res => {
+        const st = res.jahrgangStand || [];
+        const ich = st.find(x => x.eigen);
+        return !!ich && ich.platz === 1;
+      } },
+
+    { id:'wagemut', icon:'🎲', n:'Gegen jede Wahrscheinlichkeit',
+      d:'Setz dich bei einer Entscheidung durch, die höchstens 25 Prozent Aussicht hatte.',
+      pruef: res => (res.verlauf || []).some(v => v.gelungen && v.chance <= 25) },
+
+    { id:'immerdabei', icon:'🇺🇳', n:'Immer dabei',
+      d:'Spiel mindestens acht Turniere für dein Land, ohne je abzusagen.',
+      pruef: res => (res.natAbsagen || 0) === 0
+                 && ((res.laenderBilanz || {}).turniere || 0) >= 8 },
+
+    { id:'zweibinden', icon:'👑', n:'Zwei Binden',
+      d:'Trag das C bei deinem Klub und bei der Nationalmannschaft.',
+      pruef: res => !!res.natKapitaen && res.seasons.some(s => s.kapitaen) },
+
+    { id:'wortgetreu', icon:'📋', n:'Wortgetreu',
+      d:'Erfüll im Lauf der Karriere dreißig Saisonziele.',
+      pruef: res => ((res.zielBilanz || {}).erfuellt || 0) >= 30 },
+
+    { id:'heimkehr', icon:'🔙', n:'Heimkehr',
+      d:'Spiel noch einmal für einen Klub, den du zwischenzeitlich verlassen hattest.',
+      pruef: res => {
+        const gesehen = new Set();
+        let letzter = null, zurueck = false;
+        res.seasons.forEach(s => {
+          if (s.club === letzter) return;
+          if (gesehen.has(s.club)) zurueck = true;
+          gesehen.add(s.club);
+          letzter = s.club;
+        });
+        return zurueck;
+      } }
   ];
 
   return { ATTRS, POSITIONS, NATIONS, LEAGUES, CLUBS, AWARDS, INTL, TURNIERE,

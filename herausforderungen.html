@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Herausforderungen – Ziele für deine Karrieren | Puckero</title>
-<meta name="description" content="Vierzehn Ziele für deine Eishockey-Karrieren: Stanley Cup, Doppelgold, 1000 Punkte, Einvereinsmann und mehr. Jede abgeschlossene Karriere zählt automatisch.">
+<meta name="description" content="Zweiundzwanzig Ziele für deine Eishockey-Karrieren: Stanley Cup, Doppelgold, 1000 Punkte, Einvereinsmann und mehr. Jede abgeschlossene Karriere zählt automatisch.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -24,7 +24,7 @@ try{var t=localStorage.getItem('puckero.thema');
   <div class="wrap">
     <span class="eyebrow">Langzeitziele</span>
     <h1 style="font-size:clamp(34px,5vw,58px)">Herausforderungen</h1>
-    <p class="lead">Vierzehn Ziele, die sich nicht in einer einzigen Laufbahn erreichen lassen.
+    <p class="lead"><span id="zielzahl">Ziele</span>, die sich nicht in einer einzigen Laufbahn erreichen lassen.
       Jede abgeschlossene Karriere wird automatisch geprüft – egal ob Eislegende,
       Schnellkarriere oder Tageskarriere.</p>
 
@@ -50,6 +50,8 @@ try{var t=localStorage.getItem('puckero.thema');
 function zeichne(){
   const stand = PUCKERO.ladeHerausforderungen();
   const alle = PUCKERO_DATA.HERAUSFORDERUNGEN;
+  // Die Zahl kommt aus den Daten - so kann sie nicht veralten.
+  document.getElementById('zielzahl').textContent = alle.length + ' Ziele';
   const geschafft = alle.filter(h => stand[h.id]).length;
   const anteil = Math.round(geschafft / alle.length * 100);
 
