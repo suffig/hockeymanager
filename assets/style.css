@@ -1808,3 +1808,39 @@ footer.site a:hover{color:var(--text)}
 .season-mehr > summary::-webkit-details-marker{display:none}
 .season-mehr > summary::after{content:'▾';color:var(--dim);font-size:11px}
 .season-mehr[open] > summary::after{content:'▴'}
+
+/* Klappbereiche der Ergebnisseite: etwas kraeftiger als im Spiel */
+@media (max-width:760px){
+  .m-klapp.gross{margin-top:12px}
+  .m-klapp.gross > summary{
+    padding:13px 14px;font-size:13.5px;font-weight:700;
+    color:var(--text);
+  }
+  .m-klapp.gross > summary::after{color:var(--accent)}
+  .m-klapp.gross[open] > summary{border-bottom:1px solid var(--line-soft)}
+  .m-klapp.gross .m-inhalt{padding:10px}
+  /* Die Saisonliste bekommt Luft zwischen den Karten */
+  .m-klapp.gross #timeline{display:flex;flex-direction:column;gap:10px}
+  /* Bilanzkacheln enger */
+  .statgrid{grid-template-columns:repeat(3,1fr);gap:6px}
+  .statbox{padding:8px 4px}
+  .statbox b{font-size:17px}
+  .statbox span{font-size:9px}
+}
+
+/* Auf dem Handy bleiben die Abschlussaktionen immer erreichbar,
+   statt am Ende einer mehrere Bildschirme langen Auswertung zu liegen. */
+@media (max-width:760px){
+  .abschluss-taten{
+    position:fixed;left:0;right:0;bottom:0;z-index:60;
+    margin:0;padding:9px 12px calc(9px + env(safe-area-inset-bottom));
+    background:color-mix(in srgb,var(--ice-900) 92%,transparent);
+    backdrop-filter:blur(12px);
+    border-top:1px solid var(--line);
+    display:grid;grid-template-columns:1fr 1fr;gap:7px;
+  }
+  .abschluss-taten .btn{width:100%;font-size:12.5px;padding:10px 8px}
+  .abschluss-taten #karte{grid-column:1 / -1}
+  /* Platz schaffen, damit die Leiste nichts verdeckt */
+  :root:has(.abschluss-taten) .panel-body{padding-bottom:132px}
+}

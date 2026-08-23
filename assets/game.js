@@ -405,6 +405,18 @@ function CareerGame(root, cfg){
       </div>`;
   }
 
+  /* Ein Abschnitt der Ergebnisseite. Auf dem Handy eingeklappt, auf
+     grossen Bildschirmen wie bisher als Ueberschrift mit Inhalt. */
+  function abschnitt(titel, inhalt, offen){
+    if (!inhalt) return '';
+    return mobil()
+      ? `<details class="m-klapp gross"${offen ? ' open' : ''}>
+           <summary>${titel}</summary>
+           <div class="m-inhalt">${inhalt}</div>
+         </details>`
+      : `<h2 class="mt-l" style="margin-top:34px">${titel}</h2>${inhalt}`;
+  }
+
   /* Schmale Bildschirme bekommen einen eigenen Aufbau: die Handlung
      zuerst, alles Nachschlagbare eingeklappt. */
   const mobil = () => window.matchMedia('(max-width: 760px)').matches;
@@ -1049,11 +1061,8 @@ function CareerGame(root, cfg){
           </div>
         </div>
 
-        <h2 class="mt-l" style="margin-top:30px">Bilanz nach Ligen</h2>
-        ${UI.ligaBilanz(res)}
-
-        <h2 class="mt-l" style="margin-top:30px">Stationen</h2>
-        ${UI.klubKarten(res)}
+        ${abschnitt('Bilanz nach Ligen', UI.ligaBilanz(res))}
+        ${abschnitt('Stationen', UI.klubKarten(res))}
 
         ${UI.rankLeiste(res.legacy)}
 
@@ -1113,13 +1122,10 @@ function CareerGame(root, cfg){
 
         ${rekordeHtml(res)}
 
-        <h2 class="mt-l" style="margin-top:38px">Was deine Laufbahn geprägt hat</h2>
-        ${UI.wendepunkte(res)}
+        ${abschnitt('Was deine Laufbahn geprägt hat', UI.wendepunkte(res), true)}
+        ${abschnitt('Länderspiele', '<div class="card">' + UI.natTabelle(res) + '</div>')}
 
-        <h2 class="mt-l" style="margin-top:38px">Länderspiele</h2>
-        <div class="card">${UI.natTabelle(res)}</div>
-
-        <div class="row mt-l">
+        <div class="row mt-l abschluss-taten">
           <button class="btn btn-primary" id="karte">Karriere-Karte speichern</button>
           <button class="btn btn-ghost" id="share">Als Text teilen</button>
           <button class="btn btn-ghost" id="again">Neue Karriere</button>
@@ -1128,18 +1134,19 @@ function CareerGame(root, cfg){
         <p class="small mt">Seed dieser Karriere: <code>${esc(p.seed)}</code> –
           damit lässt sich dieselbe Ausgangslage erneut draften.</p>
 
-        <h2 class="mt-l" style="margin-top:38px">Karriere auf einen Blick</h2>
-        <div class="bilanzraster">${bilanzRaster(res)}</div>
+        ${abschnitt('Karriere auf einen Blick',
+            '<div class="bilanzraster">' + bilanzRaster(res) + '</div>')}
 
-        ${res.jahrgangStand ? `<h2 class="mt-l" style="margin-top:38px">Dein Jahrgang zum Schluss</h2>
-        ${UI.jahrgangTabelle(res.jahrgangStand, res.isG, { alle:true, gross:true })}
-        ${UI.jahrgangVerlauf(res)}` : ''}
+        ${res.jahrgangStand ? abschnitt('Dein Jahrgang zum Schluss',
+            UI.jahrgangTabelle(res.jahrgangStand, res.isG, { alle:true, gross:true })
+            + UI.jahrgangVerlauf(res)) : ''}
 
-        <h2 class="mt-l" style="margin-top:38px">Verlauf</h2>
-        <div id="timeline">${res.seasons.map(s => UI.seasonCard(s, res.isG)).join('')}</div>
+        ${abschnitt('Verlauf Saison für Saison (' + res.seasons.length + ')',
+            '<div id="timeline">'
+            + res.seasons.map(x => UI.seasonCard(x, res.isG, false, false, mobil())).join('')
+            + '</div>')}
 
-        <h2 class="mt-l">Statistiktabelle</h2>
-        ${UI.statsTable(res)}
+        ${abschnitt('Statistiktabelle', UI.statsTable(res))}
       </div>`;
 
     UI.alleZahlenHoch(root);
