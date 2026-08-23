@@ -1,6 +1,6 @@
 /* ==========================================================
    Puckero – Spieldaten
-   Ligen, Klubs, Trophäen, Attribute und Stilkarten
+   Ligen, Klubs, Trophäen und Attribute
 
    Klub-, Liga- und Trophäennamen sind reale Bezeichnungen. Die
    Stärkewerte, Gewichtungen und Punktzahlen sind reine Spielbalance
@@ -575,12 +575,6 @@ const PUCKERO_DATA = (() => {
                   t:'Eine letzte Saison dort, wo alles angefangen hat – dann ist Schluss.' }
   };
 
-
-  /* ==========================================================
-     Stilkarten für den Draft
-     Jede Karte steht für einen Spielertyp. Die Werte sind reine
-     Spielbalance und beschreiben keine realen Personen.
-     ========================================================== */
 
   /* ---------- Zufallsnamen für Schnellkarrieren ---------- */
   const FIRST = ['Elias','Mika','Nils','Jonas','Lasse','Tim','Leon','Fabian','Marek','Viktor','Anton','Rasmus','Oskar','Kalle','Henri','Milan','Tobias','Jesper','Aleks','Dominik','Sven','Patrik','Robin','Nico','Emil'];

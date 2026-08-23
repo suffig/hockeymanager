@@ -10,8 +10,6 @@ function CareerGame(root, cfg){
   const S = {
     phase: 'ident',          // ident | draft | start | karriere | ergebnis
     runde: 0,                // Draftrunde 0..7
-    skipStufe: 0,            // wie oft die aktuelle Runde neu gemischt wurde
-    skipsUebrig: PUCKERO.MAX_SKIPS,
     ident: cfg.ident || { name:'', num:9, nation:'GER', pos:'C', mode:'klassisch',
                           trainingAuto:true },
     seed: cfg.seed || cfg.startSeed || null,
@@ -127,8 +125,9 @@ function CareerGame(root, cfg){
     };
     const modeHint = () => {
       root.querySelector('#mode-desc').innerHTML = S.ident.mode === 'klassisch'
-        ? 'Alle Werte sichtbar, dazu <b>' + PUCKERO.MAX_SKIPS + ' Neumischungen</b> im Draft.'
-        : 'Keine Zahlen, keine Neumischung. Du entscheidest nach Spielstil – '
+        ? '<b>Alle Werte sichtbar</b> – du siehst bei jeder Antwort, '
+          + 'was sie deinem Spieler bringt.'
+        : '<b>Keine Zahlen.</b> Du entscheidest nach Spielstil und Charakter – '
           + 'die Werte siehst du erst am Karriereende.';
     };
     natHint(); modeHint();
@@ -175,7 +174,7 @@ function CareerGame(root, cfg){
     S.ident.nation = root.querySelector('#f-nation').value;
     S.seed = cfg.seed || (seedFeld && seedFeld.value.trim()) || neuerSeed();
     S.player = PUCKERO.newPlayer({ ...S.ident, seed: S.seed });
-    S.runde = 0; S.skipStufe = 0;
+    S.runde = 0;
     S.phase = 'draft';
     render(); scrollTop();
   }
@@ -207,8 +206,6 @@ function CareerGame(root, cfg){
             </div>
 
             <div class="row mt-l">
-              ${S.skipsUebrig > 0 && frage.karten.length > 3
-                ? '' : ''}
               <button class="btn btn-ghost btn-sm" id="restart">Neu starten</button>
             </div>
           </div>
@@ -1355,7 +1352,7 @@ function CareerGame(root, cfg){
     if (cfg.onAgain){ cfg.onAgain(); return; }
     S.phase = 'ident';
     S.player = null; S.lauf = null; S.result = null;
-    S.runde = 0; S.skipStufe = 0;
+    S.runde = 0;
     if (seedVerwerfen && !cfg.seed) S.seed = null;
     render(); scrollTop();
   }
@@ -1377,8 +1374,7 @@ function CareerGame(root, cfg){
     S.seed = seed;
     S.ident = ident;
     S.player = PUCKERO.newPlayer({ ...ident, seed });
-    S.runde = 0; S.skipStufe = 0;
-    S.skipsUebrig = ident.mode === 'blind' ? 0 : PUCKERO.MAX_SKIPS;
+    S.runde = 0;
     S.phase = 'draft';
     render();
   }

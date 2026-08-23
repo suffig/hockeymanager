@@ -88,8 +88,6 @@ const PUCKERO = (() => {
 
   /* ---------------- Draft ---------------- */
   const DRAFT_ROUNDS = 8;
-  /* So oft darf im klassischen Modus eine Runde neu gemischt werden */
-  const MAX_SKIPS = 3;
 
   /* ---------------- Charakterdraft ----------------
      Fuenf Fragen, jede Antwort verschiebt Werte und gibt Eigenschaften. */
@@ -2466,7 +2464,7 @@ const PUCKERO = (() => {
     saveCareer, loadCareers, clearCareers, randomIdentity,
     ladeHerausforderungen, pruefeHerausforderungen, werteHerausforderungen, clearHerausforderungen,
     trainingsOptionen, trainingAnwenden,
-    DRAFT_ROUNDS, MAX_SKIPS, LG_MIN, HOME_LG, D
+    DRAFT_ROUNDS, LG_MIN, HOME_LG, D
   };
 })();
 
