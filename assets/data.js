@@ -1,11 +1,11 @@
 /* ==========================================================
-   Puckero – Spieldaten
+   Eiszeit – Spieldaten
    Ligen, Klubs, Trophäen und Attribute
 
    Klub-, Liga- und Trophäennamen sind reale Bezeichnungen. Die
    Stärkewerte, Gewichtungen und Punktzahlen sind reine Spielbalance
    und keine Aussage über die tatsächliche Leistungsfähigkeit der
-   Vereine. Puckero ist ein Fanprojekt ohne Lizenz oder Verbindung
+   Vereine. Eiszeit ist ein Fanprojekt ohne Lizenz oder Verbindung
    zu Ligen, Verbänden oder Klubs.
    ========================================================== */
 

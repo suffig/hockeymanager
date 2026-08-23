@@ -1,5 +1,5 @@
 /* ==========================================================
-   Puckero – Karriere-Engine
+   Eiszeit – Karriere-Engine
    Deterministisch: gleicher Seed + gleiche Entscheidungen = gleiche Karriere
    ========================================================== */
 
@@ -2416,7 +2416,7 @@ const PUCKERO = (() => {
   ];
 
   /* ---------------- Herausforderungen ---------------- */
-  const HKEY = 'puckero.herausforderungen';
+  const HKEY = 'eiszeit.herausforderungen';
   function ladeHerausforderungen(){
     try { return JSON.parse(localStorage.getItem(HKEY) || '{}'); }
     catch(e){ return {}; }
@@ -2440,7 +2440,7 @@ const PUCKERO = (() => {
   function clearHerausforderungen(){ try { localStorage.removeItem(HKEY); } catch(e){} }
 
   /* ---------------- Speicher ---------------- */
-  const KEY = 'puckero.karrieren';
+  const KEY = 'eiszeit.karrieren';
   function saveCareer(result){
     try{
       const list = loadCareers();

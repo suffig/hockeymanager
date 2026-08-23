@@ -1,5 +1,5 @@
 /* ==========================================================
-   Puckero – Charakterdraft
+   Eiszeit – Charakterdraft
 
    Fünf Fragen statt acht Kartenrunden. Jede Antwort verschiebt
    Attribute und verleiht eine benannte Eigenschaft, die sich

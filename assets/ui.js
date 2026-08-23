@@ -1,6 +1,23 @@
 /* ==========================================================
-   Puckero – gemeinsame Oberflächen-Bausteine
+   Eiszeit – gemeinsame Oberflächen-Bausteine
    ========================================================== */
+
+/* Der Speicher hiess frueher anders. Einmalig uebernehmen, damit
+   gespeicherte Karrieren und Fortschritte nicht verloren gehen. */
+(function umzug(){
+  try {
+    [['puckero.karrieren',         'eiszeit.karrieren'],
+     ['puckero.herausforderungen', 'eiszeit.herausforderungen'],
+     ['puckero.thema',             'eiszeit.thema'],
+     ['puckero.tagesbestwert',     'eiszeit.tagesbestwert']].forEach(([alt, neu]) => {
+      const wert = localStorage.getItem(alt);
+      if (wert !== null && localStorage.getItem(neu) === null){
+        localStorage.setItem(neu, wert);
+        localStorage.removeItem(alt);
+      }
+    });
+  } catch(e){}
+})();
 
 const UI = (() => {
 
@@ -75,7 +92,7 @@ const UI = (() => {
 <header class="site">
   <div class="wrap">
     <div class="nav" id="mainnav">
-      <a class="brand" href="index.html"><span class="puck"></span>PUCKERO</a>
+      <a class="brand" href="index.html"><span class="puck"></span>EISZEIT</a>
       <button class="menu-btn" aria-label="Menü" onclick="document.getElementById('mainnav').classList.toggle('open')">☰</button>
       <nav>${links}
         <span class="thema-schalter" role="group" aria-label="Design umschalten">
@@ -95,7 +112,7 @@ const UI = (() => {
   <div class="wrap">
     <div class="cols">
       <div>
-        <a class="brand" href="index.html" style="margin-bottom:12px"><span class="puck"></span>PUCKERO</a>
+        <a class="brand" href="index.html" style="margin-bottom:12px"><span class="puck"></span>EISZEIT</a>
         <p class="small" style="max-width:34ch">Kostenlose Eishockey-Karrieresimulation im Browser.
         Kein Konto, keine Installation, keine Bezahlschranke.</p>
       </div>
@@ -126,7 +143,7 @@ const UI = (() => {
       </div>
     </div>
     <div class="foot-bottom">
-      <span>© ${new Date().getFullYear()} Puckero – ein nicht lizenziertes Fanprojekt.</span>
+      <span>© ${new Date().getFullYear()} Eiszeit – ein nicht lizenziertes Fanprojekt.</span>
       <span>Klub-, Liga- und Trophäennamen gehören ihren jeweiligen Inhabern.
         Es besteht keine Verbindung zu Ligen, Verbänden oder Vereinen.</span>
     </div>
@@ -143,7 +160,7 @@ const UI = (() => {
   }
 
   /* ---------- Themenumschaltung ---------- */
-  const THEMA_KEY = 'puckero.thema';
+  const THEMA_KEY = 'eiszeit.thema';
   /* 'klassisch' ist der Grundzustand ohne Attribut, alle weiteren
      Themen setzen data-thema auf <html>. */
   const THEMEN = ['klassisch', 'verspielt', 'retro'];
@@ -1037,7 +1054,7 @@ const UI = (() => {
       + `${res.seasons.length} Saisons, Bestwert ${res.peak}\n`
       + `${stat}, ${tit} Titel\n`
       + `Legendenpunkte: ${res.legacy} – ${res.rank.n}\n`
-      + `Deine Karriere: Puckero`;
+      + `Deine Karriere: Eiszeit`;
   }
 
   /* Fortschrittsleiste: wie weit bis zum nächsten Rang? */
@@ -1202,7 +1219,7 @@ const UI = (() => {
       const url = URL.createObjectURL(b);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'puckero-' + String(p.name).toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.png';
+      a.download = 'eiszeit-' + String(p.name).toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.png';
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 4000);
       toast('Karte gespeichert');

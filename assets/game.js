@@ -1,5 +1,5 @@
 /* ==========================================================
-   Puckero – Spielablauf: Identität → Draft → Karriere → Bilanz
+   Eiszeit – Spielablauf: Identität → Draft → Karriere → Bilanz
    Genutzt von index.html, schnellkarriere.html und taeglich.html
    ========================================================== */
 

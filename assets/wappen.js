@@ -1,5 +1,5 @@
 /* ==========================================================
-   Puckero – Wappen- und Pokalgrafiken
+   Eiszeit – Wappen- und Pokalgrafiken
 
    Alle Embleme werden hier selbst gezeichnet. Es werden keine
    echten Vereinslogos verwendet – die sind markenrechtlich
