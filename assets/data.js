@@ -581,113 +581,6 @@ const PUCKERO_DATA = (() => {
      Jede Karte steht für einen Spielertyp. Die Werte sind reine
      Spielbalance und beschreiben keine realen Personen.
      ========================================================== */
-  const LEGENDS = [
-    /* --- Center / Aufbau --- */
-    { id:'l01', n:'Der große Dirigent', tag:'Playmaker', era:'80er', pos:['C'],
-      desc:'Sieht den Pass zwei Sekunden vor allen anderen.',
-      b:{ uebersicht:12, pass:11, puck:7, antritt:3, zweikampf:-4 } },
-    { id:'l02', n:'Der Eisberg', tag:'Two-Way', era:'2010er', pos:['C'],
-      desc:'Gewinnt das Bully, blockt den Schuss, fällt nie um.',
-      b:{ zweikampf:10, defensive:9, puck:7, nerven:6, antritt:-2 } },
-    { id:'l03', n:'Der Taschenspieler', tag:'Techniker', era:'2000er', pos:['C','LW','RW'],
-      desc:'Nimmt Gegnern den Puck, ohne dass sie es merken.',
-      b:{ puck:12, pass:8, uebersicht:7, praezision:4, schuss:-3 } },
-    { id:'l04', n:'Der Kapitän', tag:'Anführer', era:'90er', pos:['C','D'],
-      desc:'Zieht eine Kabine aus jedem Loch. Auch mit Gips.',
-      b:{ nerven:13, defensive:6, uebersicht:6, zweikampf:5 } },
-    { id:'l05', n:'Der Turbo', tag:'Tempo', era:'2020er', pos:['C','LW','RW'],
-      desc:'Vom eigenen Tor bis in den Slot in vier Schritten.',
-      b:{ antritt:14, skating:12, puck:6, zweikampf:-5 } },
-
-    /* --- Scharfschützen --- */
-    { id:'l06', n:'Die Kanone', tag:'Schütze', era:'2010er', pos:['LW','RW','D'],
-      desc:'Ein Handgelenkschuss, der Torhüter in Rente schickt.',
-      b:{ schuss:15, praezision:9, puck:4, pass:-4 } },
-    { id:'l07', n:'Der Slotwolf', tag:'Vollstrecker', era:'2000er', pos:['LW','RW','C'],
-      desc:'Steht immer genau dort, wo der Puck abprallt.',
-      b:{ praezision:12, nerven:8, zweikampf:6, antritt:4, defensive:-4 } },
-    { id:'l08', n:'Der Konterblitz', tag:'Konter', era:'90er', pos:['LW','RW'],
-      desc:'Ein Fehlpass des Gegners genügt ihm.',
-      b:{ antritt:11, praezision:9, schuss:7, uebersicht:4, defensive:-3 } },
-    { id:'l09', n:'Der Riese am Bully', tag:'Powerforward', era:'2010er', pos:['C','LW','RW'],
-      desc:'Zwei Meter Schrank mit weichen Händen.',
-      b:{ zweikampf:13, schuss:9, puck:6, skating:-5, antritt:-3 } },
-    { id:'l10', n:'Der Onetimer', tag:'Powerplay', era:'2020er', pos:['LW','RW'],
-      desc:'Halblinks im Überzahlspiel. Alle wissen es. Hilft nichts.',
-      b:{ schuss:12, praezision:11, nerven:5, defensive:-5 } },
-
-    /* --- Verteidiger --- */
-    { id:'l11', n:'Der Offensivmotor', tag:'Quarterback', era:'70er', pos:['D'],
-      desc:'Ein Verteidiger, der die Scorerliste anführt.',
-      b:{ skating:12, pass:10, uebersicht:9, puck:6, zweikampf:-4 } },
-    { id:'l12', n:'Der Schrank', tag:'Abräumer', era:'90er', pos:['D'],
-      desc:'Der Slot vor dem eigenen Tor ist Sperrgebiet.',
-      b:{ zweikampf:14, defensive:12, nerven:5, antritt:-6 } },
-    { id:'l13', n:'Der Ruhepol', tag:'Positionsspiel', era:'2000er', pos:['D'],
-      desc:'Macht nie einen Fehler. Wirkt dabei gelangweilt.',
-      b:{ defensive:12, uebersicht:9, pass:7, nerven:7, schuss:-4 } },
-    { id:'l14', n:'Der Blaulinien-Hammer', tag:'Schlagschuss', era:'80er', pos:['D'],
-      desc:'Schlagschuss von der blauen Linie, Ohrenschützer empfohlen.',
-      b:{ schuss:14, praezision:6, nerven:4, skating:-3, puck:-3 } },
-    { id:'l15', n:'Der Schlittschuhläufer', tag:'Skating', era:'2020er', pos:['D','C'],
-      desc:'Trägt den Puck lieber selbst, als ihn abzuspielen.',
-      b:{ skating:13, puck:9, antritt:8, defensive:-5 } },
-
-    /* --- Charakterkarten --- */
-    { id:'l16', n:'Die Nervensäge', tag:'Agitator', era:'2010er', pos:['LW','RW','C','D'],
-      desc:'Bringt jede gegnerische Reihe binnen zwei Wechseln auf die Palme.',
-      b:{ zweikampf:9, nerven:8, antritt:5, praezision:-3 } },
-    { id:'l17', n:'Der Eisenmann', tag:'Robustheit', era:'50er', pos:['C','LW','RW','D'],
-      desc:'Verpasst in zwanzig Jahren drei Spiele.',
-      b:{ zweikampf:8, nerven:9, defensive:6, skating:4 }, extra:{ robust:12 } },
-    { id:'l18', n:'Der Spätzünder', tag:'Entwicklung', era:'2000er', pos:['C','LW','RW','D','G'],
-      desc:'Mit 30 besser als mit 22 und sehr lange haltbar.',
-      b:{ nerven:7, uebersicht:5, konstanz:7, lesen:5 }, extra:{ langlebig:14, jung:-6 } },
-    { id:'l19', n:'Das Wunderkind', tag:'Früh reif', era:'2020er', pos:['C','LW','RW','D','G'],
-      desc:'Mit 19 schon Leistungsträger, mit 32 ausgebrannt.',
-      b:{ antritt:6, puck:6, praezision:5, reflexe:6, beweglich:5 }, extra:{ jung:16, langlebig:-10 } },
-    { id:'l20', n:'Der Playoff-Mann', tag:'Big Game', era:'90er', pos:['C','LW','RW','D','G'],
-      desc:'In der regulären Saison unauffällig, ab April unaufhaltsam.',
-      b:{ nerven:14, praezision:4, konstanz:-4, reflexe:4 }, extra:{ playoff:18 } },
-
-    /* --- Torhüter --- */
-    { id:'g01', n:'Der Gummimensch', tag:'Reflexe', era:'90er', pos:['G'],
-      desc:'Hält Pucks in Positionen, die kein Lehrbuch kennt.',
-      b:{ reflexe:15, beweglich:11, nerven:6, stellung:-5 } },
-    { id:'g02', n:'Der Butterfly-Papst', tag:'Technik', era:'90er', pos:['G'],
-      desc:'Macht das Tor unten dicht, bevor der Schuss kommt.',
-      b:{ stellung:13, rebound:9, konstanz:8, beweglich:-3 } },
-    { id:'g03', n:'Der Dauerbrenner', tag:'Konstanz', era:'2000er', pos:['G'],
-      desc:'Siebzig Spiele pro Saison, jede Saison, jahrzehntelang.',
-      b:{ konstanz:14, puckspiel:9, lesen:7, reflexe:-4 } },
-    { id:'g04', n:'Die Wand aus dem Osten', tag:'Stellungsspiel', era:'70er', pos:['G'],
-      desc:'Steht so ruhig, dass Schützen an sich selbst zweifeln.',
-      b:{ stellung:12, lesen:11, nerven:8, puckspiel:-4 } },
-    { id:'g05', n:'Der dritte Verteidiger', tag:'Puckspiel', era:'2000er', pos:['G'],
-      desc:'Spielt hinter dem Tor lieber Pass als Torhüter.',
-      b:{ puckspiel:15, lesen:8, stockhand:6, reflexe:-4 } },
-    { id:'g06', n:'Die Fanghand', tag:'Fanghand', era:'2010er', pos:['G'],
-      desc:'Fischt Pucks aus der Luft, als wären sie Seifenblasen.',
-      b:{ fanghand:15, reflexe:8, konstanz:5, rebound:-3 } },
-    { id:'g07', n:'Der Eisblock', tag:'Nerven', era:'2020er', pos:['G'],
-      desc:'Penaltyschießen ist für ihn Erholung.',
-      b:{ nerven:15, konstanz:7, stellung:6, puckspiel:-4 } },
-    { id:'g08', n:'Der Rebound-Killer', tag:'Rebound', era:'2010er', pos:['G'],
-      desc:'Kein zweiter Schuss. Nie.',
-      b:{ rebound:14, stellung:8, fanghand:6, beweglich:-3 } },
-    { id:'g09', n:'Der Spagatkünstler', tag:'Beweglichkeit', era:'80er', pos:['G'],
-      desc:'Turnerische Ausbildung, akrobatische Rettungstaten.',
-      b:{ beweglich:14, reflexe:9, stockhand:5, konstanz:-4 } },
-    { id:'g10', n:'Der Analytiker', tag:'Spiel lesen', era:'2020er', pos:['G'],
-      desc:'Weiß vor dem Schützen, wohin der Schuss geht.',
-      b:{ lesen:14, stellung:9, rebound:5, beweglich:-4 } },
-    { id:'g11', n:'Der Stockhand-Spezialist', tag:'Stockhand', era:'90er', pos:['G'],
-      desc:'Die Seite, auf die alle schießen, ist seine starke.',
-      b:{ stockhand:14, rebound:7, reflexe:6, puckspiel:-3 } },
-    { id:'g12', n:'Der Grenzgänger', tag:'Risiko', era:'70er', pos:['G'],
-      desc:'Fängt Angriffe schon an der blauen Linie ab. Meistens.',
-      b:{ puckspiel:11, lesen:8, beweglich:7, stellung:-6, konstanz:-3 } }
-  ];
 
   /* ---------- Zufallsnamen für Schnellkarrieren ---------- */
   const FIRST = ['Elias','Mika','Nils','Jonas','Lasse','Tim','Leon','Fabian','Marek','Viktor','Anton','Rasmus','Oskar','Kalle','Henri','Milan','Tobias','Jesper','Aleks','Dominik','Sven','Patrik','Robin','Nico','Emil'];
@@ -768,7 +661,7 @@ const PUCKERO_DATA = (() => {
 
   return { ATTRS, POSITIONS, NATIONS, LEAGUES, CLUBS, AWARDS, INTL, TURNIERE,
            VERLETZUNGEN, ROLLEN, ROLLEN_G, HOEHEPUNKTE, VERMAECHTNIS,
-           STORY, ENDEN, LEGENDS, HERAUSFORDERUNGEN, HEIM_LIGA, FIRST, LAST };
+           STORY, ENDEN, HERAUSFORDERUNGEN, HEIM_LIGA, FIRST, LAST };
 })();
 
 if (typeof window !== 'undefined') window.PUCKERO_DATA = PUCKERO_DATA;

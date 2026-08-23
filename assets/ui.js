@@ -62,7 +62,6 @@ const UI = (() => {
 
   const NAVLINKS = [
     { href:'index.html#spielen',   n:'Spielen' },
-    { href:'spiele.html',          n:'Spiele' },
     { href:'herausforderungen.html', n:'Ziele' },
     { href:'guides.html',          n:'Guides' },
     { href:'pokalraum.html',       n:'Pokalraum' },
@@ -106,7 +105,6 @@ const UI = (() => {
           <li><a href="index.html#spielen">Eislegende</a></li>
           <li><a href="schnellkarriere.html">Schnellkarriere</a></li>
           <li><a href="taeglich.html">Tageskarriere</a></li>
-          <li><a href="spiele.html">Alle Spiele</a></li>
         </ul>
       </div>
       <div>

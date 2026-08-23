@@ -91,37 +91,6 @@ const PUCKERO = (() => {
   /* So oft darf im klassischen Modus eine Runde neu gemischt werden */
   const MAX_SKIPS = 3;
 
-  function draftOptions(player, round, skipStufe){
-    const r = rng(player.seed + ':draft:' + round + ':' + (skipStufe || 0));
-    const taken = new Set(player.picks.map(x => x.id));
-    const pool = D.LEGENDS.filter(l => l.pos.includes(player.pos) && !taken.has(l.id));
-    return shuffle(r, pool).slice(0, 3);
-  }
-
-  function applyPick(player, legend){
-    const growth = {};
-    Object.entries(legend.b).forEach(([k, v]) => {
-      if (player.attrs[k] === undefined) return;
-      const before = player.attrs[k];
-      player.attrs[k] = clamp(before + v, 1, 99);
-      growth[k] = player.attrs[k] - before;
-    });
-    Object.entries(legend.extra || {}).forEach(([k, v]) => {
-      player.traits[k] = (player.traits[k] || 0) + v;
-    });
-    player.picks.push({ id: legend.id, n: legend.n, tag: legend.tag, growth });
-    return player;
-  }
-
-  function pickValue(player, legend){
-    const w = pos(player.pos).w;
-    let s = 0;
-    Object.entries(legend.b).forEach(([k, v]) => {
-      if (w[k] !== undefined) s += v * w[k];
-    });
-    return s;
-  }
-
   /* ---------------- Charakterdraft ----------------
      Fuenf Fragen, jede Antwort verschiebt Werte und gibt Eigenschaften. */
   function draftFrage(player, runde){
@@ -2140,7 +2109,7 @@ const PUCKERO = (() => {
   return {
     rng, hashSeed, ri, pick, shuffle, clamp, round1,
     pos, nation, league, clubsOf, attrsOf, lgAvgStr,
-    newPlayer, draftOptions, applyPick, pickValue, autoDraft,
+    newPlayer, autoDraft,
     draftFrage, applyKarte, karteWert, wirkungNeu,
     overall, formFactor, devAttrs,
     createCareer, simulate, legacyRank, RANG_SCHWELLEN, marktwert,
