@@ -310,6 +310,12 @@ const PUCKERO = (() => {
       klubJahre: 0,           // Saisons beim aktuellen Klub
       laender: [],            // Turniere der Nationalmannschaft
       natDebuet: null,        // erste Nominierung
+      nominierung: null,      // offene Frage des Verbands
+      natGeprueft: false,
+      natZusage: true,        // stehst du zur Verfuegung?
+      natRolle: null,         // 'fuehrung', wenn du sie eingefordert hast
+      natAbsagen: 0,          // wie oft du abgesagt hast
+      natKapitaen: false,     // Kapitaen der Nationalmannschaft
       entryDraft: null,       // Ergebnis des Entry Drafts
       rolle: null,            // gewaehlte Rolle im aktuellen Vertrag
       rollenwahl: null,       // offene Rollenfrage
@@ -417,6 +423,120 @@ const PUCKERO = (() => {
     }
 
     /* ---- Karriereereignisse ---- */
+    /* ---------------------------------------------------------------
+       Die Nationalmannschaft: Bisher lief sie voellig ohne dein Zutun.
+       Jetzt fragt der Verband vor der Saison, ob du im Fruehjahr zur
+       Verfuegung stehst - mit echten Folgen fuer beide Seiten.
+       --------------------------------------------------------------- */
+    function pruefeNominierung(){
+      if (!st.natDebuet || !st.club) return null;      // erst nach dem Debuet
+      if (st.age < 22 || st.age > 35) return null;
+      if (r() > 0.45) return null;                     // nicht jedes Jahr
+
+      const nat = nation(player.nation);
+      const ctx = ereignisKontext();
+      const olympia = (st.year + 1) % 4 === 0;
+      const T = olympia ? D.TURNIERE.olympia : D.TURNIERE.wm;
+      /* Gemessen liegt das Ansehen bei der Anfrage im Median bei 95 und
+         95 Prozent haben mindestens 80 - als Filter taugt es allein nicht.
+         Das C bekommt nur, wer obendrein Turniererfahrung und das Alter
+         dafuer hat und es nicht schon traegt. */
+      const angesehen = st.ruf >= 97 && !st.natKapitaen && st.age >= 27
+                     && st.laenderBilanz.turniere >= 3;
+
+      const optionen = [
+        { t: 'Zusagen', ikone: 'schild', chance: 88,
+          hinweis: 'Das Trikot deines Landes, im Zweifel ohne Diskussion',
+          zusage: true,
+          gut: { ruf: 5, moral: 6,
+                 text: 'Du meldest dich ohne Zögern. Beim Verband weiß man, woran man bei dir ist.' },
+          schlecht: { risiko: 5,
+                 text: 'Du sagst zu, aber die Saison steckt dir in den Knochen. Der Sommer wird kurz.' } },
+
+        { t: 'Absagen und den Sommer nutzen', ikone: 'herz', chance: 70,
+          hinweis: 'Erholung für den Klub – der Verband merkt es sich',
+          zusage: false,
+          gut: { form: 0.09, moral: 5,
+                 text: 'Sechs Wochen ohne Eis. Du startest frischer in die neue Saison als seit Jahren.' },
+          schlecht: { ruf: -9, moral: -5,
+                 text: 'Die Absage wird öffentlich zerredet. In deinem Land nimmt man dir das übel.' } }
+      ];
+
+      if (angesehen){
+        optionen.push({
+          t: 'Zusagen und die Führung übernehmen', ikone: 'krone', chance: 52,
+          hinweis: 'Das C von ' + nat.n + ' – oder ein peinlicher Korb',
+          zusage: true, fuehrung: true,
+          gut: { ruf: 13, moral: 9, attr: { nerven: 4 },
+                 text: 'Sie geben dir das C. Ein Land im Rücken fühlt sich anders an als ein Verein.' },
+          schlecht: { ruf: -7, moral: -6,
+                 text: 'Man dankt für das Angebot und vergibt es an einen anderen. Das spricht sich herum.' }
+        });
+      }
+
+      return {
+        art: 'nominierung', ikone: 'pfeife', tag: 'Verbandsanfrage',
+        titel: nat.n + ' fragt für die ' + T.n + ' an',
+        text: 'Der Verband will früh wissen, ob im Frühjahr mit dir zu rechnen ist. '
+            + 'Das Turnier liegt direkt hinter der Saison – wer hinfährt, hat keinen Sommer. '
+            + (st.natAbsagen ? 'Beim letzten Mal hast du abgesagt; das steht im Raum. '
+                             : 'Bisher warst du immer da. ')
+            + (ctx.klub ? esc0(ctx.klub) + ' sieht solche Reisen ohnehin ungern.' : ''),
+        stand: { klub: st.club.n, nation: nat.n, turnier: T.n, absagen: st.natAbsagen },
+        optionen
+      };
+    }
+
+    /* Kleine Absicherung: In Ereignistexten steht nichts als Markup. */
+    function esc0(t){ return String(t == null ? '' : t); }
+
+    function entscheideNominierung(index){
+      const f = st.nominierung;
+      if (!f) return null;
+      const o = f.optionen[clamp(index, 0, f.optionen.length - 1)];
+      const gelungen = r() * 100 < o.chance;
+      const e = gelungen ? o.gut : o.schlecht;
+      const ctx = ereignisKontext();
+
+      const folge = { gelungen, text: einsetzen(e.text || '', ctx), chance: o.chance,
+                      wahl: o.t, titel: f.titel, tag: f.tag, wirkungen: [] };
+      const merke = (t, gut) => folge.wirkungen.push({ t, gut });
+
+      if (e.attr) Object.entries(e.attr).forEach(([k, v]) => {
+        if (player.attrs[k] === undefined) return;
+        player.attrs[k] = clamp(player.attrs[k] + v, 1, 99);
+        merke('+' + v + ' ' + k, true);
+      });
+      if (e.ruf){   st.ruf = clamp(st.ruf + e.ruf, 20, 99);
+                    merke((e.ruf > 0 ? '+' : '') + e.ruf + ' Ansehen', e.ruf > 0); }
+      if (e.moral){ st.moral = clamp(st.moral + e.moral, 10, 100);
+                    merke((e.moral > 0 ? '+' : '') + e.moral + ' Moral', e.moral > 0); }
+      if (e.form){  st.formBonus += e.form;
+                    merke('+' + Math.round(e.form * 100) + '% Form', true); }
+      if (e.risiko){ st.risikoBonus += e.risiko / 100;
+                    merke('+' + e.risiko + ' Verletzungsrisiko', false); }
+
+      st.natZusage = !!o.zusage;
+      if (!o.zusage){ st.natAbsagen++; merke('Absage an den Verband', false); }
+      if (o.fuehrung && gelungen){
+        st.natKapitaen = true;
+        merke('Kapitän der Nationalmannschaft', true);
+      }
+      st.natRolle = (o.fuehrung && gelungen) ? 'fuehrung' : null;
+
+      if (!folge.wirkungen.length) merke('Keine bleibende Wirkung', true);
+
+      st.verlauf.push({
+        jahr: st.year, alter: st.age, art: 'nominierung',
+        tag: f.tag, titel: f.titel, wahl: o.t, gelungen, chance: o.chance, wagnis: false
+      });
+      st.letzteFolge = folge;
+      st.offeneNotiz = { t: 'Verband: ' + o.t + (gelungen ? ' – gelungen' : ' – misslungen'),
+                         c: gelungen ? 'good' : 'bad' };
+      st.nominierung = null;
+      return folge;
+    }
+
     /* ---------------------------------------------------------------
        Die Wechselfrist: mitten in der Saison entscheidet sich, ob dein
        Klub angreift oder abbaut – und ob du dabei bleiben willst.
@@ -1048,13 +1168,20 @@ const PUCKERO = (() => {
     function playSeason(){
       if (st.fertig || st.angebote || st.training || st.ereignis || st.jugend
           || st.rollenwahl || st.kapitaensfrage || st.ruecktrittsfrage
-          || st.wechselfrist) return null;
+          || st.wechselfrist || st.nominierung) return null;
 
       // Vor der Saison kann ein Karriereereignis dazwischenkommen
       if (!st.ereignisGeprueft){
         st.ereignisGeprueft = true;
         const e = waehleEreignis(st.seasons[st.seasons.length - 1]);
         if (e){ st.ereignis = e; return null; }
+      }
+
+      // Der Verband fragt vor der Saison, ob du zur Verfuegung stehst
+      if (!st.natGeprueft){
+        st.natGeprueft = true;
+        const f = pruefeNominierung();
+        if (f){ st.nominierung = f; return null; }
       }
 
       // Die Wechselfrist mitten in der Saison
@@ -1351,15 +1478,24 @@ const PUCKERO = (() => {
                 : stufe === 'U20' ? D.TURNIERE.u20
                 : olympia ? D.TURNIERE.olympia : D.TURNIERE.wm;
 
-        // Bei tiefem Playoff-Lauf verpasst man die A-WM
-        const dabei = stufe !== 'A' || olympia || !season.title;
+        // Bei tiefem Playoff-Lauf verpasst man die A-WM.
+        // Und wer abgesagt hat, faehrt nicht mit.
+        const abgesagt = stufe === 'A' && !st.natZusage;
+        if (abgesagt){
+          season.events.push({ t: 'Für ' + T.n + ' abgesagt – der Sommer gehört dir', c: '' });
+          st.natZusage = true;          // die Absage gilt nur fuer dieses Jahr
+        }
+        const dabei = !abgesagt && (stufe !== 'A' || olympia || !season.title);
         if (dabei){
           if (!st.natDebuet){
             st.natDebuet = { jahr: st.year + 1, stufe };
             season.events.push({ t: 'Erste Nominierung: ' + T.n + ' mit ' + nat.n, c: 'good' });
           }
           const jugend = stufe !== 'A';
-          const natPower = nat.wm + clamp((ovr - (jugend ? 68 : 82)) * 0.5, -8, 9) + (r() - 0.5) * 22;
+          /* Wer die Fuehrung uebernommen hat, zieht die Mannschaft mit. */
+          const fuehrungsBonus = st.natKapitaen ? 4 : 0;
+          const natPower = nat.wm + clamp((ovr - (jugend ? 68 : 82)) * 0.5, -8, 9)
+                         + fuehrungsBonus + (r() - 0.5) * 22;
           const spiele = T.spiele - (r() < 0.2 ? ri(r, 1, 2) : 0);
 
           const turnier = { jahr: st.year + 1, art: stufe.toLowerCase(), stufe,
@@ -1467,6 +1603,7 @@ const PUCKERO = (() => {
       st.moral = clamp(st.moral + (season.title ? 6 : (season.playoffs ? 2 : -3)), 10, 100);
       st.ereignisGeprueft = false;  // im nächsten Jahr wieder möglich
       st.wechselGeprueft = false;
+      st.natGeprueft = false;
 
       /* Laufende Summen + Meilensteine */
       const vorher = { ...st.lauf };
@@ -1835,6 +1972,7 @@ const PUCKERO = (() => {
         if (st.jugend) waehleJugend(0);
         if (st.ereignis) chooseEreignis(0);
         if (st.wechselfrist) entscheideWechselfrist(0);
+        if (st.nominierung) entscheideNominierung(0);
         if (st.kapitaensfrage) entscheideKapitaen(true);
         if (st.ruecktrittsfrage) entscheideRuecktritt(autoWeiter());
         playSeason();
@@ -1966,6 +2104,8 @@ const PUCKERO = (() => {
         jahrgangDelta: st.jahrgangDelta,
         ziele: st.ziele,
         ehemalige: st.ehemalige,
+        natKapitaen: st.natKapitaen,
+        natAbsagen: st.natAbsagen,
         zielBilanz: st.zielBilanz,
         hauptklub: klubs.slice().sort((a, b) => b.saisons - a.saisons)[0] || null,
         entscheidungen: st.entscheidungen,
@@ -2003,6 +2143,7 @@ const PUCKERO = (() => {
       get training(){ return st.training; },
       get ereignis(){ return st.ereignis; },
       get wechselfrist(){ return st.wechselfrist; },
+      get nominierung(){ return st.nominierung; },
       /* Die Vorgaben fuer die naechste Saison – sichtbar, bevor gespielt wird */
       get kommendeZiele(){
         if (st.fertig || !st.club) return null;
@@ -2015,7 +2156,7 @@ const PUCKERO = (() => {
       get letzteSaison(){ return st.seasons[st.seasons.length - 1] || null; },
       maxAge,
       playSeason, choose, autoChoose, chooseTraining, autoTraining,
-      entscheideWechselfrist,
+      entscheideWechselfrist, entscheideNominierung,
       waehleJugend, chooseEreignis, waehleRolle, autoRolle, entscheideKapitaen,
       entscheideRuecktritt, autoWeiter,
       runToEnd, result

@@ -1844,3 +1844,12 @@ footer.site a:hover{color:var(--text)}
   /* Platz schaffen, damit die Leiste nichts verdeckt */
   :root:has(.abschluss-taten) .panel-body{padding-bottom:132px}
 }
+
+/* Verbandsanfrage: das Land spricht, nicht der Klub */
+.wf-kopf.lage-verband .wf-lage{color:var(--gold)}
+.wf-kopf.lage-verband{box-shadow:inset 0 3px 0 var(--gold)}
+.sk-rolle.nat{
+  display:flex;align-items:center;gap:7px;
+  color:var(--gold);font-weight:700;
+}
+:root[data-thema="retro"] .nominierung{box-shadow:2px 2px 0 var(--ice-600),var(--shadow)}

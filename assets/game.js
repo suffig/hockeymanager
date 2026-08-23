@@ -525,6 +525,8 @@ function CareerGame(root, cfg){
           ${zeile('stift', 'Vertrag', st.vertragJahre > 0 ? st.vertragJahre + ' J.' : '–')}
           ${zeile('herz', 'Moral', Math.round(st.moral))}
         </div>
+        ${st.natKapitaen ? `<div class="sk-rolle nat">${UI.ikone('krone', 14)}
+          Kapitän der Nationalmannschaft</div>` : ''}
         ${st.rolle ? `<div class="sk-rolle">${st.rolle.icon} ${esc(st.rolle.n)}</div>` : ''}
         ${umfeldBlock(st)}
         ${st.entryDraft ? `<div class="sk-rolle draft">${st.entryDraft.ungezogen
@@ -582,6 +584,7 @@ function CareerGame(root, cfg){
     if (st.jugend)        return kopf + jugendHtml(st.jugend);
     if (st.ereignis)      return kopf + ereignisHtml(st.ereignis);
     if (lauf.wechselfrist) return kopf + wechselfristHtml(lauf.wechselfrist);
+    if (lauf.nominierung)  return kopf + bilanz + nominierungHtml(lauf.nominierung);
     if (st.ruecktrittsfrage) return kopf + bilanz + ruecktrittHtml(st.ruecktrittsfrage, st);
     if (st.kapitaensfrage)return kopf + bilanz + kapitaenHtml(st.kapitaensfrage);
     if (st.angebote)      return kopf + bilanz + angeboteHtml(st.angebote, st.angebotsGrund);
@@ -874,6 +877,42 @@ function CareerGame(root, cfg){
       </div>`;
   }
 
+  /* Die Anfrage des Verbands. Eigener Auftritt, weil hier nicht der
+     Klub spricht, sondern das Land. */
+  function nominierungHtml(f){
+    return `
+      <div class="wechselfrist nominierung anim">
+        <div class="wf-kopf lage-verband">
+          <span class="wf-uhr">${UI.ikone('pfeife', 18)} ${esc(f.tag)}</span>
+          <span class="wf-lage">${UI.ikone('flug', 15)} ${esc(f.stand.nation)}</span>
+        </div>
+        <div class="wf-text">
+          <h2>${esc(f.titel)}</h2>
+          <p>${esc(f.text)}</p>
+          <div class="wf-stand">
+            ${UI.kennzahl('pokal', esc(f.stand.turnier), 'Anstehendes Turnier')}
+            ${f.stand.absagen ? UI.kennzahl('kreuz', f.stand.absagen,
+                'Bisherige Absagen an den Verband', 'schlecht') : ''}
+          </div>
+        </div>
+        <div class="ereignis-wahl">
+          ${f.optionen.map((o, i) => `
+            <button class="wahlzeile" data-nominierung="${i}">
+              <span class="wz-ikone">${UI.ikone(o.ikone || 'schild', 20)}</span>
+              <span class="wz-text">
+                <b>${esc(o.t)}</b>
+                <span class="small">${esc(o.hinweis || '')}</span>
+              </span>
+              <span class="wz-balken">
+                <i class="gut" style="width:${o.chance}%">${o.chance}%</i>
+                <i class="schlecht" style="width:${100 - o.chance}%">${100 - o.chance}%</i>
+              </span>
+              <span class="wz-pfeil">${UI.ikone('transfer', 16)}</span>
+            </button>`).join('')}
+        </div>
+      </div>`;
+  }
+
   function trainingHtml(optionen, alter){
     return `
       <div class="anim">
@@ -926,6 +965,11 @@ function CareerGame(root, cfg){
     });
     root.querySelectorAll('[data-wechsel]').forEach(el => el.onclick = () => {
       lauf.entscheideWechselfrist(+el.dataset.wechsel);
+      lauf.playSeason();
+      neu();
+    });
+    root.querySelectorAll('[data-nominierung]').forEach(el => el.onclick = () => {
+      lauf.entscheideNominierung(+el.dataset.nominierung);
       lauf.playSeason();
       neu();
     });
