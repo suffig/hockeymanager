@@ -4,6 +4,62 @@
 
 const UI = (() => {
 
+  /* Spielernamen kommen aus einem Eingabefeld – im Markup escapen. */
+  const esc = t => String(t == null ? '' : t)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  /* ----------------------------------------------------------------
+     Eigenes Icon-Set. Alles selbst gezeichnete Pfade auf 24x24, die
+     ueber currentColor die Themenfarbe uebernehmen - dadurch tragen
+     sie in allen drei Designs und ersetzen viel Fliesstext.
+     ---------------------------------------------------------------- */
+  const IKONEN = {
+    puck:      '<ellipse cx="12" cy="12" rx="8" ry="3.4"/><path d="M4 12v3.2c0 1.9 3.6 3.4 8 3.4s8-1.5 8-3.4V12" fill="none" stroke-width="1.8"/>',
+    schlaeger: '<path d="M5 4v11.5c0 1.4 1.1 2.5 2.5 2.5H19" fill="none" stroke-width="2.2" stroke-linecap="round"/><path d="M15 18h4.5" stroke-width="3.4" stroke-linecap="round"/>',
+    tor:       '<path d="M4 19V9a8 8 0 0 1 16 0v10" fill="none" stroke-width="2"/><path d="M4 19h16M8 19v-8M12 19V7.5M16 19v-8" fill="none" stroke-width="1.2"/>',
+    pokal:     '<path d="M7 4h10v5a5 5 0 0 1-10 0z" fill="none" stroke-width="1.9"/><path d="M7 6H4.5v1.5A3.5 3.5 0 0 0 8 11M17 6h2.5v1.5A3.5 3.5 0 0 1 16 11" fill="none" stroke-width="1.5"/><path d="M12 14v4M8.5 20h7" fill="none" stroke-width="2" stroke-linecap="round"/>',
+    medaille:  '<path d="M8 3l2.5 6M16 3l-2.5 6" fill="none" stroke-width="1.8"/><circle cx="12" cy="15" r="5.5" fill="none" stroke-width="1.9"/><path d="M12 12.5l1 2.1 2.3.3-1.7 1.6.4 2.3-2-1.1-2 1.1.4-2.3-1.7-1.6 2.3-.3z"/>',
+    stern:     '<path d="M12 3l2.6 5.9 6.4.6-4.8 4.3 1.4 6.2L12 16.8 6.4 20l1.4-6.2L3 9.5l6.4-.6z"/>',
+    herz:      '<path d="M12 20S3.5 14.6 3.5 9.2A4.7 4.7 0 0 1 12 6.5a4.7 4.7 0 0 1 8.5 2.7C20.5 14.6 12 20 12 20z"/>',
+    schild:    '<path d="M12 3l7.5 3v6c0 4.6-3.2 7.6-7.5 9-4.3-1.4-7.5-4.4-7.5-9V6z" fill="none" stroke-width="1.9"/>',
+    flug:      '<path d="M3 12h11l-3-5h2.6l5.2 5H21l-2 2h-1.2l-5.2 5H10l3-5H3z"/>',
+    transfer:  '<path d="M4 9h13l-3-3M20 15H7l3 3" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+    krone:     '<path d="M4 17l-1-9 5 3 4-6 4 6 5-3-1 9z" fill="none" stroke-width="1.9" stroke-linejoin="round"/><path d="M4 20h16" stroke-width="2" stroke-linecap="round"/>',
+    ziel:      '<circle cx="12" cy="12" r="8.5" fill="none" stroke-width="1.8"/><circle cx="12" cy="12" r="4.5" fill="none" stroke-width="1.8"/><circle cx="12" cy="12" r="1.4"/>',
+    waage:     '<path d="M12 4v15M6 19h12M4 9h16M4 9l-2.5 5h5zM20 9l-2.5 5h5z" fill="none" stroke-width="1.7" stroke-linejoin="round"/>',
+    stift:     '<path d="M4 20l1-4L16 5l3 3L8 19z" fill="none" stroke-width="1.8" stroke-linejoin="round"/><path d="M14.5 6.5l3 3" stroke-width="1.6"/>',
+    fluestern: '<path d="M4 5h16v10H9l-5 4z" fill="none" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 10h3M13 10h3" stroke-width="1.8" stroke-linecap="round"/>',
+    uhr:       '<circle cx="12" cy="12" r="8.5" fill="none" stroke-width="1.8"/><path d="M12 7v5.4l3.4 2" fill="none" stroke-width="1.8" stroke-linecap="round"/>',
+    hoch:      '<path d="M12 19V6M6 12l6-6 6 6" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
+    runter:    '<path d="M12 5v13M6 12l6 6 6-6" fill="none" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
+    pflaster:  '<rect x="3.2" y="8.6" width="17.6" height="6.8" rx="3.4" transform="rotate(-35 12 12)" fill="none" stroke-width="1.9"/><path d="M10 11.2l.01 0M13 12.8l.01 0M11 14l.01 0M12.5 10l.01 0" stroke-width="1.9" stroke-linecap="round"/>',
+    flamme:    '<path d="M12 3s5 4.2 5 8.6A5 5 0 0 1 7 12c0-1.7.8-3 1.6-4 .2 1.2 1 2 1.9 2 0-3.4 1.5-5.4 1.5-7z"/>',
+    gruppe:    '<circle cx="9" cy="8.5" r="3.2" fill="none" stroke-width="1.8"/><path d="M3.5 19c0-3 2.5-4.8 5.5-4.8s5.5 1.8 5.5 4.8" fill="none" stroke-width="1.8"/><path d="M16 6.2a3 3 0 0 1 0 5.6M17 14.6c2.2.5 3.6 2.1 3.6 4.4" fill="none" stroke-width="1.7"/>',
+    kalender:  '<rect x="3.5" y="5.5" width="17" height="14" rx="2.2" fill="none" stroke-width="1.8"/><path d="M3.5 10h17M8 3.5v4M16 3.5v4" fill="none" stroke-width="1.8" stroke-linecap="round"/>',
+    blitz:     '<path d="M13.5 2L5 13.5h5L9.5 22 19 10h-5.5z"/>',
+    haken:     '<path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>',
+    kreuz:     '<path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2.4" stroke-linecap="round"/>',
+    pfeife:    '<circle cx="8.5" cy="13" r="5.5" fill="none" stroke-width="1.8"/><path d="M13.5 10.5H21v4h-7.5" fill="none" stroke-width="1.8" stroke-linejoin="round"/>',
+    auge:      '<path d="M2.5 12S6 6.5 12 6.5 21.5 12 21.5 12 18 17.5 12 17.5 2.5 12 2.5 12z" fill="none" stroke-width="1.8"/><circle cx="12" cy="12" r="2.6"/>'
+  };
+
+  /* Ein Icon als Inline-SVG. Groesse in Pixeln, Farbe kommt vom Text. */
+  function ikone(name, groesse){
+    const d = IKONEN[name];
+    if (!d) return '';
+    const g = groesse || 16;
+    return '<svg class="ik" viewBox="0 0 24 24" width="' + g + '" height="' + g +
+           '" fill="currentColor" stroke="currentColor" aria-hidden="true" focusable="false">' +
+           d + '</svg>';
+  }
+
+  /* Icon plus Zahl - ersetzt eine beschriftete Textzeile. */
+  function kennzahl(name, wert, titel, klasse){
+    return '<span class="kennzahl ' + (klasse || '') + '" title="' + esc(titel || '') + '">' +
+           ikone(name, 15) + '<b>' + wert + '</b></span>';
+  }
+
   const NAVLINKS = [
     { href:'index.html#spielen',   n:'Spielen' },
     { href:'spiele.html',          n:'Spiele' },
@@ -22,7 +78,13 @@ const UI = (() => {
     <div class="nav" id="mainnav">
       <a class="brand" href="index.html"><span class="puck"></span>PUCKERO</a>
       <button class="menu-btn" aria-label="Menü" onclick="document.getElementById('mainnav').classList.toggle('open')">☰</button>
-      <nav>${links}</nav>
+      <nav>${links}
+        <span class="thema-schalter" role="group" aria-label="Design umschalten">
+          <button type="button" data-thema-wahl="klassisch">Eis</button>
+          <button type="button" data-thema-wahl="verspielt">Bunt</button>
+          <button type="button" data-thema-wahl="retro">Retro</button>
+        </span>
+      </nav>
     </div>
   </div>
 </header>`;
@@ -79,6 +141,37 @@ const UI = (() => {
     const f = document.getElementById('ftr');
     if (h) h.outerHTML = header(active);
     if (f) f.outerHTML = footer();
+    themaBinden();
+  }
+
+  /* ---------- Themenumschaltung ---------- */
+  const THEMA_KEY = 'puckero.thema';
+  /* 'klassisch' ist der Grundzustand ohne Attribut, alle weiteren
+     Themen setzen data-thema auf <html>. */
+  const THEMEN = ['klassisch', 'verspielt', 'retro'];
+
+  function themaLesen(){
+    try {
+      const t = localStorage.getItem(THEMA_KEY);
+      return THEMEN.includes(t) ? t : 'klassisch';
+    } catch(e){ return 'klassisch'; }
+  }
+  function themaSetzen(wahl){
+    const t = THEMEN.includes(wahl) ? wahl : 'klassisch';
+    if (t === 'klassisch') document.documentElement.removeAttribute('data-thema');
+    else document.documentElement.setAttribute('data-thema', t);
+    try { localStorage.setItem(THEMA_KEY, t); } catch(e){}
+    themaMarkieren();
+  }
+  function themaMarkieren(){
+    const jetzt = themaLesen();
+    document.querySelectorAll('[data-thema-wahl]').forEach(b =>
+      b.classList.toggle('on', b.dataset.themaWahl === jetzt));
+  }
+  function themaBinden(){
+    document.querySelectorAll('[data-thema-wahl]').forEach(b =>
+      b.onclick = () => themaSetzen(b.dataset.themaWahl));
+    themaMarkieren();
   }
 
   /* ---------- Bausteine ---------- */
@@ -113,22 +206,38 @@ const UI = (() => {
     if (s.title) kl.push('titel');
     if (s.sternstunde) kl.push('sternstunde');
 
+    /* Icon, Zahl, winzige Beschriftung. Der Klartext steht zusaetzlich im
+       title, aber sichtbar bleibt er auch ohne Maus - auf dem Handy gibt
+       es kein Hover. */
+    const kachel = (ik, wert, kurz, lang, ton) => `
+      <div class="stk ${ton || ''}" title="${esc(lang || kurz)}">
+        <span class="stk-ik">${ikone(ik, 15)}</span>
+        <b>${wert}</b>
+        <span class="stk-n">${kurz}</span>
+      </div>`;
+
     const line = isG
-      ? `<span>Spiele <b>${s.gp}</b></span>
-         <span>Bilanz <b>${s.wins}-${s.losses || 0}-${s.otl || 0}</b></span>
-         <span>Fangquote <b>${(s.sv * 100).toFixed(1)}%</b></span>
-         <span>Gegentorschnitt <b>${s.gaa.toFixed(2)}</b></span>
-         <span>Shutouts <b>${s.so}</b></span>
-         <span>Paraden <b>${s.saves || 0}</b></span>`
-      : `<span>Spiele <b>${s.gp}</b></span><span>Tore <b>${s.g}</b></span>
-         <span>Vorlagen <b>${s.a}</b></span><span>Punkte <b>${s.p}</b></span>
-         <span>+/- <b>${s.plus > 0 ? '+' : ''}${s.plus}</b></span>
-         <span>PP <b>${s.ppg || 0}</b></span>
-         <span>Siegtore <b>${s.gwg || 0}</b></span>
-         <span>Schüsse <b>${s.shots || 0}</b> (${s.shotPct || 0}%)</span>
-         <span>Eiszeit <b>${s.toi || 0}</b> min</span>
-         ${s.bully ? '<span>Bully <b>' + s.bully + '%</b></span>' : ''}
-         <span>Strafen <b>${s.pim || 0}</b></span>`;
+      ? kachel('kalender', s.gp, 'Spiele')
+        + kachel('waage', s.wins + '-' + (s.losses || 0) + '-' + (s.otl || 0),
+                 'Bilanz', 'Siege - Niederlagen - Verlängerung')
+        + kachel('schild', (s.sv * 100).toFixed(1) + '%', 'Fangquote')
+        + kachel('tor', s.gaa.toFixed(2), 'Gegentore', 'Gegentorschnitt pro Spiel')
+        + kachel('haken', s.so, 'Shutouts', 'Spiele ohne Gegentor', s.so > 0 ? 'gut' : '')
+        + kachel('auge', s.saves || 0, 'Paraden')
+      : kachel('kalender', s.gp, 'Spiele')
+        + kachel('tor', s.g, 'Tore')
+        + kachel('gruppe', s.a, 'Vorlagen')
+        + kachel('stern', s.p, 'Punkte', 'Scorerpunkte', 'stark')
+        + kachel(s.plus >= 0 ? 'hoch' : 'runter',
+                 (s.plus > 0 ? '+' : '') + s.plus, '+/-', 'Plus-Minus-Bilanz',
+                 s.plus > 0 ? 'gut' : s.plus < 0 ? 'schlecht' : '')
+        + kachel('blitz', s.ppg || 0, 'Überzahl', 'Tore in Überzahl')
+        + kachel('krone', s.gwg || 0, 'Siegtore', 'Spielentscheidende Tore')
+        + kachel('ziel', (s.shots || 0) + ' · ' + (s.shotPct || 0) + '%', 'Schüsse',
+                 'Schüsse und Trefferquote')
+        + kachel('uhr', (s.toi || 0), 'Eiszeit', 'Eiszeit pro Spiel in Minuten')
+        + (s.bully ? kachel('puck', s.bully + '%', 'Bully', 'Gewonnene Bullys') : '')
+        + kachel('kreuz', s.pim || 0, 'Strafen', 'Strafminuten');
 
     const evs = s.events.map(e => `<div class="ev ${e.c}">${e.t}</div>`).join('');
     const nat = s.nat ? `<div class="story" style="border-left-color:var(--gold);background:rgba(255,200,97,.08)">
@@ -150,17 +259,403 @@ const UI = (() => {
         ${s.sternstunde ? '<span class="pill" style="color:var(--accent-2);border-color:var(--accent-2)">Sternstunde</span>' : ''}
         ${s.title ? '<span class="pill gold">' + s.title + '</span>' : ''}
       </div>
-      <div class="statline">${line}</div>
+      ${zeremonie(s)}
+      <div class="statgitter">${line}</div>
+      ${s.ziele ? zielKarte(s.ziele, { klein:true }) : ''}
+      ${serienBaum(s)}
+      ${s.faktoren ? `<div class="faktoren">
+          <span class="fk ${s.faktoren.form > 0 ? 'plus' : s.faktoren.form < 0 ? 'minus' : ''}"
+            title="Mehrjähriger Formzustand">Form ${s.faktoren.form > 0 ? '+' : ''}${s.faktoren.form}</span>
+          <span class="fk ${s.faktoren.eingewoehnung > 0 ? 'plus' : 'minus'}"
+            title="Eingewöhnung beim Klub">Eingewöhnung ${s.faktoren.eingewoehnung > 0 ? '+' : ''}${s.faktoren.eingewoehnung}%</span>
+          <span class="fk ${s.faktoren.mitspieler > 0 ? 'plus' : 'minus'}"
+            title="Stärke der Mitspieler">Mitspieler ${s.faktoren.mitspieler > 0 ? '+' : ''}${s.faktoren.mitspieler}%</span>
+        </div>` : ''}
+      ${s.hoehepunkt ? `<div class="hoehepunkt">
+          <span class="hp-marke">Spiel der Saison</span>${s.hoehepunkt.t}</div>` : ''}
       ${evs ? '<div class="events">' + evs + '</div>' : ''}
       ${nat}
       ${s.story ? '<div class="story">' + s.story + '</div>' : ''}
     </div>`;
   }
 
+  /* Saisonvorgaben des Klubs – vorher als Auftrag, nachher als Abrechnung. */
+  const ZIEL_ICON = { titel:'pokal', runden:'medaille', playoffs:'ziel', platz:'schild',
+                      punkte:'hoch', tore:'tor', siege:'haken', spiele:'uhr' };
+
+  function zielKarte(ziele, opt){
+    if (!ziele) return '';
+    const o = opt || {};
+    const abgerechnet = ziele.team.erfuellt !== undefined;
+
+    const zeile = (z, rolle) => {
+      const status = !abgerechnet ? '' : z.erfuellt ? 'erfuellt' : 'verfehlt';
+      const fortschritt = z.erreicht !== undefined && z.wert
+        ? Math.min(100, Math.round(z.erreicht / z.wert * 100)) : null;
+      return `<div class="ziel-zeile ${status}">
+        <span class="ziel-icon">${ikone(ZIEL_ICON[z.art] || 'puck', 20)}</span>
+        <span class="ziel-text">
+          <b>${esc(z.n)}</b>
+          <span class="small">${rolle}${abgerechnet && z.erreicht !== undefined
+            ? ' · erreicht: ' + z.erreicht : ' · ' + esc(z.d || '')}</span>
+          ${fortschritt !== null ? `<span class="bar" style="height:5px;margin-top:5px">
+             <i class="${fortschritt >= 100 ? 'hi' : ''}" style="width:${fortschritt}%"></i></span>` : ''}
+        </span>
+        ${abgerechnet ? `<span class="ziel-haken">${z.erfuellt ? '✓' : '✗'}</span>` : ''}
+      </div>`;
+    };
+
+    return `<div class="zielkarte ${abgerechnet ? 'fertig' : 'offen'} ${o.klein ? 'klein' : ''}">
+      <div class="ziel-kopf">${abgerechnet ? 'Saisonziele – Abrechnung' : 'Vorgaben für die kommende Saison'}</div>
+      ${zeile(ziele.team, 'Mannschaft')}
+      ${zeile(ziele.person, 'Persönlich')}
+    </div>`;
+  }
+
+  /* Der eigene Jahrgang als laufende Rangliste.
+     Sie beantwortet die Frage, die sich jeder Profi stellt:
+     Wie stehe ich gegen die, die im selben Jahr angefangen haben? */
+  function jahrgangTabelle(stand, isG, opt){
+    if (!stand || !stand.length) return '';
+    const o = opt || {};
+    const delta = o.delta || null;
+    const feld = isG ? 'Siege' : 'Punkte';
+    const eigen = stand.find(x => x.eigen) || {};
+    const bew = eigen.bewegung || 0;
+    const pfeil = bew > 0 ? `<span class="jg-hoch">▲${bew}</span>`
+                : bew < 0 ? `<span class="jg-runter">▼${-bew}</span>` : '';
+    const zeigen = o.alle ? stand : kompakt(stand, eigen.platz);
+
+    return `<div class="jahrgang ${o.gross ? 'gross' : ''}">
+      <div class="jg-kopf">
+        <span>Dein Jahrgang</span>
+        <span class="jg-rang">Platz <b>${eigen.platz || '–'}</b><span class="small">/${stand.length}</span> ${pfeil}</span>
+      </div>
+      <div class="jg-liste">
+        ${zeigen.map((x, i) => x === null
+          ? '<div class="jg-luecke">···</div>'
+          : `<div class="jg-zeile ${x.eigen ? 'eigen' : ''} ${x.aktiv ? '' : 'raus'}"
+                  style="animation-delay:${0.05 * i}s">
+               <span class="jg-platz ${x.platz <= 3 ? 'podest' : ''}">${x.platz}</span>
+               <span class="jg-name">
+                 <b>${esc(x.name)}</b>
+                 <span class="jg-klub">${x.aktiv ? esc(x.klub) : 'Karriere beendet'}</span>
+               </span>
+               <span class="jg-pos">${x.pos}</span>
+               ${x.titel ? `<span class="jg-titel" title="${x.titel} Meistertitel">🏆${x.titel}</span>` : ''}
+               <span class="jg-wert" title="${x.roh !== undefined
+                 ? x.roh + ' ' + feld + ' roh · gewichtet nach Ligastärke, Titeln und Auszeichnungen'
+                 : ''}">${x.wert}</span>
+             </div>`).join('')}
+      </div>
+      ${delta && (delta.vorn || delta.hinten) ? `<div class="jg-abstand">
+        ${delta.vorn ? `<span class="jg-ab vorn" title="Rückstand auf ${esc(delta.vorn.name)}">
+          ${ikone('hoch', 13)} <b>${delta.vorn.abstand}</b> auf ${esc(delta.vorn.name.split(' ').slice(-1)[0])}</span>` : ''}
+        ${delta.hinten ? `<span class="jg-ab hinten" title="Vorsprung auf ${esc(delta.hinten.name)}">
+          ${ikone('runter', 13)} <b>${delta.hinten.abstand}</b> vor ${esc(delta.hinten.name.split(' ').slice(-1)[0])}</span>` : ''}
+      </div>` : ''}
+      <div class="jg-fuss small">Wertung bis hierher: ${feld} gewichtet nach Ligastärke,
+        plus Titel und Auszeichnungen</div>
+    </div>`;
+  }
+
+  /* Lange Liste auf Spitze, eigene Umgebung und Schlusslicht eindampfen */
+  function kompakt(stand, eigenPlatz){
+    if (stand.length <= 6) return stand;
+    const behalten = new Set([1, 2, 3, stand.length]);
+    if (eigenPlatz) [eigenPlatz - 1, eigenPlatz, eigenPlatz + 1].forEach(p => behalten.add(p));
+    const raus = [];
+    let luecke = false;
+    stand.forEach(x => {
+      if (behalten.has(x.platz)){ raus.push(x); luecke = false; }
+      else if (!luecke){ raus.push(null); luecke = true; }
+    });
+    return raus;
+  }
+
+  /* ----------------------------------------------------------------
+     Der Verlauf des Jahrgangsrennens: eine Linie je Spieler, die Zeit
+     nach rechts, der Platz nach unten. Selbst gezeichnetes SVG, damit
+     es in allen drei Themen ueber currentColor mitfaerbt.
+     ---------------------------------------------------------------- */
+  function jahrgangVerlauf(res){
+    const saisons = (res.seasons || []).filter(s => s.jahrgang && s.jahrgang.length);
+    if (saisons.length < 3) return '';
+
+    const namen = saisons[saisons.length - 1].jahrgang.map(x => x.name);
+    const anzahl = namen.length;
+    const B = 720, H = 300;
+    const l = 34, r2 = 168, o = 22, u = 34;          // Raender
+    const iw = B - l - r2, ih = H - o - u;
+
+    const xv = i => l + (saisons.length === 1 ? iw / 2 : i * iw / (saisons.length - 1));
+    const yv = platz => o + (anzahl === 1 ? ih / 2 : (platz - 1) * ih / (anzahl - 1));
+
+    // Waagerechte Hilfslinien je Platz
+    let gitter = '';
+    for (let pz = 1; pz <= anzahl; pz++){
+      gitter += `<line x1="${l}" y1="${yv(pz)}" x2="${l + iw}" y2="${yv(pz)}"
+                   stroke="currentColor" stroke-opacity=".12" stroke-width="1"/>`;
+      gitter += `<text x="${l - 9}" y="${yv(pz) + 4}" text-anchor="end"
+                   font-size="11" fill="currentColor" fill-opacity=".45">${pz}</text>`;
+    }
+
+    // Jahreszahlen unten - nur jede zweite, sonst wird es voll
+    let achse = '';
+    saisons.forEach((sn, i) => {
+      if (i % 2 && i !== saisons.length - 1) return;
+      achse += `<text x="${xv(i)}" y="${H - 12}" text-anchor="middle"
+                  font-size="11" fill="currentColor" fill-opacity=".45">${sn.age}</text>`;
+    });
+
+    const linien = namen.map(name => {
+      const punkte = [];
+      saisons.forEach((sn, i) => {
+        const e = sn.jahrgang.find(x => x.name === name);
+        if (e) punkte.push([xv(i), yv(e.platz)]);
+      });
+      if (punkte.length < 2) return { name, svg:'', eigen:false, endY:0 };
+      const letzterEintrag = saisons[saisons.length - 1].jahrgang.find(x => x.name === name);
+      const eigen = !!(letzterEintrag && letzterEintrag.eigen);
+      const d = punkte.map((pt, i) => (i ? 'L' : 'M') + pt[0].toFixed(1) + ' ' + pt[1].toFixed(1)).join(' ');
+      const endY = punkte[punkte.length - 1][1];
+      const farbe = eigen ? 'var(--accent)' : 'currentColor';
+      const svg = `
+        <path d="${d}" fill="none" stroke="${farbe}"
+              stroke-opacity="${eigen ? 1 : .34}" stroke-width="${eigen ? 3 : 1.6}"
+              stroke-linejoin="round" stroke-linecap="round"/>
+        <circle cx="${punkte[punkte.length - 1][0]}" cy="${endY}" r="${eigen ? 4.5 : 3}"
+                fill="${farbe}" fill-opacity="${eigen ? 1 : .45}"/>`;
+      return { name, svg, eigen, endY, platz: letzterEintrag ? letzterEintrag.platz : 0 };
+    }).filter(x => x.svg);
+
+    // Namen rechts, eigener hervorgehoben
+    const marken = linien.map(x => `
+      <text x="${l + iw + 12}" y="${x.endY + 4}" font-size="${x.eigen ? 12.5 : 11.5}"
+            font-weight="${x.eigen ? 700 : 500}"
+            fill="${x.eigen ? 'var(--accent)' : 'currentColor'}"
+            fill-opacity="${x.eigen ? 1 : .55}">${esc(x.name)}</text>`).join('');
+
+    return `<div class="jgverlauf">
+      <div class="jgv-kopf">
+        <span>${ikone('flamme', 15)} Verlauf des Jahrgangs</span>
+        <span class="small">Platzierung je Saison</span>
+      </div>
+      <div class="jgv-bild">
+        <svg viewBox="0 0 ${B} ${H}" width="100%" preserveAspectRatio="xMidYMid meet"
+             role="img" aria-label="Platzierung im Jahrgang über die Jahre">
+          ${gitter}${achse}
+          ${linien.map(x => x.eigen ? '' : x.svg).join('')}
+          ${linien.map(x => x.eigen ? x.svg : '').join('')}
+          ${marken}
+        </svg>
+      </div>
+      <div class="jgv-fuss small">Oben ist besser · deine Linie ist hervorgehoben</div>
+    </div>`;
+  }
+
+  /* Playoffserien als kleiner Weg durch die Runden */
+  function serienBaum(s){
+    const serien = s.playoffSerien;
+    if (!serien || !serien.length) return '';
+    const eigene = s.poP !== undefined
+      ? s.poP + ' Punkte in ' + s.poSpiele + ' Spielen'
+      : (s.poWins !== undefined ? s.poWins + ' Siege, ' + ((s.poSv||0)*100).toFixed(1) + '% Fangquote' : '');
+    return `<div class="serien">
+      <div class="serien-kopf">
+        <span>Playoffs</span>
+        ${eigene ? '<span class="small">' + eigene + '</span>' : ''}
+      </div>
+      <div class="serien-liste">
+        ${serien.map((x, i) => `
+          <div class="serie ${x.gewonnen ? 'sieg' : 'aus'} ${x.knapp ? 'knapp' : ''}"
+               style="animation-delay:${0.09 * i}s">
+            <span class="se-runde">${x.runde}</span>
+            <span class="se-gegner">${wappenBild(x.gegner, 20)}<span>${x.gegner}</span></span>
+            <span class="se-stand">${x.eigene}<i>:</i>${x.fremde}</span>
+          </div>`).join('')}
+        ${s.title ? `<div class="serie titel"><span class="se-runde">Titel</span>
+          <span class="se-gegner"><b>${s.title}</b></span>
+          <span class="se-stand">🏆</span></div>` : ''}
+      </div>
+    </div>`;
+  }
+
+  /* Naechster Karrieremeilenstein als Jagdziel */
+  const MEILEN_ZIELE = {
+    skater: [
+      { f:'p',  n:'Karrierepunkte', marken:[100,250,500,750,1000,1250,1500] },
+      { f:'g',  n:'Karrieretore',   marken:[50,100,250,400,500,600] },
+      { f:'gp', n:'Einsätze',       marken:[200,500,800,1000,1200] }
+    ],
+    goalie: [
+      { f:'wins', n:'Siege',    marken:[50,100,200,300,400] },
+      { f:'so',   n:'Shutouts', marken:[10,25,50,75,100] },
+      { f:'gp',   n:'Einsätze', marken:[200,500,800,1000] }
+    ]
+  };
+
+  function meilensteinJagd(st, isG){
+    const lauf = st.lauf;
+    if (!lauf || !lauf.gp) return '';
+    const ziele = (isG ? MEILEN_ZIELE.goalie : MEILEN_ZIELE.skater).map(z => {
+      const wert = lauf[z.f] || 0;
+      const marke = z.marken.find(m => m > wert);
+      if (!marke) return null;
+      const vorher = z.marken.filter(m => m <= wert).pop() || 0;
+      const anteil = Math.round((wert - vorher) / (marke - vorher) * 100);
+      return { n: z.n, wert, marke, anteil, rest: marke - wert };
+    }).filter(Boolean);
+    if (!ziele.length) return '';
+    // Das naechstliegende Ziel zuerst
+    ziele.sort((a, b) => b.anteil - a.anteil);
+    return `
+      <div class="jagd">
+        <span class="small" style="display:block;margin-bottom:8px">Nächste Marken</span>
+        ${ziele.slice(0, 3).map(z => `
+          <div class="jagd-zeile">
+            <div class="row between" style="font-size:12px">
+              <span>${z.n}</span>
+              <span><b>${z.wert}</b> <span class="small">/ ${z.marke}</span></span>
+            </div>
+            <span class="bar" style="height:6px;margin-top:4px">
+              <i class="${z.anteil > 85 ? 'hi' : ''}" style="width:${z.anteil}%"></i></span>
+            ${z.anteil > 85 ? `<span class="jagd-nah">nur noch ${z.rest}</span>` : ''}
+          </div>`).join('')}
+      </div>`;
+  }
+
+  /* Auszeichnungen einer Saison als kleine Zeremonie mit echten Pokalen */
+  function zeremonie(s){
+    const stuecke = [];
+    if (s.title) stuecke.push({ k: 'lg_' + s.lg, n: s.title, gross: true });
+    (s.awards || []).forEach(a => {
+      const A = PUCKERO_DATA.AWARDS[a];
+      if (!A) return;
+      const istNHL = s.lg === 'NHL';
+      stuecke.push({ k: 'aw_' + a + '_' + s.lg, n: istNHL && A.nhl ? A.nhl : A.n });
+    });
+    if (s.nat && ['Gold','Silber','Bronze'].includes(s.nat.platz)){
+      const stufe = s.nat.stufe || 'A';
+      const key = stufe === 'A'
+        ? (s.nat.art === 'olympia'
+            ? (s.nat.platz === 'Gold' ? 'int_olympia' : s.nat.platz === 'Silber' ? 'int_olySilber' : 'int_olyBronze')
+            : (s.nat.platz === 'Gold' ? 'int_wm' : s.nat.platz === 'Silber' ? 'int_wmSilber' : 'int_wmBronze'))
+        : 'int_' + stufe.toLowerCase() + s.nat.platz;
+      stuecke.push({ k: key, n: s.nat.kurz + '-' + s.nat.platz });
+    }
+    if (!stuecke.length) return '';
+    return `<div class="zeremonie">
+      ${stuecke.map((x, i) => `
+        <span class="zer-stueck ${x.gross ? 'gross' : ''}" style="animation-delay:${0.08 * i + 0.1}s">
+          ${pokalBild(x.k, x.gross ? 44 : 34)}
+          <span>${x.n}</span>
+        </span>`).join('')}
+    </div>`;
+  }
+
   /* ---------- Statistikkacheln ---------- */
+  /* Zuordnung nach Beschriftung: so bekommen alle bestehenden Aufrufe
+     von statBoxen ihr Icon, ohne dass die Aufrufstellen sich aendern. */
+  const BOX_IKONE = {
+    'Spiele':'kalender', 'Siege':'haken', 'Niederlagen':'kreuz',
+    'Fangquote':'schild', 'Gegentorschnitt':'tor', 'Shutouts':'haken',
+    'Paraden':'auge', 'Tore':'tor', 'Vorlagen':'gruppe', 'Punkte':'stern',
+    'Punkte/Spiel':'hoch', 'Powerplay':'blitz', 'Unterzahl':'schild',
+    'Siegtore':'krone', 'Schüsse':'ziel', 'Quote':'ziel', '+/-':'waage',
+    'Strafminuten':'kreuz', 'Playoffspiele':'kalender', 'Playoffsiege':'pokal',
+    'Playoffpunkte':'pokal', 'Serien gewonnen':'medaille', 'Verdienst':'stern'
+  };
+
   function statBoxen(eintraege){
-    return '<div class="statgrid stagger">' + eintraege.map(([n, v, farbe]) =>
-      `<div class="statbox"><b class="${farbe || ''}">${v}</b><span>${n}</span></div>`).join('') + '</div>';
+    return '<div class="statgrid stagger">' + eintraege.map(([n, v, farbe]) => {
+      const ik = BOX_IKONE[n];
+      return `<div class="statbox">
+        ${ik ? '<span class="sb-ik">' + ikone(ik, 14) + '</span>' : ''}
+        <b class="${farbe || ''}">${v}</b><span>${n}</span></div>`;
+    }).join('') + '</div>';
+  }
+
+  /* ----------------------------------------------------------------
+     Rueckschau: welche Entscheidungen die Laufbahn geprägt haben.
+     Die Erzählstraenge sind das Gedaechtnis der Karriere - hier
+     werden sie am Ende noch einmal sichtbar.
+     ---------------------------------------------------------------- */
+  const STRANG_INFO = {
+    rivalitaet:  { n:'Die Rivalität',  ik:'flamme',
+                   d:'Du hast den Vergleich mit deinem Jahrgang angenommen.' },
+    trainerpakt: { n:'Der Trainer',    ik:'pfeife',
+                   d:'Aus einem Konflikt wurde ein Vertrauensverhältnis.' },
+    weggefaehrte:{ n:'Der Weggefährte',ik:'gruppe',
+                   d:'Du hast dich für einen Mitspieler eingesetzt, als es zählte.' },
+    wechsler:    { n:'Der Wechsel',    ik:'flug',
+                   d:'Du hast an der Frist den Verein verlassen.' },
+    treue:       { n:'Die Treue',      ik:'schild',
+                   d:'Du bist geblieben, als du hättest gehen können.' },
+    wortfuehrer: { n:'Der Wortführer', ik:'fluestern',
+                   d:'Du hast deinen Platz eingefordert – und damit auch die Verantwortung.' },
+    ziehvater:   { n:'Der Ziehvater',  ik:'herz',
+                   d:'Du hast deinen Nachfolger selbst ausgebildet.' }
+  };
+
+  function wendepunkte(res){
+    const straenge = (res.freigeschaltet || []).filter(k => STRANG_INFO[k]);
+    /* res.entscheidungen enthaelt nur Klubnamen - die tatsaechlichen
+       Wahlen mit ihrem Ausgang stehen in res.verlauf. */
+    const ents = res.verlauf || [];
+    if (!straenge.length && !ents.length) return '';
+
+    const gelungen = ents.filter(e => e.gelungen).length;
+    const quote = ents.length ? Math.round(gelungen / ents.length * 100) : 0;
+    const namen = res.strangNamen || {};
+
+    /* Die unwahrscheinlichste geglueckte Wahl ist die beste Geschichte. */
+    const mutigste = ents.filter(e => e.gelungen)
+      .sort((a2, b2) => a2.chance - b2.chance)[0];
+    const teuerste = ents.filter(e => !e.gelungen)
+      .sort((a2, b2) => b2.chance - a2.chance)[0];
+
+    return `<div class="wendepunkte">
+      <div class="wp-kopf">
+        <span>${ikone('blitz', 15)} Wendepunkte</span>
+        <span class="wp-quote" title="Anteil der geglückten Entscheidungen">
+          <b>${gelungen}</b><span class="small">/${ents.length} geglückt · ${quote}%</span>
+        </span>
+      </div>
+      ${straenge.length ? `<div class="wp-kette">
+        ${straenge.map((k, i) => {
+          const info = STRANG_INFO[k];
+          const wer = namen[k] || {};
+          const detail = k === 'wechsler' || k === 'treue'
+            ? (wer.klub || '')
+            : (wer.mitspieler || wer.trainer || '');
+          return `<div class="wp-glied" style="animation-delay:${0.07 * i}s">
+            <span class="wp-ik">${ikone(info.ik, 18)}</span>
+            <span class="wp-text">
+              <b>${esc(info.n)}</b>
+              <span class="small">${esc(info.d)}</span>
+              ${detail ? `<span class="wp-wer">${esc(detail)}</span>` : ''}
+            </span>
+          </div>`;
+        }).join('')}
+      </div>` : '<p class="small" style="padding:12px 16px;margin:0">Diese Laufbahn verlief ohne die großen Wendepunkte – kein Zerwürfnis, kein erzwungener Wechsel, keine Rivalität, die über Jahre trug.</p>'}
+      ${mutigste || teuerste ? `<div class="wp-marken">
+        ${mutigste ? `<div class="wp-marke gut">
+          <span class="wp-m-kopf">${ikone('flamme', 13)} Mutigste Entscheidung</span>
+          <b>${esc(mutigste.wahl)}</b>
+          <span class="small">${mutigste.chance}% Chance · mit ${mutigste.alter} Jahren</span>
+        </div>` : ''}
+        ${teuerste ? `<div class="wp-marke schlecht">
+          <span class="wp-m-kopf">${ikone('kreuz', 13)} Bitterste Niederlage</span>
+          <b>${esc(teuerste.wahl)}</b>
+          <span class="small">${teuerste.chance}% Chance – und trotzdem daneben · mit ${teuerste.alter} Jahren</span>
+        </div>` : ''}
+      </div>` : ''}
+      ${(res.ehemalige || []).length ? `<div class="wp-stationen">
+        <span class="small">${ikone('transfer', 13)} Stationen: </span>
+        ${res.ehemalige.map(k => `<span class="wp-klub">${esc(k)}</span>`).join('')}
+      </div>` : ''}
+    </div>`;
   }
 
   /* ---------- Nationalmannschaft ---------- */
@@ -186,6 +681,134 @@ const UI = (() => {
       : [['Turniere', b.turniere], ['Spiele', b.gp], ['Tore', b.g],
          ['Vorlagen', b.a], ['Punkte', b.p], ['Medaillen', b.medaillen, 'gold']];
     return statBoxen(kacheln) + '<div class="mt">' + zeilen + '</div>';
+  }
+
+  /* ---------- Eisfeld zur Positionswahl ----------
+     Draufsicht auf ein halbes Feld: eigenes Tor unten, Angriffszone oben.
+     Jede Position sitzt dort, wo sie auf dem Eis tatsaechlich steht. */
+  const FELD_POS = {
+    G:  { x:150, y:396, n:'Torhüter',        kurz:'G'  },
+    D:  { x:150, y:300, n:'Verteidiger',     kurz:'D'  },
+    LW: { x: 62, y:150, n:'Linker Flügel',   kurz:'LW' },
+    C:  { x:150, y:176, n:'Center',          kurz:'C'  },
+    RW: { x:238, y:150, n:'Rechter Flügel',  kurz:'RW' }
+  };
+
+  function eisfeld(gewaehlt){
+    const marker = Object.entries(FELD_POS).map(([k, p]) => `
+      <g class="feld-pos ${k === gewaehlt ? 'on' : ''}" data-feld-pos="${k}"
+         transform="translate(${p.x},${p.y})" role="button" tabindex="0"
+         aria-label="${p.n}">
+        <circle class="fp-ring" r="30"/>
+        <circle class="fp-punkt" r="21"/>
+        <text class="fp-kurz" y="2">${p.kurz}</text>
+        <text class="fp-name" y="42">${p.n}</text>
+      </g>`).join('');
+
+    return `
+      <div class="eisfeld-halter">
+        <svg class="eisfeld" viewBox="0 0 300 460" role="group" aria-label="Position wählen">
+          <defs>
+            <linearGradient id="eisflaeche" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0"  stop-color="#dff2ff" stop-opacity=".16"/>
+              <stop offset="1"  stop-color="#9fd8ff" stop-opacity=".07"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Bande -->
+          <rect x="10" y="10" width="280" height="440" rx="70" fill="url(#eisflaeche)"
+                stroke="rgba(255,255,255,.35)" stroke-width="3"/>
+
+          <!-- Blaue Linie und Mittellinie -->
+          <line x1="10" y1="120" x2="290" y2="120" stroke="#4a9fe0" stroke-width="7" opacity=".65"/>
+          <line x1="10" y1="248" x2="290" y2="248" stroke="#e2536a" stroke-width="7" opacity=".6"/>
+          <line x1="10" y1="330" x2="290" y2="330" stroke="#4a9fe0" stroke-width="7" opacity=".65"/>
+
+          <!-- Bullykreise -->
+          <circle cx="150" cy="248" r="42" fill="none" stroke="#e2536a" stroke-width="3" opacity=".5"/>
+          <circle cx="150" cy="248" r="4"  fill="#e2536a" opacity=".6"/>
+          <circle cx="72"  cy="62"  r="30" fill="none" stroke="#e2536a" stroke-width="2.5" opacity=".4"/>
+          <circle cx="228" cy="62"  r="30" fill="none" stroke="#e2536a" stroke-width="2.5" opacity=".4"/>
+          <circle cx="72"  cy="392" r="30" fill="none" stroke="#e2536a" stroke-width="2.5" opacity=".4"/>
+          <circle cx="228" cy="392" r="30" fill="none" stroke="#e2536a" stroke-width="2.5" opacity=".4"/>
+
+          <!-- Tore -->
+          <path d="M126 430 h48 v14 h-48 z" fill="rgba(226,83,106,.35)"
+                stroke="#e2536a" stroke-width="2.5"/>
+          <path d="M120 430 a30 30 0 0 1 60 0" fill="rgba(120,190,255,.18)"
+                stroke="#4a9fe0" stroke-width="2.5"/>
+          <path d="M126 16 h48 v14 h-48 z" fill="rgba(226,83,106,.18)"
+                stroke="#e2536a" stroke-width="2" opacity=".6"/>
+
+          ${marker}
+        </svg>
+      </div>`;
+  }
+
+  /* Formkurve: der mehrjaehrige Lauf als kleine Grafik */
+  function formKurve(st){
+    const werte = st.seasons.map(x => x.formzustand || 0);
+    if (werte.length < 2) return '';
+    const letzte = werte[werte.length - 1];
+    const lage = letzte > 0.35 ? ['Höhenflug', 'hoch']
+               : letzte < -0.35 ? ['Formkrise', 'tief'] : ['Stabil', 'mittel'];
+    const breite = 100 / Math.max(1, werte.length - 1);
+    const punkte = werte.map((v, i) =>
+      (i * breite).toFixed(1) + ',' + (50 - v * 42).toFixed(1)).join(' ');
+    return `
+      <div class="formkarte">
+        <div class="row between" style="margin-bottom:6px">
+          <span class="small">Formverlauf</span>
+          <b class="fk-lage ${lage[1]}">${lage[0]}</b>
+        </div>
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" class="fk-grafik">
+          <line x1="0" y1="50" x2="100" y2="50" stroke="rgba(255,255,255,.14)" stroke-width="1"/>
+          <polyline points="${punkte}" fill="none" stroke="var(--accent)" stroke-width="3"
+            vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>
+          <circle cx="100" cy="${(50 - letzte * 42).toFixed(1)}" r="3.5" fill="var(--accent)"
+            vector-effect="non-scaling-stroke"/>
+        </svg>
+      </div>`;
+  }
+
+  /* Vergleich mit dem Spieler aus demselben Jahrgang */
+  function rivaleKarte(res, bisAlter){
+    const rv = res.rivale;
+    if (!rv) return '';
+    const isG = res.isG;
+    const meine = res.seasons.filter(x => !bisAlter || x.age <= bisAlter);
+    const seine = rv.seasons.filter(x => !bisAlter || x.age <= bisAlter);
+    const summe = (arr, f) => arr.reduce((a, x) => a + (f(x) || 0), 0);
+    const meinWert = isG ? summe(meine, x => x.wins) : summe(meine, x => x.p);
+    const seinWert = isG ? summe(seine, x => x.wins) : summe(seine, x => x.p);
+    const gesamt = Math.max(1, meinWert + seinWert);
+    const anteil = Math.round(meinWert / gesamt * 100);
+    const nat = PUCKERO.nation(rv.nation) || { flag:'' };
+    const label = isG ? 'Siege' : 'Punkte';
+    return `
+      <div class="rivale">
+        <div class="rv-kopf">
+          <span class="small">Dein Jahrgang</span>
+          <b>${rv.name} ${nat.flag}</b>
+        </div>
+        <div class="rv-balken">
+          <i class="ich" style="width:${anteil}%"><span>${meinWert}</span></i>
+          <i class="er" style="width:${100 - anteil}%"><span>${seinWert}</span></i>
+        </div>
+        <div class="rv-fuss"><span>Du · ${label}</span><span>${rv.name.split(' ')[0]}</span></div>
+      </div>`;
+  }
+
+  /* Was von der Laufbahn bleibt */
+  function vermaechtnisKarte(res){
+    const v = res.vermaechtnis || [];
+    if (!v.length) return `<p class="small">Kein bleibendes Vermächtnis –
+      dafür hätte es Titel oder eine längere Bindung an einen Klub gebraucht.</p>`;
+    return '<div class="vermaechtnis stagger">' + v.map(x => `
+      <div class="vm-stueck">
+        <span class="vm-icon">${x.icon}</span>
+        <span><b>${x.n}</b><span class="small">${x.d}</span></span>
+      </div>`).join('') + '</div>';
   }
 
   /* ---------- Konfetti ---------- */
@@ -266,15 +889,141 @@ const UI = (() => {
         : 'T Tore · V Vorlagen · PP Powerplaytore · SW Siegtore · Sch Schüsse · Q% Schussquote · ET Eiszeit je Spiel · SM Strafminuten'}</p>`;
   }
 
-  function trophyList(res){
+  /* Vitrine: Mannschaftstitel und persoenliche Auszeichnungen getrennt,
+     mit Einblendung der Jahre und Vereine beim Ueberfahren. */
+  function trophyList(res, nurArt){
     if (!res.trophies.length)
       return '<p class="small">Keine Titel – nicht jede Karriere endet in der Vitrine.</p>';
-    return '<div class="vitrine stagger">' + res.trophies.map(t => `
-      <div class="pokalkarte" title="${t.n}">
-        <div class="pokalbild">${pokalBild(t.k || '', 46)}</div>
-        <div class="pokalname">${t.n}</div>
-        ${t.x > 1 ? '<span class="pokalzahl">' + t.x + '×</span>' : ''}
-      </div>`).join('') + '</div>';
+
+    const istPerson = t => String(t.k || '').indexOf('aw_') === 0
+                        || t.k === 'int_wmMvp' || t.k === 'int_wmAllstar';
+    const istNational = t => String(t.k || '').indexOf('int_') === 0
+                        && t.k !== 'int_chl' && t.k !== 'int_spengler' && t.k !== 'int_winter';
+    const liste = nurArt === 'person'   ? res.trophies.filter(istPerson)
+                : nurArt === 'national' ? res.trophies.filter(t => istNational(t) && !istPerson(t))
+                : nurArt === 'team'     ? res.trophies.filter(t => !istPerson(t) && !istNational(t))
+                : res.trophies;
+    if (!liste.length) return '<p class="small">Nichts in dieser Kategorie.</p>';
+
+    return '<div class="vitrine stagger">' + liste.map(t => {
+      const jahre = (t.jahre || []).map(j =>
+        j.jahr + (j.klub ? ' · ' + j.klub + (j.nat ? ' (Nationalmannschaft)' : '') : ''))
+        .join('\n');
+      return `
+        <div class="pokalkarte">
+          <div class="pokalbild">${pokalBild(t.k || '', 46)}</div>
+          <div class="pokalname">${t.n}</div>
+          ${t.x > 1 ? '<span class="pokalzahl">' + t.x + '×</span>' : ''}
+          ${jahre ? `<div class="pokalhover">
+              <b>${t.n}</b>
+              ${(t.jahre || []).map(j => `<span>${j.jahr}${j.klub ? ' · ' + j.klub : ''}</span>`).join('')}
+            </div>` : ''}
+        </div>`;
+    }).join('') + '</div>';
+  }
+
+  /* Bilanz je Verein – Karten wie im Karriereabschluss */
+  function klubKarten(res){
+    if (!res.klubs || !res.klubs.length) return '';
+    const isG = res.isG;
+    const karten = res.klubs.map((k, i) => {
+      const f = (typeof WAPPEN !== 'undefined') ? WAPPEN.farben(k.n) : ['#1a2540','#38d1ff'];
+      const zeile = (n, v) => `<div class="kk-zelle"><span>${n}</span><b>${v}</b></div>`;
+      return `
+        <div class="klubkarte" style="--kf:${f[0]};--kf2:${f[1]}">
+          <span class="kk-nr">${String(i + 1).padStart(2, '0')}</span>
+          <div class="kk-schatten">${wappenBild(k.n, 150)}</div>
+          <div class="kk-inhalt">
+            <div class="kk-wappen">${wappenBild(k.n, 54)}</div>
+            <div class="kk-name">${k.n}</div>
+            <div class="kk-saisons">${k.saisons} ${k.saisons === 1 ? 'Saison' : 'Saisons'}
+              · ${k.vonJahr}–${k.bisJahr + 1}</div>
+            <div class="kk-raster">
+              ${zeile('Einsätze', k.gp)}
+              ${zeile(isG ? 'Siege' : 'Tore', isG ? k.wins : k.g)}
+              ${zeile(isG ? 'Shutouts' : 'Vorlagen', isG ? k.so : k.a)}
+            </div>
+            ${k.titel ? `<div class="kk-titel">${'🏆'.repeat(Math.min(k.titel, 3))}
+              ${k.titel > 3 ? '×' + k.titel : ''}</div>` : ''}
+          </div>
+        </div>`;
+    }).join('');
+
+    const t = res.totals;
+    const gesamt = `
+      <div class="klubkarte gesamt">
+        <div class="kk-inhalt">
+          <div class="kk-name" style="margin-top:8px">Gesamt</div>
+          <div class="kk-saisons">${res.seasons.length} Saisons · ${res.klubs.length} Vereine</div>
+          <div class="kk-raster">
+            <div class="kk-zelle"><span>Einsätze</span><b>${t.gp}</b></div>
+            <div class="kk-zelle"><span>${isG ? 'Siege' : 'Tore'}</span><b>${isG ? t.wins : t.g}</b></div>
+            <div class="kk-zelle"><span>${isG ? 'Shutouts' : 'Vorlagen'}</span><b>${isG ? t.so : t.a}</b></div>
+          </div>
+        </div>
+      </div>`;
+    return '<div class="klubgitter stagger">' + karten + gesamt + '</div>';
+  }
+
+  /* Karrierebilanz nach Ligen */
+  function ligaBilanz(res){
+    if (!res.ligen || !res.ligen.length) return '';
+    const isG = res.isG;
+    const ligaTitel = res.trophies.filter(x => String(x.k).indexOf('lg_') === 0)
+                                  .reduce((a, x) => a + x.x, 0);
+    const kopf = isG
+      ? '<tr><th>Liga</th><th>Saisons</th><th>Sp</th><th>S</th><th>Fq%</th><th>SO</th><th>Titel</th><th>Beste GES</th></tr>'
+      : '<tr><th>Liga</th><th>Saisons</th><th>Sp</th><th>T</th><th>V</th><th>Pkt</th><th>P/Sp</th><th>Titel</th><th>Beste GES</th></tr>';
+    const zeilen = res.ligen.map(l => isG
+      ? `<tr><td><span class="lgtag lg-${l.k}">${l.n}</span></td><td>${l.saisons}</td>
+           <td>${l.gp}</td><td>${l.wins}</td><td>${((l.sv||0)*100).toFixed(1)}</td>
+           <td>${l.so}</td><td>${l.titel || '–'}</td><td>${l.bestOvr}</td></tr>`
+      : `<tr><td><span class="lgtag lg-${l.k}">${l.n}</span></td><td>${l.saisons}</td>
+           <td>${l.gp}</td><td>${l.g}</td><td>${l.a}</td><td><b>${l.p}</b></td>
+           <td>${l.ppg}</td><td>${l.titel || '–'}</td><td>${l.bestOvr}</td></tr>`).join('');
+    const t = res.totals;
+    const summe = isG
+      ? `<tr class="total"><td>Gesamt</td><td>${res.seasons.length}</td><td>${t.gp}</td>
+         <td>${t.wins}</td><td>${(t.sv*100).toFixed(1)}</td><td>${t.so}</td>
+         <td>${ligaTitel}</td><td>${res.peak}</td></tr>`
+      : `<tr class="total"><td>Gesamt</td><td>${res.seasons.length}</td><td>${t.gp}</td>
+         <td>${t.g}</td><td>${t.a}</td><td>${t.p}</td><td>${t.ppg100}</td>
+         <td>${ligaTitel}</td><td>${res.peak}</td></tr>`;
+    return `<div class="table-scroll"><table class="stats ligatab">
+      <thead>${kopf}</thead><tbody>${zeilen}${summe}</tbody></table></div>`;
+  }
+
+  /* Nationalmannschaft als eigenes Feld */
+  function natKarte(res){
+    const b = res.laenderBilanz || {};
+    const nat = PUCKERO.nation(res.player.nation);
+    const isG = res.isG;
+    if (!b.turniere) return `
+      <div class="natkarte leer">
+        <div class="nk-kopf"><span class="nk-flagge">${nat.flag}</span>
+          <div><span class="small">Nationalteam</span><b>${nat.n}</b></div></div>
+        <p class="small mb0">Nie nominiert. Für eine Einladung hätte es konstant
+          bessere Leistungen gebraucht.</p>
+      </div>`;
+    const stufen = {};
+    (res.laender || []).forEach(t => stufen[t.stufe || 'A'] = (stufen[t.stufe || 'A'] || 0) + 1);
+    return `
+      <div class="natkarte">
+        <div class="nk-kopf"><span class="nk-flagge">${nat.flag}</span>
+          <div><span class="small">Nationalteam</span><b>${nat.n}</b></div>
+          ${res.natDebuet ? `<span class="pill">Debüt ${res.natDebuet.jahr}</span>` : ''}
+        </div>
+        <div class="nk-raster">
+          <div class="kk-zelle"><span>Einsätze</span><b>${b.gp}</b></div>
+          <div class="kk-zelle"><span>${isG ? 'Siege' : 'Tore'}</span><b>${isG ? b.wins : b.g}</b></div>
+          <div class="kk-zelle"><span>${isG ? 'Shutouts' : 'Vorlagen'}</span><b>${isG ? b.so : b.a}</b></div>
+        </div>
+        <div class="nk-stufen">
+          ${Object.entries(stufen).map(([k, v]) =>
+            `<span class="pill">${k === 'A' ? 'A-Team' : k} · ${v}</span>`).join('')}
+          <span class="pill gold">${b.medaillen} ${b.medaillen === 1 ? 'Medaille' : 'Medaillen'}</span>
+        </div>
+      </div>`;
   }
 
   function shareText(res){
@@ -313,7 +1062,26 @@ const UI = (() => {
   }
 
   /* ---------- Karriere-Karte als Bild ---------- */
-  function karriereKarte(res){
+  /* Ein Klick = ein Bild. Ohne diese Sperre erzeugt jede gedrueckt gehaltene
+     Eingabetaste und jeder Doppelklick einen weiteren Download. */
+  let karteLaeuft = false;
+
+  function karriereKarte(res, knopf){
+    if (karteLaeuft) return;
+    karteLaeuft = true;
+    if (knopf){ knopf.disabled = true; knopf.classList.add('laedt'); }
+    const freigeben = () => {
+      // kurze Nachlaufzeit, damit Tastenwiederholung nicht sofort neu ausloest
+      setTimeout(() => {
+        karteLaeuft = false;
+        if (knopf){ knopf.disabled = false; knopf.classList.remove('laedt'); }
+      }, 900);
+    };
+    try { karteZeichnen(res, freigeben); }
+    catch (e){ freigeben(); toast('Karte konnte nicht erzeugt werden'); }
+  }
+
+  function karteZeichnen(res, fertig){
     const p = res.player;
     const W = 1080, H = 1350;
     const c = document.createElement('canvas');
@@ -375,7 +1143,14 @@ const UI = (() => {
          ['Fangquote', (t.sv * 100).toFixed(1) + '%'], ['Shutouts', t.so]]
       : [['Saisons', res.seasons.length], ['Spiele', t.gp], ['Tore', t.g],
          ['Vorlagen', t.a], ['Punkte', t.p]];
-    let y = 740;
+    /* Unten sind 175 px fuer Wendepunkt und Seed reserviert, dazwischen
+       braucht die Vitrine 92 px. Der Zeilenabstand ergibt sich aus dem,
+       was uebrig bleibt - so passt die Karte bei jeder Zeilenzahl. */
+    const kopfY = 700;
+    const frei = H - 175 - 92 - kopfY - 30;
+    const schritt = Math.max(38, Math.min(64, Math.floor(frei / Math.max(1, zeilen.length))));
+
+    let y = kopfY;
     zeilen.forEach(([k, v]) => {
       x.textAlign = 'left';
       x.font = '600 34px Inter, Segoe UI, sans-serif'; x.fillStyle = '#8ea1c4';
@@ -385,7 +1160,7 @@ const UI = (() => {
       x.fillText(String(v), W - 140, y);
       x.strokeStyle = 'rgba(255,255,255,.08)'; x.lineWidth = 2;
       x.beginPath(); x.moveTo(140, y + 20); x.lineTo(W - 140, y + 20); x.stroke();
-      y += 68;
+      y += schritt;
     });
 
     // Vitrine
@@ -395,10 +1170,35 @@ const UI = (() => {
     const top = res.trophies.slice(0, 3).map(q => q.n + (q.x > 1 ? ' ×' + q.x : '')).join('  ·  ');
     if (top) mittig(top, y + 92, 24, '#8ea1c4', '600');
 
-    mittig('Seed ' + p.seed, H - 70, 22, '#64769a', '600');
+    /* Ein Wendepunkt macht aus einer Zahlenkarte eine Geschichte.
+       Gewaehlt wird die unwahrscheinlichste Wahl, die aufgegangen ist.
+       Der Block wird von der Unterkante her gesetzt, damit er nie mit
+       der Seed-Zeile kollidiert oder aus der Karte laeuft. */
+    const unterkanteVitrine = y + (top ? 92 : 46);
+    const wahlen = (res.verlauf || []).filter(v => v.gelungen);
+    const platzDa = unterkanteVitrine + 40 < H - 170;
+
+    if (wahlen.length && platzDa){
+      const beste = wahlen.slice().sort((a2, b2) => a2.chance - b2.chance)[0];
+
+      x.strokeStyle = 'rgba(255,255,255,.10)'; x.lineWidth = 2;
+      x.beginPath(); x.moveTo(200, H - 168); x.lineTo(W - 200, H - 168); x.stroke();
+
+      mittig('WENDEPUNKT', H - 132, 19, '#64769a', '700');
+
+      // Eine Zeile, notfalls gekuerzt - zwei passen hier nicht mehr hin
+      let wahl = String(beste.wahl);
+      if (wahl.length > 36) wahl = wahl.slice(0, 34).trimEnd() + '…';
+      mittig(wahl, H - 92, 32, '#e8eefc', '750');
+
+      mittig(beste.chance + '% Chance · mit ' + beste.alter + ' Jahren',
+             H - 56, 22, '#8ea1c4', '600');
+    }
+
+    mittig('Seed ' + p.seed, H - 22, 20, '#64769a', '600');
 
     c.toBlob(b => {
-      if (!b) return toast('Karte konnte nicht erzeugt werden');
+      if (!b){ fertig(); return toast('Karte konnte nicht erzeugt werden'); }
       const url = URL.createObjectURL(b);
       const a = document.createElement('a');
       a.href = url;
@@ -406,6 +1206,7 @@ const UI = (() => {
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(() => URL.revokeObjectURL(url), 4000);
       toast('Karte gespeichert');
+      fertig();
     }, 'image/png');
   }
 
@@ -432,9 +1233,12 @@ const UI = (() => {
     document.body.removeChild(ta);
   }
 
-  return { header, footer, mount, attrRows, ovrBadge, seasonCard, statsTable,
+  return { header, footer, mount, themaSetzen, themaLesen, attrRows, ovrBadge, seasonCard, statsTable,
            wappenBild, pokalBild,
-           trophyList, shareText, rankLeiste, karriereKarte, statBoxen, natTabelle,
+           trophyList, klubKarten, natKarte, ligaBilanz, shareText, rankLeiste, karriereKarte,
+           statBoxen, natTabelle, rivaleKarte, vermaechtnisKarte, zeremonie, formKurve,
+           eisfeld, serienBaum, meilensteinJagd, jahrgangTabelle, zielKarte,
+           ikone, kennzahl, IKONEN, wendepunkte, jahrgangVerlauf,
            konfetti, zahlHoch, alleZahlenHoch, toast, copy };
 })();
 

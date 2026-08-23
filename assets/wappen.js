@@ -42,6 +42,7 @@ const WAPPEN = (() => {
 
     // DEL2
     'Kassel Huskies':['#003C7D','#E2001A'],    'Krefeld Pinguine':['#E2001A','#FFED00'],
+    'EHC Freiburg':['#E2001A','#111111'],      'Hannover Scorpions':['#009640','#111111'],
     'Ravensburg Towerstars':['#005CA9','#FFED00'], 'Bietigheim Steelers':['#E2001A','#111111'],
     'EV Landshut':['#E2001A','#E8EEFC'],       'Eisbären Regensburg':['#0069B4','#E8EEFC'],
     'Starbulls Rosenheim':['#009640','#E8EEFC'],'Lausitzer Füchse':['#F39200','#111111'],
@@ -147,7 +148,7 @@ const WAPPEN = (() => {
     const h = hash(name);
     const [c1, c2] = farben(name);
     const form = h % 4;            // Schild, Rund, Sechseck, Raute
-    const muster = (h >> 3) % 5;   // Balken, Diagonale, Sparren, Teilung, Ring
+    const muster = (h >>> 3) % 5;  // Balken, Diagonale, Sparren, Teilung, Ring
     const id = 'w' + (h % 100000);
     const txt = kuerzel(name);
     const hell = istHell(c1) ? '#111820' : '#ffffff';

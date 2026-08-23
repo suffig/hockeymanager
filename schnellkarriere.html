@@ -12,7 +12,7 @@
 <script>
 /* Gespeichertes Thema sofort anwenden, damit nichts aufblitzt */
 try{var t=localStorage.getItem('puckero.thema');
-    if(t==='verspielt')document.documentElement.setAttribute('data-thema','verspielt');}catch(e){}
+    if(t==='verspielt'||t==='retro')document.documentElement.setAttribute('data-thema',t);}catch(e){}
 </script>
 
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='12' fill='%230b1220' stroke='%2338d1ff' stroke-width='3'/></svg>">

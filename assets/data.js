@@ -250,6 +250,7 @@ const PUCKERO_DATA = (() => {
     { n:'Augsburger Panther',      lg:'DEL', str:63 },
     { n:'Schwenninger Wild Wings', lg:'DEL', str:62 },
     { n:'Dresdner Eislöwen',       lg:'DEL', str:60 },
+    { n:'Krefeld Pinguine',        lg:'DEL', str:61 },
 
     // ---- Extraliga ----
     { n:'HC Oceláři Třinec',       lg:'CZE', str:75 },
@@ -317,7 +318,6 @@ const PUCKERO_DATA = (() => {
 
     // ---- DEL2 ----
     { n:'Kassel Huskies',          lg:'DEL2',str:61 },
-    { n:'Krefeld Pinguine',        lg:'DEL2',str:60 },
     { n:'Ravensburg Towerstars',   lg:'DEL2',str:60 },
     { n:'Bietigheim Steelers',     lg:'DEL2',str:59 },
     { n:'EV Landshut',             lg:'DEL2',str:58 },
@@ -326,6 +326,8 @@ const PUCKERO_DATA = (() => {
     { n:'Lausitzer Füchse',       lg:'DEL2',str:55 },
     { n:'Selber Wölfe',           lg:'DEL2',str:54 },
     { n:'EC Bad Nauheim',          lg:'DEL2',str:55 },
+    { n:'EHC Freiburg',            lg:'DEL2',str:57 },
+    { n:'Hannover Scorpions',      lg:'DEL2',str:56 },
 
     // ---- Metal Ligaen ----
     { n:'Aalborg Pirates',         lg:'DK',  str:60 },
@@ -471,6 +473,90 @@ const PUCKERO_DATA = (() => {
     ]
   };
 
+  /* ---------- Verletzungsarten ----------
+     dauer = ungefaehre Ausfallzeit in Spielen, schwere = Verschleisswirkung */
+  const VERLETZUNGEN = [
+    { n:'Muskelfaserriss im Oberschenkel', min:4,  max:10, schwere:0 },
+    { n:'Handgelenksprellung',             min:3,  max:8,  schwere:0 },
+    { n:'Bänderriss im Sprunggelenk',      min:10, max:20, schwere:1 },
+    { n:'Schulterluxation',                min:12, max:24, schwere:1 },
+    { n:'Gehirnerschütterung',             min:8,  max:22, schwere:2 },
+    { n:'Handbruch nach Schussblock',      min:9,  max:18, schwere:1 },
+    { n:'Rückenprobleme',                  min:6,  max:16, schwere:1 },
+    { n:'Kreuzbandriss',                   min:26, max:48, schwere:3 },
+    { n:'Kufenschnitt am Unterarm',        min:5,  max:12, schwere:0 },
+    { n:'Leistenverletzung',               min:7,  max:15, schwere:1 },
+    { n:'Jochbeinbruch',                   min:6,  max:14, schwere:1 },
+    { n:'Innenbandriss im Knie',           min:14, max:30, schwere:2 }
+  ];
+
+  /* ---------- Rollen im Team ----------
+     Wird bei jeder Vertragsunterschrift gewaehlt und gilt fuer dessen Laufzeit. */
+  const ROLLEN = [
+    { k:'offensiv', n:'Als Scorer verpflichtet', icon:'🎯',
+      d:'Du sollst treffen. Alles andere interessiert den Trainer weniger.',
+      w:{ punkte:0.16, plus:-6, risiko:0, eiszeit:1.5, gehalt:1.10 } },
+    { k:'zweiweg', n:'Als Zweiwegspieler', icon:'⚖',
+      d:'Beide Enden des Eises. Weniger Ruhm, mehr Vertrauen.',
+      w:{ punkte:0.02, plus:8, risiko:0, eiszeit:1.0, gehalt:1.0, selke:0.18 } },
+    { k:'defensiv', n:'Als defensiver Anker', icon:'🧱',
+      d:'Unterzahl, letzte Minute, gegnerische Paradereihe. Deine Nacht beginnt, wenn es eng wird.',
+      w:{ punkte:-0.14, plus:14, risiko:0.01, eiszeit:1.2, gehalt:0.95, selke:0.3 } },
+    { k:'physisch', n:'Als körperlicher Faktor', icon:'💪',
+      d:'Du sollst wehtun, den Slot räumen und die Reihe schützen.',
+      w:{ punkte:-0.08, plus:4, risiko:0.05, strafen:1.8, eiszeit:0.8, gehalt:0.9, moral:6 } }
+  ];
+  const ROLLEN_G = [
+    { k:'stamm', n:'Als klare Nummer eins', icon:'🥅',
+      d:'Siebzig Spiele, keine Diskussion. Und keine Ausrede.',
+      w:{ anteil:0.16, risiko:0.03, gehalt:1.12 } },
+    { k:'teilung', n:'Als Teil eines Duos', icon:'🤝',
+      d:'Geteilte Last, geteilte Verantwortung – und ein frischerer Körper im April.',
+      w:{ anteil:-0.10, risiko:-0.04, gehalt:0.95, playoff:4 } },
+    { k:'aufbau', n:'Als Entwicklungsprojekt', icon:'🌱',
+      d:'Weniger Spiele, mehr Training. Der Klub baut dich langsam auf.',
+      w:{ anteil:-0.16, gehalt:0.8, training:2 } }
+  ];
+
+  /* ---------- Saisonhoehepunkte ----------
+     Ein herausragendes Spiel pro Saison, je nach Ausbeute. */
+  const HOEHEPUNKTE = {
+    skater: [
+      { ab:5, t:'Fünf Scorerpunkte in einem Spiel gegen {gegner}' },
+      { ab:4, t:'Vier Punkte beim Auswärtssieg in {gegner}' },
+      { ab:3, t:'Hattrick gegen {gegner} – Puck mit nach Hause genommen' },
+      { ab:2, t:'Doppelpack in der Verlängerung gegen {gegner}' },
+      { ab:1, t:'Siegtreffer 14 Sekunden vor Schluss gegen {gegner}' },
+      { ab:0, t:'Ein stiller Abend gegen {gegner}, aber die Reihe stand' }
+    ],
+    goalie: [
+      { ab:5, t:'Shutout mit 48 Paraden gegen {gegner}' },
+      { ab:4, t:'41 Paraden beim knappen Sieg über {gegner}' },
+      { ab:3, t:'Penaltyschießen gegen {gegner} – alle drei gehalten' },
+      { ab:2, t:'Zwei Minuten vor Schluss den Ausgleich verhindert gegen {gegner}' },
+      { ab:1, t:'Solider Arbeitssieg gegen {gegner}' },
+      { ab:0, t:'Ein Abend zum Vergessen in {gegner}' }
+    ]
+  };
+
+  /* ---------- Vermaechtnis ---------- */
+  const VERMAECHTNIS = [
+    { id:'statue',   n:'Statue vor der Halle',        icon:'🗿',
+      d:'Der Klub stellt dich in Bronze vor den Haupteingang.' },
+    { id:'hof',      n:'Aufnahme in die Ruhmeshalle', icon:'🏛',
+      d:'Erste Abstimmungsrunde, deutliche Mehrheit.' },
+    { id:'nummer',   n:'Rückennummer gesperrt',       icon:'🎽',
+      d:'Deine Nummer hängt unter dem Hallendach und wird nicht mehr vergeben.' },
+    { id:'kapitaen', n:'Ehrenkapitän',                icon:'🅲',
+      d:'Der Klub verleiht dir das Amt auf Lebenszeit.' },
+    { id:'trainer',  n:'Rolle im Trainerstab',        icon:'📋',
+      d:'Man will dein Wissen behalten und bietet dir einen Platz an der Bande.' },
+    { id:'nachwuchs',n:'Nachwuchsakademie benannt',   icon:'🎓',
+      d:'Die Jugendabteilung trägt künftig deinen Namen.' },
+    { id:'legende',  n:'Klublegende',                 icon:'⭐',
+      d:'Bei jedem Jubiläum wirst du als Erster eingeladen.' }
+  ];
+
   /* ---------- Karriereenden ---------- */
   const ENDEN = {
     ruhestand:  { n:'Regulärer Rücktritt',
@@ -483,6 +569,8 @@ const PUCKERO_DATA = (() => {
                   t:'Mit dem Pokal in den Händen erklärst du noch auf dem Eis deinen Rücktritt.' },
     familie:    { n:'Rücktritt aus persönlichen Gründen',
                   t:'Zwanzig Jahre Koffer, Hotels und Nachtflüge sind genug. Die Familie kommt zuerst.' },
+    verschleiss:{ n:'Der Körper hat genug',
+                  t:'Zu viele Operationen, zu viele Reha-Monate. Irgendwann ist die Rechnung fällig.' },
     heimkehr:   { n:'Abschied in der Heimat',
                   t:'Eine letzte Saison dort, wo alles angefangen hat – dann ist Schluss.' }
   };
@@ -679,6 +767,7 @@ const PUCKERO_DATA = (() => {
   ];
 
   return { ATTRS, POSITIONS, NATIONS, LEAGUES, CLUBS, AWARDS, INTL, TURNIERE,
+           VERLETZUNGEN, ROLLEN, ROLLEN_G, HOEHEPUNKTE, VERMAECHTNIS,
            STORY, ENDEN, LEGENDS, HERAUSFORDERUNGEN, HEIM_LIGA, FIRST, LAST };
 })();
 

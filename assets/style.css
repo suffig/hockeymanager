@@ -65,7 +65,8 @@ p{margin:0 0 1em}
 header.site{
   position:sticky;top:0;z-index:50;
   backdrop-filter:blur(14px);
-  background:rgba(5,8,15,.82);
+  /* ueber ein Token, damit helle Themen die Leiste mitfaerben koennen */
+  background:var(--kopf-bg,rgba(5,8,15,.82));
   border-bottom:1px solid var(--line-soft);
 }
 .nav{display:flex;align-items:center;gap:26px;height:64px}
@@ -692,3 +693,1016 @@ footer.site a:hover{color:var(--text)}
 }
 .wirkung.gut{background:rgba(62,224,143,.16);color:var(--green);border:1px solid rgba(62,224,143,.34)}
 .wirkung.schlecht{background:rgba(255,107,122,.16);color:var(--red);border:1px solid rgba(255,107,122,.34)}
+
+/* ==========================================================
+   Abschlussbildschirm: Karriere, Nationalteam, Stationen
+   ========================================================== */
+.abschluss-kopf{
+  display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) minmax(0,1fr);
+  gap:16px;align-items:stretch;
+}
+.ak-karte,.natkarte,.ak-ehrungen{
+  border:1px solid var(--line);border-radius:16px;padding:18px;
+  background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
+}
+.ak-karte h2{font-family:var(--display);font-size:38px;letter-spacing:.5px}
+.ak-raster{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));
+  gap:1px;background:var(--line-soft);border:1px solid var(--line-soft);
+  border-radius:11px;overflow:hidden;margin-top:14px;
+}
+.kk-zelle{background:var(--ice-800);padding:9px 11px}
+.kk-zelle span{display:block;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.kk-zelle b{font-size:17px;font-variant-numeric:tabular-nums}
+
+/* Nationalteam */
+.natkarte.leer{opacity:.72}
+.nk-kopf{display:flex;align-items:center;gap:11px;margin-bottom:12px}
+.nk-flagge{font-size:30px;line-height:1}
+.nk-kopf b{display:block;font-family:var(--display);font-size:24px;letter-spacing:.5px}
+.nk-kopf .pill{margin-left:auto}
+.nk-raster{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line-soft);
+  border:1px solid var(--line-soft);border-radius:11px;overflow:hidden;
+}
+.nk-stufen{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+
+/* Auszeichnungen */
+.ehrenliste{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600}
+.ehrenliste b{color:var(--gold)}
+.ak-rang{
+  margin-top:14px;padding-top:12px;border-top:1px solid var(--line-soft);
+  display:flex;flex-direction:column;gap:2px;
+}
+.ak-rang b{font-family:var(--display);font-size:27px;letter-spacing:.5px}
+.ak-rang b.gold{color:var(--gold)}
+
+/* Stationen */
+.klubgitter{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
+.klubkarte{
+  position:relative;overflow:hidden;border-radius:16px;padding:16px 14px;
+  border:1px solid color-mix(in srgb, var(--kf, #1a2540) 55%, #000);
+  background:linear-gradient(165deg,
+    color-mix(in srgb, var(--kf, #1a2540) 42%, #0a0f1a),
+    color-mix(in srgb, var(--kf, #1a2540) 12%, #070b12));
+}
+.klubkarte.gesamt{
+  border-style:dashed;border-color:var(--accent);
+  background:linear-gradient(165deg,rgba(56,209,255,.14),rgba(56,209,255,.03));
+}
+.kk-nr{
+  position:absolute;top:10px;left:13px;font-family:var(--display);font-size:16px;
+  color:rgba(255,255,255,.35);letter-spacing:1px;
+}
+.kk-schatten{
+  position:absolute;right:-38px;top:50%;transform:translateY(-50%);
+  opacity:.13;pointer-events:none;
+}
+.kk-inhalt{position:relative;text-align:center}
+.kk-wappen{display:grid;place-items:center;margin:10px 0 8px}
+.kk-name{font-family:var(--display);font-size:21px;letter-spacing:.4px;line-height:1.05}
+.kk-saisons{font-size:11.5px;color:rgba(255,255,255,.62);margin-top:3px}
+.kk-raster{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin-top:12px;
+  background:rgba(0,0,0,.42);border-radius:9px;overflow:hidden;
+}
+.kk-raster .kk-zelle{background:rgba(0,0,0,.34);padding:7px 4px;text-align:center}
+.kk-raster .kk-zelle span{font-size:9px}
+.kk-raster .kk-zelle b{font-size:16px}
+.kk-titel{margin-top:9px;font-size:14px;letter-spacing:1px}
+
+/* Pokal-Einblendung */
+.pokalkarte{position:relative}
+.pokalhover{
+  position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%) translateY(4px);
+  min-width:170px;max-width:240px;padding:10px 13px;border-radius:11px;z-index:20;
+  background:var(--ice-700);border:1px solid var(--line);box-shadow:var(--shadow);
+  display:flex;flex-direction:column;gap:3px;text-align:left;
+  opacity:0;pointer-events:none;transition:.16s;
+}
+.pokalhover b{font-size:12.5px;color:var(--gold);margin-bottom:3px}
+.pokalhover span{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.pokalkarte:hover .pokalhover{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Wagnis-Optionen */
+.wahlzeile.wagnis:hover{background:rgba(255,107,122,.09)}
+.wz-marke{
+  display:inline-block;font-size:9.5px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;
+  padding:2px 7px;border-radius:5px;background:rgba(255,107,122,.2);color:var(--red);
+  border:1px solid rgba(255,107,122,.42);vertical-align:middle;margin-right:5px;
+}
+
+@media (max-width:980px){
+  .abschluss-kopf{grid-template-columns:1fr}
+}
+
+/* ==========================================================
+   Rollenwahl, Spielerkarten-Zusätze
+   ========================================================== */
+.rollenliste{display:flex;flex-direction:column;gap:10px}
+.rollenkarte{
+  display:grid;grid-template-columns:52px minmax(0,1fr) auto;gap:14px;align-items:center;
+  width:100%;text-align:left;padding:14px 16px;border-radius:14px;cursor:pointer;
+  border:1px solid var(--line);color:var(--text);font-family:var(--font);
+  background:linear-gradient(120deg,rgba(255,255,255,.04),rgba(255,255,255,.012));
+  transition:transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.rollenkarte:hover{
+  border-color:var(--accent);transform:translateX(4px);
+  box-shadow:-4px 0 0 0 var(--accent), 0 14px 30px -22px rgba(56,209,255,.9);
+}
+.rk-icon{
+  font-size:26px;display:grid;place-items:center;height:44px;border-radius:11px;
+  background:rgba(56,209,255,.10);border:1px solid rgba(56,209,255,.24);
+}
+.rk-text b{display:block;font-size:16px;margin-bottom:3px}
+.rk-text .small{line-height:1.45}
+.rk-gehalt{
+  font-family:var(--display);font-size:26px;color:var(--gold);text-align:right;line-height:1;
+}
+.rk-gehalt span{
+  display:block;font-family:var(--font);font-size:9.5px;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--dim);
+}
+
+.sk-rolle{
+  padding:9px 14px;border-top:1px solid var(--line-soft);font-size:12.5px;
+  color:var(--accent);font-weight:650;
+}
+.sk-rolle.draft{color:var(--muted);font-weight:550}
+
+/* ---- Saisonziele: Auftrag vor der Saison, Abrechnung danach ---- */
+.zielkarte{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  overflow:hidden;margin-top:16px;
+}
+.zielkarte.offen{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.ziel-kopf{
+  padding:10px 14px;border-bottom:1px solid var(--line-soft);
+  font-size:11px;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--dim);font-weight:700;
+}
+.zielkarte.offen .ziel-kopf{color:var(--accent)}
+.ziel-zeile{
+  display:flex;align-items:flex-start;gap:11px;padding:11px 14px;
+  border-bottom:1px solid var(--line-soft);animation:zielRein .45s ease both;
+}
+.ziel-zeile:last-child{border-bottom:0}
+.ziel-icon{font-size:17px;line-height:1.2;flex:0 0 auto}
+.ziel-text{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.ziel-text b{font-size:13.5px;font-weight:650}
+.ziel-haken{font-size:16px;font-weight:800;flex:0 0 auto;align-self:center}
+.ziel-zeile.erfuellt .ziel-haken{color:#5fd68a}
+.ziel-zeile.verfehlt .ziel-haken{color:#ff8a97}
+.ziel-zeile.erfuellt{background:rgba(95,214,138,.08)}
+.ziel-zeile.verfehlt{background:rgba(255,138,151,.07)}
+.zielkarte.klein{margin-top:12px}
+.zielkarte.klein .ziel-zeile{padding:8px 12px}
+.zielkarte.klein .ziel-text b{font-size:12.5px}
+@keyframes zielRein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){ .ziel-zeile{animation:none} }
+
+/* ---- Jahrgangstabelle: der Vergleich mit der eigenen Draftklasse ---- */
+.jahrgang{
+  background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  overflow:hidden;margin-top:14px;
+}
+.jg-kopf{
+  display:flex;justify-content:space-between;align-items:baseline;gap:8px;
+  padding:11px 14px;border-bottom:1px solid var(--line-soft);
+  font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--dim);font-weight:700;
+}
+.jg-rang{color:var(--text);letter-spacing:0;text-transform:none;font-size:12px;font-weight:600}
+.jg-rang b{color:var(--gold);font-size:15px}
+.jg-hoch{color:#5fd68a;margin-left:5px;font-size:11px}
+.jg-runter{color:#ff8a97;margin-left:5px;font-size:11px}
+.jg-liste{display:flex;flex-direction:column}
+.jg-zeile{
+  display:grid;grid-template-columns:26px 1fr auto auto auto;align-items:center;gap:9px;
+  padding:8px 14px;border-bottom:1px solid var(--line-soft);font-size:12.5px;
+  animation:jgRein .42s ease both;
+}
+.jg-zeile:last-child{border-bottom:0}
+.jg-zeile.eigen{background:var(--accent-weak,rgba(90,150,255,.12));box-shadow:inset 3px 0 0 var(--accent)}
+.jg-zeile.eigen .jg-name b{color:var(--accent)}
+.jg-zeile.raus{opacity:.5}
+.jg-platz{
+  font-family:var(--display);font-size:14px;color:var(--muted);text-align:center;
+}
+.jg-platz.podest{color:var(--gold)}
+.jg-name{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+.jg-name b{font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jg-klub{font-size:10.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.jg-pos{font-size:10px;color:var(--dim);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+.jg-titel{font-size:10.5px;color:var(--gold);white-space:nowrap}
+.jg-wert{font-family:var(--display);font-size:15px;min-width:42px;text-align:right}
+.jg-luecke{text-align:center;color:var(--dim);font-size:11px;padding:2px 0;letter-spacing:.3em}
+.jg-fuss{padding:8px 14px;border-top:1px solid var(--line-soft);color:var(--dim)}
+.jahrgang.gross .jg-zeile{padding:11px 16px;font-size:13.5px}
+@keyframes jgRein{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){ .jg-zeile{animation:none} }
+
+/* Knopf waehrend der Bilderzeugung: gesperrt und sichtbar beschaeftigt */
+.btn.laedt, .btn:disabled{opacity:.55;cursor:progress;pointer-events:none}
+.btn.laedt::after{
+  content:'';display:inline-block;width:11px;height:11px;margin-left:8px;
+  vertical-align:-1px;border:2px solid currentColor;border-right-color:transparent;
+  border-radius:50%;animation:knopfDreht .7s linear infinite;
+}
+@keyframes knopfDreht{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){ .btn.laedt::after{animation:none} }
+
+/* Weggefaehrten: Trainer und engster Mitspieler beim aktuellen Klub */
+.sk-umfeld{
+  padding:10px 14px;border-top:1px solid var(--line-soft);
+  display:flex;flex-direction:column;gap:6px;
+}
+.sk-umfeld .uf-zeile{display:flex;align-items:center;gap:8px;font-size:12px;min-width:0}
+.sk-umfeld .uf-rolle{
+  flex:0 0 auto;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--dim);width:62px;
+}
+.sk-umfeld .uf-name{
+  font-weight:600;color:var(--text);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;
+}
+.sk-umfeld .uf-punkt{
+  flex:0 0 auto;width:6px;height:6px;border-radius:50%;background:var(--accent);
+  opacity:.65;animation:ufPuls 3.2s ease-in-out infinite;
+}
+.sk-umfeld .uf-punkt.warm{background:var(--gold);opacity:.85}
+@keyframes ufPuls{0%,100%{transform:scale(1);opacity:.5}50%{transform:scale(1.35);opacity:.95}}
+.sk-straenge{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px}
+.sk-strang{
+  font-size:10px;padding:2px 8px;border-radius:999px;
+  background:var(--gold-weak,rgba(212,175,55,.14));color:var(--gold);
+  border:1px solid rgba(212,175,55,.3);
+}
+@media (prefers-reduced-motion:reduce){ .sk-umfeld .uf-punkt{animation:none} }
+
+/* Verletzung in der Saisonkarte hervorheben */
+.season .ev.bad{color:#ffb3bb}
+
+/* ==========================================================
+   Feinschliff und Bewegung
+   ========================================================== */
+@keyframes zeileRein{ from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:none} }
+.ar-koerper .ar-zeile:last-child{animation:zeileRein .35s ease both}
+
+.statbox{transition:transform .16s ease, border-color .16s ease}
+.statbox:hover{transform:translateY(-3px);border-color:var(--accent)}
+
+.btn:focus-visible,.wahlzeile:focus-visible,.rollenkarte:focus-visible,
+.jugendkarte:focus-visible,.legend-card:focus-visible{
+  outline:2px solid var(--accent);outline-offset:3px;
+}
+
+/* ==========================================================
+   Mobil
+   ========================================================== */
+@media (max-width:900px){
+  .abschluss-kopf{grid-template-columns:1fr;gap:12px}
+  .ak-karte h2{font-size:32px}
+  .klubgitter{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+  .kk-schatten{display:none}
+}
+
+@media (max-width:760px){
+  .panel-body{padding:18px 14px}
+  .panel-head{padding:13px 15px;gap:9px}
+  .karriere{gap:14px}
+  .k-rechts{order:3}
+
+  /* Entscheidungen: volle Breite, grosse Tippflaechen */
+  .wahlzeile{
+    grid-template-columns:1fr;gap:8px;padding:14px 8px;
+  }
+  .wz-balken{width:100%;height:30px}
+  .wz-pfeil{display:none}
+  .rollenkarte{grid-template-columns:44px minmax(0,1fr);row-gap:8px;padding:13px}
+  .rk-gehalt{grid-column:1 / -1;text-align:left;font-size:22px}
+  .rk-gehalt span{display:inline;margin-left:6px}
+
+  .jugendkarte{padding:13px 10px}
+  .jk-name{font-size:19px}
+  .jk-liga{min-height:0;margin-bottom:4px}
+
+  /* Spielerkarte kompakter */
+  .sk-kopf{padding:13px}
+  .sk-kopf .ovr{width:62px;height:62px}
+  .sk-kopf .ovr b{font-size:28px}
+  .sk-name{font-size:24px}
+  .sk-raster{grid-template-columns:repeat(3,1fr)}
+
+  /* Statistikzeilen umbrechen statt scrollen */
+  .statline{gap:10px 14px;font-size:12.5px}
+  .statgrid{grid-template-columns:repeat(auto-fit,minmax(84px,1fr));gap:8px}
+  .statbox{padding:9px 8px}
+  .statbox b{font-size:22px}
+
+  /* Vitrine dichter */
+  .vitrine{grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:9px}
+  .pokalkarte{padding:11px 6px 9px}
+  .pokalbild{height:44px}
+  .pokalname{font-size:10.5px}
+  /* Einblendung auf Mobil unter die Karte, damit sie nicht abgeschnitten wird */
+  .pokalhover{bottom:auto;top:calc(100% + 6px);min-width:140px}
+
+  .ereignis-text h2{font-size:20px}
+  .ereignis-wahl{padding:6px 8px 12px}
+
+  .btn{padding:12px 20px}
+  .row .btn{flex:1 1 auto;justify-content:center}
+}
+
+@media (max-width:420px){
+  .klubgitter{grid-template-columns:1fr 1fr}
+  .kk-raster .kk-zelle b{font-size:14px}
+  .ak-raster{grid-template-columns:repeat(2,1fr)}
+  .sk-raster{grid-template-columns:repeat(2,1fr)}
+}
+
+/* ==========================================================
+   Zeremonie, Höhepunkt, Rivale, Vermächtnis
+   ========================================================== */
+@keyframes pokalRein{
+  0%   { opacity:0; transform:translateY(14px) scale(.72) rotate(-9deg) }
+  60%  { opacity:1; transform:translateY(-3px) scale(1.06) rotate(2deg) }
+  100% { opacity:1; transform:none }
+}
+@keyframes strahl{
+  0%,100% { filter:drop-shadow(0 0 0 rgba(255,200,97,0)) }
+  50%     { filter:drop-shadow(0 0 12px rgba(255,200,97,.85)) }
+}
+
+.zeremonie{
+  display:flex;flex-wrap:wrap;gap:9px;margin:12px 0 4px;padding:11px 12px;
+  border-radius:12px;background:linear-gradient(100deg,rgba(255,200,97,.10),rgba(255,200,97,.03));
+  border:1px solid rgba(255,200,97,.24);
+}
+.zer-stueck{
+  display:flex;flex-direction:column;align-items:center;gap:4px;width:78px;text-align:center;
+  animation:pokalRein .5s cubic-bezier(.2,.9,.3,1.2) both;
+}
+.zer-stueck svg{filter:drop-shadow(0 3px 7px rgba(0,0,0,.6))}
+.zer-stueck.gross svg{animation:strahl 2.6s ease-in-out infinite}
+.zer-stueck > span{font-size:10px;line-height:1.25;color:var(--muted)}
+.zer-stueck.gross > span{color:var(--gold);font-weight:700}
+
+/* Höhepunkt der Saison */
+.hoehepunkt{
+  margin-top:10px;padding:9px 13px;border-radius:10px;font-size:13.5px;
+  background:rgba(56,209,255,.08);border-left:3px solid var(--accent);color:var(--text);
+}
+.hp-marke{
+  display:inline-block;font-size:9.5px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--accent);margin-right:9px;
+}
+
+/* Rivale */
+.rivale{
+  margin-top:14px;padding:13px;border-radius:14px;
+  border:1px solid var(--line);background:rgba(255,255,255,.03);
+}
+.rv-kopf{display:flex;flex-direction:column;gap:1px;margin-bottom:9px}
+.rv-kopf b{font-size:14px}
+.rv-balken{display:flex;height:26px;border-radius:8px;overflow:hidden;font-size:11px;font-weight:800}
+.rv-balken i{
+  display:flex;align-items:center;font-style:normal;
+  transition:width .7s cubic-bezier(.2,.8,.25,1);min-width:0;
+}
+.rv-balken i.ich{background:linear-gradient(180deg,var(--accent),#2a9fd0);color:#04121c;justify-content:flex-start}
+.rv-balken i.er{background:linear-gradient(180deg,#5c6a86,#3b4560);color:#e8eefc;justify-content:flex-end}
+.rv-balken i span{padding:0 8px;white-space:nowrap}
+.rv-fuss{display:flex;justify-content:space-between;font-size:10.5px;color:var(--dim);margin-top:5px}
+
+.rv-tabelle{display:grid;gap:1px;background:var(--line-soft);border-radius:10px;overflow:hidden}
+.rv-tabelle > div{
+  display:grid;grid-template-columns:minmax(0,1fr) 74px 74px;gap:8px;
+  background:var(--ice-800);padding:8px 12px;font-size:13px;align-items:center;
+}
+.rv-tabelle > div:first-child{background:rgba(255,255,255,.05);color:var(--dim);font-size:11px}
+.rv-tabelle span{color:var(--muted)}
+.rv-tabelle b{text-align:right;font-variant-numeric:tabular-nums}
+.rv-tabelle b.gold{color:var(--gold)}
+
+/* Vermächtnis */
+.vermaechtnis{display:flex;flex-direction:column;gap:9px}
+.vm-stueck{
+  display:grid;grid-template-columns:44px minmax(0,1fr);gap:12px;align-items:center;
+  padding:10px 12px;border-radius:12px;
+  background:linear-gradient(100deg,rgba(255,200,97,.09),rgba(255,255,255,.015));
+  border:1px solid rgba(255,200,97,.22);
+}
+.vm-icon{
+  font-size:22px;display:grid;place-items:center;height:38px;border-radius:10px;
+  background:rgba(255,200,97,.12);border:1px solid rgba(255,200,97,.3);
+}
+.vm-stueck b{display:block;font-size:14px;color:var(--gold);margin-bottom:1px}
+.vm-stueck .small{line-height:1.4}
+
+@media (max-width:760px){
+  .zer-stueck{width:64px}
+  .zer-stueck > span{font-size:9px}
+  .rv-tabelle > div{grid-template-columns:minmax(0,1fr) 58px 58px;font-size:12px;padding:7px 9px}
+}
+
+/* ==========================================================
+   Formkurve, Saisonfaktoren, Rücktrittsfrage
+   ========================================================== */
+.formkarte{
+  margin-top:14px;padding:12px 13px;border-radius:14px;
+  border:1px solid var(--line);background:rgba(255,255,255,.03);
+}
+.fk-lage{font-size:12.5px}
+.fk-lage.hoch{color:var(--green)}
+.fk-lage.tief{color:var(--red)}
+.fk-lage.mittel{color:var(--muted)}
+.fk-grafik{
+  width:100%;height:52px;display:block;overflow:visible;
+  stroke-dasharray:340;stroke-dashoffset:0;
+  animation:kurveZeichnen 1.1s ease both;
+}
+@keyframes kurveZeichnen{ from{stroke-dashoffset:340;opacity:.2} to{stroke-dashoffset:0;opacity:1} }
+
+/* Faktoren der Saison */
+.faktoren{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.fk{
+  font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:999px;cursor:help;
+  background:rgba(255,255,255,.05);border:1px solid var(--line);color:var(--dim);
+}
+.fk.plus{color:var(--green);border-color:rgba(62,224,143,.32);background:rgba(62,224,143,.10)}
+.fk.minus{color:#ffa8b1;border-color:rgba(255,107,122,.3);background:rgba(255,107,122,.09)}
+
+/* Rücktrittsfrage */
+.ereignis.ruecktritt{border-color:rgba(255,200,97,.4)}
+.rt-werte{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:1px;margin-top:12px;
+  background:var(--line-soft);border:1px solid var(--line-soft);border-radius:11px;overflow:hidden;
+}
+.rt-werte .kk-zelle{background:var(--ice-800);text-align:center}
+
+@media (max-width:760px){
+  .fk{font-size:10px;padding:2px 7px}
+  .rt-werte{grid-template-columns:repeat(3,1fr)}
+}
+
+/* ==========================================================
+   Thema „Verspielt“ – umstellbar über den Schalter im Kopf.
+   Setzt data-thema="verspielt" auf <html>. Ohne Attribut
+   bleibt alles beim ursprünglichen, nüchternen Eisdesign.
+   ========================================================== */
+:root[data-thema="verspielt"]{
+  --ice-900:#140f2e;
+  --ice-850:#1a1338;
+  --ice-800:#221a45;
+  --ice-700:#2c2255;
+  --ice-600:#3b2f6e;
+  --line:#4a3a8a;
+  --line-soft:#33285f;
+
+  --text:#fdf6ff;
+  --muted:#bcaee8;
+  --dim:#8d7dc4;
+
+  --accent:#2ee6c6;
+  --accent-2:#ff7ac8;
+  --gold:#ffd45e;
+  --green:#5cf08f;
+  --red:#ff6b95;
+
+  --radius:24px;
+  --radius-sm:16px;
+  --shadow:0 22px 60px -22px rgba(120,60,220,.75);
+}
+
+:root[data-thema="verspielt"] body{
+  background:
+    radial-gradient(760px 520px at 8% -6%, rgba(46,230,198,.20), transparent 62%),
+    radial-gradient(700px 520px at 92% 4%, rgba(255,122,200,.22), transparent 58%),
+    radial-gradient(900px 700px at 50% 108%, rgba(255,212,94,.13), transparent 60%),
+    var(--ice-900);
+}
+
+/* Rundere, kräftigere Flächen */
+:root[data-thema="verspielt"] .card,
+:root[data-thema="verspielt"] .panel,
+:root[data-thema="verspielt"] .season,
+:root[data-thema="verspielt"] .spielerkarte,
+:root[data-thema="verspielt"] .altersraster,
+:root[data-thema="verspielt"] .ak-karte,
+:root[data-thema="verspielt"] .natkarte,
+:root[data-thema="verspielt"] .ak-ehrungen,
+:root[data-thema="verspielt"] .klubkarte,
+:root[data-thema="verspielt"] .ereignis{
+  border-width:2px;border-radius:var(--radius);
+}
+:root[data-thema="verspielt"] .legend-card,
+:root[data-thema="verspielt"] .jugendkarte,
+:root[data-thema="verspielt"] .rollenkarte,
+:root[data-thema="verspielt"] .pokalkarte,
+:root[data-thema="verspielt"] .statbox{
+  border-width:2px;border-radius:var(--radius-sm);
+}
+
+:root[data-thema="verspielt"] .btn{
+  border-width:2px;font-weight:800;letter-spacing:.01em;
+}
+:root[data-thema="verspielt"] .btn-primary{
+  background:linear-gradient(120deg,var(--accent),#5ad2ff);
+  color:#06231f;box-shadow:0 10px 0 -4px rgba(20,220,190,.35), 0 16px 34px -16px rgba(46,230,198,.9);
+}
+:root[data-thema="verspielt"] .btn-primary:active{transform:translateY(2px)}
+:root[data-thema="verspielt"] .btn-ghost{border-color:var(--line);background:rgba(255,255,255,.06)}
+
+:root[data-thema="verspielt"] h1,
+:root[data-thema="verspielt"] h2,
+:root[data-thema="verspielt"] .sk-name,
+:root[data-thema="verspielt"] .kk-name,
+:root[data-thema="verspielt"] .lc-name{
+  letter-spacing:1px;
+}
+:root[data-thema="verspielt"] h1{
+  background:linear-gradient(100deg,var(--accent),var(--accent-2) 55%,var(--gold));
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+
+/* Verspielter Puck im Kopf */
+:root[data-thema="verspielt"] .brand .puck{
+  border-color:var(--accent-2);
+  box-shadow:0 0 20px rgba(255,122,200,.6);
+  animation:puckWippe 3.4s ease-in-out infinite;
+}
+@keyframes puckWippe{ 0%,100%{transform:translateY(0) rotate(0)} 50%{transform:translateY(-3px) rotate(12deg)} }
+
+/* Kacheln kippen leicht beim Überfahren */
+:root[data-thema="verspielt"] .tile:hover,
+:root[data-thema="verspielt"] .legend-card:hover,
+:root[data-thema="verspielt"] .jugendkarte:hover{
+  transform:translateY(-5px) rotate(-.7deg);
+}
+:root[data-thema="verspielt"] .statbox:hover{transform:translateY(-4px) rotate(.8deg)}
+:root[data-thema="verspielt"] .pokalkarte:hover{transform:translateY(-5px) rotate(-1.4deg) scale(1.03)}
+
+:root[data-thema="verspielt"] .pill,
+:root[data-thema="verspielt"] .badge,
+:root[data-thema="verspielt"] .lgtag{border-width:2px;font-weight:800}
+:root[data-thema="verspielt"] .lgtag{border-radius:999px}
+
+:root[data-thema="verspielt"] .ovr{
+  border-radius:22px;
+  box-shadow:0 8px 0 -2px rgba(0,0,0,.35);
+}
+:root[data-thema="verspielt"] .bar{height:9px}
+:root[data-thema="verspielt"] .bar i{
+  background:linear-gradient(90deg,var(--accent),var(--accent-2));
+}
+
+/* Themenschalter */
+.thema-schalter{
+  display:inline-flex;align-items:center;gap:6px;margin-left:14px;
+  border:1px solid var(--line);background:rgba(255,255,255,.04);
+  border-radius:999px;padding:4px;cursor:pointer;
+}
+.thema-schalter button{
+  border:0;background:none;color:var(--dim);cursor:pointer;font-family:var(--font);
+  font-size:12px;font-weight:750;padding:4px 11px;border-radius:999px;transition:.15s;
+}
+.thema-schalter button.on{background:var(--accent);color:#04121c}
+@media (max-width:680px){
+  .thema-schalter{margin:8px 0 4px}
+}
+
+/* ==========================================================
+   Eisfeld zur Positionswahl
+   ========================================================== */
+.eisfeld-halter{
+  border-radius:var(--radius);padding:10px;
+  background:linear-gradient(180deg,rgba(120,190,255,.07),rgba(255,255,255,.015));
+  border:1px solid var(--line-soft);
+}
+.eisfeld{width:100%;height:auto;display:block;max-height:52vh;margin:0 auto}
+
+.feld-pos{cursor:pointer;outline:none}
+.feld-pos .fp-ring{
+  fill:none;stroke:rgba(255,255,255,.18);stroke-width:2;
+  transform-box:fill-box;transform-origin:center;transition:.2s;
+}
+.feld-pos .fp-punkt{
+  fill:var(--ice-700);stroke:var(--line);stroke-width:2.5;transition:.2s;
+}
+.feld-pos .fp-kurz{
+  fill:var(--muted);font-family:var(--display);font-size:20px;letter-spacing:1px;
+  text-anchor:middle;dominant-baseline:middle;transition:.2s;pointer-events:none;
+}
+.feld-pos .fp-name{
+  fill:var(--dim);font-family:var(--font);font-size:11px;font-weight:700;
+  text-anchor:middle;transition:.2s;pointer-events:none;opacity:0;
+}
+.feld-pos:hover .fp-punkt{fill:var(--ice-600);stroke:var(--accent)}
+.feld-pos:hover .fp-kurz{fill:var(--text)}
+.feld-pos:hover .fp-name,
+.feld-pos.on .fp-name{opacity:1;fill:var(--accent)}
+.feld-pos:focus-visible .fp-ring{stroke:var(--accent);stroke-width:3}
+
+.feld-pos.on .fp-punkt{
+  fill:var(--accent);stroke:var(--accent);
+  filter:drop-shadow(0 0 12px rgba(56,209,255,.75));
+}
+.feld-pos.on .fp-kurz{fill:#04121c}
+.feld-pos.on .fp-ring{
+  stroke:var(--accent);stroke-width:2.5;
+  animation:feldPuls 2.2s ease-out infinite;
+}
+@keyframes feldPuls{
+  0%   { r:24; opacity:.9 }
+  70%  { r:38; opacity:0 }
+  100% { r:38; opacity:0 }
+}
+
+/* Kleiner Umschalter in der Seitenspalte */
+.einstellung{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  margin-top:14px;padding:9px 12px;border-radius:12px;
+  border:1px solid var(--line-soft);background:rgba(255,255,255,.03);
+}
+.schalter-klein{display:inline-flex;gap:3px;background:var(--ice-700);border-radius:999px;padding:3px}
+.schalter-klein button{
+  border:0;background:none;color:var(--dim);cursor:pointer;font-family:var(--font);
+  font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;transition:.15s;
+}
+.schalter-klein button.on{background:var(--accent);color:#04121c}
+
+/* Automatisch erledigtes Training dezenter anzeigen */
+.season .ev.auto{color:var(--dim)}
+.season .ev.auto::before{content:"\2699  ";color:var(--dim)}
+
+/* Verspielt: Eisfeld bunter */
+:root[data-thema="verspielt"] .eisfeld-halter{
+  border-width:2px;
+  background:linear-gradient(180deg,rgba(46,230,198,.10),rgba(255,122,200,.06));
+}
+:root[data-thema="verspielt"] .feld-pos.on .fp-punkt{
+  filter:drop-shadow(0 0 14px rgba(46,230,198,.9));
+}
+
+/* ==========================================================
+   Playoffserien und Meilenstein-Jagd
+   ========================================================== */
+@keyframes serieRein{ from{opacity:0;transform:translateX(-14px)} to{opacity:1;transform:none} }
+
+.serien{
+  margin-top:11px;border-radius:13px;overflow:hidden;
+  border:1px solid rgba(56,209,255,.26);background:rgba(56,209,255,.05);
+}
+.serien-kopf{
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  padding:8px 13px;background:rgba(56,209,255,.10);
+  font-size:11px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);
+}
+.serien-liste{display:flex;flex-direction:column}
+.serie{
+  display:grid;grid-template-columns:96px minmax(0,1fr) auto;gap:10px;align-items:center;
+  padding:8px 13px;border-top:1px solid var(--line-soft);font-size:13px;
+  animation:serieRein .34s ease both;
+}
+.se-runde{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);font-weight:800}
+.se-gegner{display:flex;align-items:center;gap:8px;min-width:0}
+.se-gegner span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.se-stand{font-family:var(--display);font-size:20px;letter-spacing:1px;font-variant-numeric:tabular-nums}
+.se-stand i{font-style:normal;opacity:.45;margin:0 1px}
+
+.serie.sieg .se-stand{color:var(--green)}
+.serie.aus  .se-stand{color:var(--red)}
+.serie.aus  .se-runde{color:var(--red)}
+.serie.knapp.aus{background:rgba(255,107,122,.07)}
+.serie.titel{background:linear-gradient(100deg,rgba(255,200,97,.16),rgba(255,200,97,.04))}
+.serie.titel .se-runde{color:var(--gold)}
+.serie.titel .se-gegner b{color:var(--gold)}
+
+/* Meilenstein-Jagd */
+.jagd{
+  margin-top:14px;padding:12px 13px;border-radius:14px;
+  border:1px solid var(--line);background:rgba(255,255,255,.03);
+}
+.jagd-zeile{margin-bottom:10px}
+.jagd-zeile:last-child{margin-bottom:0}
+.jagd-nah{
+  display:inline-block;margin-top:4px;font-size:10.5px;font-weight:800;
+  color:var(--gold);letter-spacing:.04em;
+  animation:pulsText 1.8s ease-in-out infinite;
+}
+@keyframes pulsText{ 0%,100%{opacity:.65} 50%{opacity:1} }
+
+:root[data-thema="verspielt"] .serien{border-width:2px;border-radius:18px}
+:root[data-thema="verspielt"] .jagd{border-width:2px}
+
+@media (max-width:760px){
+  .serie{grid-template-columns:76px minmax(0,1fr) auto;gap:8px;padding:7px 10px;font-size:12px}
+  .se-stand{font-size:18px}
+}
+
+/* ==========================================================
+   Thema "Retro" – data-thema="retro"
+   Gegenentwurf zu den beiden dunklen Themen: warmes Papier,
+   Tintenblau, Zinnoberrot, Serifen-Anzeigeschrift. Angelehnt an
+   alte Programmhefte und Sammelbilder, komplett eigene Gestaltung.
+   ========================================================== */
+:root[data-thema="retro"]{
+  --ice-900:#efe6d5;   /* Papier */
+  --ice-850:#e9dfcb;
+  --ice-800:#f6f0e3;   /* Kartenflaeche */
+  --ice-700:#e2d6bd;
+  --ice-600:#d6c7a8;
+  --line:#c3b291;
+  --line-soft:#dccfb4;
+
+  --text:#1d2333;      /* Tinte */
+  --muted:#5c6076;
+  /* auf Papier gemessen: hellere Toene fallen unter 3:1 Kontrast */
+  --dim:#6f6880;
+
+  --accent:#c8452d;    /* Zinnober */
+  --accent-2:#1f4e79;  /* Tiefblau */
+  --gold:#8f6414;
+
+  --kopf-bg:rgba(233,223,203,.88);
+  --green:#2f7a4d;
+  --red:#a32b23;
+
+  --radius:6px;
+  --radius-sm:4px;
+  --shadow:0 10px 26px -14px rgba(60,45,25,.55);
+  --display:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+}
+
+/* Papierfläche mit feiner Faserung – reine CSS-Verläufe, keine Bilder */
+:root[data-thema="retro"] body{
+  background:
+    repeating-linear-gradient(0deg, rgba(150,120,70,.055) 0 1px, transparent 1px 3px),
+    radial-gradient(900px 620px at 12% -8%, rgba(200,69,45,.10), transparent 60%),
+    radial-gradient(820px 600px at 88% 2%, rgba(31,78,121,.10), transparent 58%),
+    var(--ice-900);
+  color:var(--text);
+}
+
+/* Kanten wie gedruckte Rahmen: scharf, zweifarbig abgesetzt */
+:root[data-thema="retro"] .card,
+:root[data-thema="retro"] .panel,
+:root[data-thema="retro"] .season,
+:root[data-thema="retro"] .spielerkarte,
+:root[data-thema="retro"] .altersraster,
+:root[data-thema="retro"] .jahrgang,
+:root[data-thema="retro"] .zielkarte,
+:root[data-thema="retro"] .ereignis{
+  border-width:1px;border-radius:var(--radius);
+  box-shadow:2px 2px 0 var(--ice-600), var(--shadow);
+}
+
+/* Anzeigeschrift bekommt Sperrung und Kapitälchen-Anmutung */
+:root[data-thema="retro"] .sk-name,
+:root[data-thema="retro"] h1,
+:root[data-thema="retro"] h2{
+  letter-spacing:.005em;
+}
+:root[data-thema="retro"] .jg-kopf,
+:root[data-thema="retro"] .ziel-kopf,
+:root[data-thema="retro"] .serien-kopf{
+  background:var(--ice-700);
+  color:var(--accent-2);
+  border-bottom:1px solid var(--line);
+}
+:root[data-thema="retro"] .zielkarte.offen .ziel-kopf{ color:var(--accent) }
+
+/* Auf hellem Grund brauchen die Signalfarben mehr Tiefe */
+:root[data-thema="retro"] .season .ev.bad,
+:root[data-thema="retro"] .jg-runter,
+:root[data-thema="retro"] .ziel-zeile.verfehlt .ziel-haken{ color:var(--red) }
+:root[data-thema="retro"] .jg-hoch,
+:root[data-thema="retro"] .ziel-zeile.erfuellt .ziel-haken{ color:var(--green) }
+:root[data-thema="retro"] .ziel-zeile.erfuellt{ background:rgba(47,122,77,.10) }
+:root[data-thema="retro"] .ziel-zeile.verfehlt{ background:rgba(163,43,35,.09) }
+:root[data-thema="retro"] .jg-zeile.eigen{
+  background:rgba(31,78,121,.12);
+  box-shadow:inset 3px 0 0 var(--accent-2);
+}
+:root[data-thema="retro"] .jg-zeile.eigen .jg-name b{ color:var(--accent-2) }
+:root[data-thema="retro"] .sk-umfeld .uf-punkt{ background:var(--accent-2) }
+:root[data-thema="retro"] .sk-umfeld .uf-punkt.warm{ background:var(--accent) }
+:root[data-thema="retro"] .sk-strang{
+  background:rgba(169,118,31,.14);border-color:rgba(169,118,31,.4);color:var(--gold);
+}
+
+/* Der Puck im Logo ist auf Papier sonst unsichtbar */
+:root[data-thema="retro"] .puck{ background:var(--text) }
+
+/* ---- Icons: eigenes Set, faerbt sich ueber currentColor ---- */
+.ik{
+  display:inline-block;vertical-align:-.16em;flex:0 0 auto;
+  stroke-width:0;
+}
+.ik[stroke]{stroke-linejoin:round}
+.kennzahl{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 9px;border:1px solid var(--line);border-radius:999px;
+  font-size:12px;color:var(--muted);background:var(--ice-800);
+}
+.kennzahl b{color:var(--text);font-weight:700}
+.kennzahl.gut{color:var(--green)}
+.kennzahl.schlecht{color:var(--red)}
+
+/* ---- Wechselfrist: zweiter Entscheidungspunkt der Saison ---- */
+.wechselfrist{
+  background:var(--card,var(--ice-800));border:1px solid var(--line);
+  border-radius:var(--radius);overflow:hidden;
+}
+.wf-kopf{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:11px 16px;border-bottom:1px solid var(--line-soft);
+  font-size:11.5px;letter-spacing:.07em;text-transform:uppercase;font-weight:700;
+}
+.wf-uhr{display:inline-flex;align-items:center;gap:7px;color:var(--dim)}
+.wf-lage{display:inline-flex;align-items:center;gap:6px;letter-spacing:.05em}
+.wf-kopf.lage-abbau   .wf-lage{color:var(--red)}
+.wf-kopf.lage-halt    .wf-lage{color:var(--gold)}
+.wf-kopf.lage-angriff .wf-lage{color:var(--green)}
+.wf-kopf.lage-abbau   {box-shadow:inset 0 3px 0 var(--red)}
+.wf-kopf.lage-halt    {box-shadow:inset 0 3px 0 var(--gold)}
+.wf-kopf.lage-angriff {box-shadow:inset 0 3px 0 var(--green)}
+.wf-text{padding:16px}
+.wf-text h2{
+  font-family:var(--font);font-size:22px;font-weight:750;
+  letter-spacing:-.01em;margin:0 0 8px;
+}
+.wf-text p{color:var(--muted);margin:0}
+.wf-stand{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+.wf-ziel{
+  display:inline-flex;align-items:center;gap:6px;font-size:12px;
+  padding:3px 10px;border-radius:999px;
+  border:1px dashed var(--line);color:var(--accent);
+}
+
+/* Icon-Spalte in den Wahlzeilen */
+.wz-ikone{
+  flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+  width:34px;height:34px;border-radius:10px;
+  background:var(--ice-700);color:var(--accent);
+}
+.wahlzeile:hover .wz-ikone{background:var(--ice-600)}
+
+/* Auf dem Papierthema brauchen die Flaechen eigene Toene */
+:root[data-thema="retro"] .kennzahl{background:var(--ice-700)}
+:root[data-thema="retro"] .wz-ikone{background:var(--ice-700);color:var(--accent-2)}
+:root[data-thema="retro"] .wechselfrist{box-shadow:2px 2px 0 var(--ice-600),var(--shadow)}
+
+/* Icons in Spielerkarte und Umfeld: ersetzen die Beschriftungen */
+.sk-zelle .sk-ik,
+.sk-umfeld .uf-ik{
+  display:inline-flex;align-items:center;justify-content:center;
+  color:var(--dim);flex:0 0 auto;
+}
+.sk-zelle{cursor:help}
+.sk-umfeld .uf-zeile{cursor:help}
+.sk-umfeld .uf-ik{width:18px;color:var(--muted)}
+
+/* ---- Statistikraster der Saisonkarte: Icon, Zahl, Kurzname ---- */
+.statgitter{
+  display:grid;gap:7px;padding:12px 14px;
+  grid-template-columns:repeat(auto-fit,minmax(74px,1fr));
+  border-top:1px solid var(--line-soft);
+}
+.stk{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:9px 5px 7px;border-radius:var(--radius-sm);
+  background:var(--ice-800);border:1px solid var(--line-soft);
+  cursor:help;
+}
+.stk-ik{color:var(--dim);line-height:1;display:flex}
+.stk b{
+  font-family:var(--display);font-size:19px;line-height:1.05;
+  letter-spacing:.01em;color:var(--text);
+}
+.stk-n{
+  font-size:9px;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--dim);text-align:center;line-height:1.2;
+}
+.stk.stark b{color:var(--accent)}
+.stk.stark .stk-ik{color:var(--accent)}
+.stk.gut b,.stk.gut .stk-ik{color:var(--green)}
+.stk.schlecht b,.stk.schlecht .stk-ik{color:var(--red)}
+
+@media (max-width:520px){
+  .statgitter{grid-template-columns:repeat(auto-fit,minmax(62px,1fr));gap:5px}
+  .stk b{font-size:16px}
+}
+:root[data-thema="retro"] .stk{background:var(--ice-700)}
+
+/* Icon in den Bilanzkacheln der Ergebnisseite */
+.statbox .sb-ik{display:block;color:var(--dim);margin-bottom:3px;line-height:1}
+
+/* ---- Wendepunkte: die Entscheidungen, die getragen haben ---- */
+.wendepunkte{
+  background:var(--card,var(--ice-800));border:1px solid var(--line);
+  border-radius:var(--radius);overflow:hidden;
+}
+.wp-kopf{
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  padding:12px 16px;border-bottom:1px solid var(--line-soft);
+  font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;
+  font-weight:700;color:var(--dim);
+}
+.wp-kopf > span:first-child{display:inline-flex;align-items:center;gap:7px;color:var(--accent)}
+.wp-quote{letter-spacing:0;text-transform:none;font-size:12px;color:var(--muted)}
+.wp-quote b{font-family:var(--display);font-size:17px;color:var(--gold);margin-right:3px}
+.wp-kette{display:flex;flex-direction:column}
+.wp-glied{
+  display:flex;align-items:flex-start;gap:12px;padding:12px 16px;
+  border-bottom:1px solid var(--line-soft);
+  animation:wpRein .5s ease both;position:relative;
+}
+.wp-glied:last-child{border-bottom:0}
+/* Verbindungslinie: die Straenge haengen zusammen */
+.wp-glied::before{
+  content:'';position:absolute;left:32px;top:44px;bottom:-1px;
+  width:1px;background:var(--line);
+}
+.wp-glied:last-child::before{display:none}
+.wp-ik{
+  flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;
+  width:34px;height:34px;border-radius:50%;
+  background:var(--ice-700);color:var(--accent);z-index:1;
+}
+.wp-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.wp-text b{font-size:14px;font-weight:680}
+.wp-wer{
+  font-size:11px;color:var(--gold);margin-top:3px;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.wp-stationen{
+  padding:11px 16px;border-top:1px solid var(--line-soft);
+  display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+}
+.wp-klub{
+  font-size:11px;padding:2px 9px;border-radius:999px;
+  border:1px solid var(--line);color:var(--muted);
+}
+@keyframes wpRein{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){ .wp-glied{animation:none} }
+:root[data-thema="retro"] .wp-ik{background:var(--ice-700);color:var(--accent-2)}
+
+/* Hervorgehobene Einzelentscheidungen in der Rueckschau */
+.wp-marken{
+  display:grid;gap:10px;padding:12px 16px;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  border-top:1px solid var(--line-soft);
+}
+.wp-marke{
+  display:flex;flex-direction:column;gap:3px;
+  padding:11px 13px;border-radius:var(--radius-sm);
+  border:1px solid var(--line-soft);background:var(--ice-800);
+}
+.wp-marke b{font-size:13.5px;font-weight:680;line-height:1.3}
+.wp-m-kopf{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:10px;letter-spacing:.07em;text-transform:uppercase;font-weight:700;
+}
+.wp-marke.gut      .wp-m-kopf{color:var(--green)}
+.wp-marke.schlecht .wp-m-kopf{color:var(--red)}
+.wp-marke.gut     {box-shadow:inset 3px 0 0 var(--green)}
+.wp-marke.schlecht{box-shadow:inset 3px 0 0 var(--red)}
+:root[data-thema="retro"] .wp-marke{background:var(--ice-700)}
+
+/* Der Ligasprung ist der seltenste Fall - eigene Farbe */
+.wf-kopf.lage-sprung .wf-lage{color:var(--accent-2)}
+.wf-kopf.lage-sprung{box-shadow:inset 0 3px 0 var(--accent-2)}
+
+/* Abstand nach vorn und hinten im Jahrgangsrennen */
+.jg-abstand{
+  display:flex;flex-wrap:wrap;gap:8px;
+  padding:9px 14px;border-top:1px solid var(--line-soft);
+}
+.jg-ab{
+  display:inline-flex;align-items:center;gap:5px;font-size:11.5px;
+  padding:3px 9px;border-radius:999px;border:1px solid var(--line);
+  color:var(--muted);
+}
+.jg-ab b{font-family:var(--display);font-size:14px;color:var(--text)}
+.jg-ab.vorn   b{color:var(--red)}
+.jg-ab.hinten b{color:var(--green)}
+
+/* ---- Verlaufsdiagramm des Jahrgangsrennens ---- */
+.jgverlauf{
+  background:var(--card,var(--ice-800));border:1px solid var(--line);
+  border-radius:var(--radius);overflow:hidden;margin-top:14px;color:var(--muted);
+}
+.jgv-kopf{
+  display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  padding:12px 16px;border-bottom:1px solid var(--line-soft);
+  font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;
+  font-weight:700;color:var(--dim);
+}
+.jgv-kopf > span:first-child{display:inline-flex;align-items:center;gap:7px;color:var(--accent)}
+.jgv-kopf .small{letter-spacing:0;text-transform:none}
+.jgv-bild{padding:12px 14px;overflow-x:auto}
+.jgv-bild svg{min-width:520px;display:block}
+.jgv-fuss{padding:9px 16px;border-top:1px solid var(--line-soft);color:var(--dim)}

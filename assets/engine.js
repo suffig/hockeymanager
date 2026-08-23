@@ -197,10 +197,12 @@ const PUCKERO = (() => {
   }
 
   /* ---------------- Alterskurve ---------------- */
-  function formFactor(age, traits, lernkurve){
+  function formFactor(age, traits, lernkurve, scheitel){
     const t = traits || {};
     const lk = (lernkurve || 0) * 0.004;
-    const peak = 27 - (t.jung || 0) * 0.06 + (t.langlebig || 0) * 0.05;
+    // Jeder Spieler hat seinen eigenen Scheitelpunkt – manche bluehen mit 24 auf,
+    // andere erst mit 31. Das macht Laufbahnen spuerbar unterschiedlich.
+    const peak = (scheitel || 27) - (t.jung || 0) * 0.06 + (t.langlebig || 0) * 0.05;
     const early = 1 - Math.pow(clamp(peak - age, 0, 20) / 11, 2) * 0.55
                     + (t.jung || 0) * 0.004 * clamp(peak - age, 0, 20);
     const late  = 1 - Math.pow(clamp(age - peak, 0, 25) / 11, 1.9) * 0.62
@@ -212,7 +214,7 @@ const PUCKERO = (() => {
   function devAttrs(base, form){
     const out = {};
     Object.entries(base).forEach(([k, v]) => {
-      out[k] = clamp(Math.round(v * form * 1.25), 1, 99);
+      out[k] = clamp(Math.round(v * form * 1.28), 1, 99);
     });
     return out;
   }
@@ -267,6 +269,20 @@ const PUCKERO = (() => {
     return player;
   }
 
+  /* Wahrscheinlichkeit, nach dieser Saison aufzuhoeren.
+     Ein Ausnahmespieler mit 88 hoert mit 31 nicht auf – wer dagegen
+     das Niveau nicht mehr haelt, verschwindet auch mit 29 leise. */
+  function ruecktrittsChance(age, ovr, langlebig, verschleiss){
+    const grenze = 32 + (langlebig || 0) * 0.14 - (verschleiss || 0) * 0.5;
+    if (age < grenze) return 0;
+    let c = 0.06 + (age - grenze) * 0.15;
+    if (ovr >= 88)      c *= 0.25;   // Jahrhundertspieler machen weiter
+    else if (ovr >= 82) c *= 0.45;
+    else if (ovr >= 74) c *= 0.85;
+    else if (ovr < 66)  c *= 2.0;    // wer nicht mehr mithaelt, hoert auf
+    return clamp(c, 0, 0.9);
+  }
+
   /* Marktwert in Millionen Euro – waechst ueberproportional mit der Wertung */
   function marktwert(ovr, age){
     const basis = Math.pow(Math.max(0, ovr - 52) / 10, 2.5) * 0.9;
@@ -289,6 +305,10 @@ const PUCKERO = (() => {
   /* ==========================================================
      Karriere als Schrittfolge – erlaubt Saison-fuer-Saison-Spiel
      ========================================================== */
+  /* Verhindert, dass die Laufbahn eines Rivalen selbst wieder einen
+     Rivalen erzeugt – das waere eine Endlosrekursion. */
+  let rivaleWirdErzeugt = false;
+
   function createCareer(player){
     const r = rng(player.seed + ':career');
     const P = pos(player.pos);
@@ -307,6 +327,7 @@ const PUCKERO = (() => {
       trophies: {},
       lauf: { gp:0, g:0, a:0, p:0, wins:0, so:0, pim:0, gehalt:0 },
       entscheidungen: [],
+      verlauf: [],             // jede getroffene Wahl mit ihrem Ausgang
       hatteSternstunde: false,
       moral: clamp(60 + ((player.wirkung || {}).moralStart || 0), 15, 95),
       ereignis: null,         // offenes Karriereereignis
@@ -320,6 +341,29 @@ const PUCKERO = (() => {
       klubJahre: 0,           // Saisons beim aktuellen Klub
       laender: [],            // Turniere der Nationalmannschaft
       natDebuet: null,        // erste Nominierung
+      entryDraft: null,       // Ergebnis des Entry Drafts
+      rolle: null,            // gewaehlte Rolle im aktuellen Vertrag
+      rollenwahl: null,       // offene Rollenfrage
+      kapitaensfrage: null,   // offenes Angebot fuer das C
+      kapitaenGefragt: false,
+      rivale: null,           // staerkster Spieler desselben Jahrgangs
+      jahrgang: [],           // die ganze Draftklasse, einmal vorausberechnet
+      jahrgangStand: null,    // Rangliste des laufenden Jahres
+      jahrgangEreignis: null, // Ueberholvorgang der laufenden Saison
+      jahrgangDelta: null,    // Abstand nach vorn und hinten
+      ehemalige: [],          // frueher Klubs - Stoff fuer spaetere Wiedersehen
+      wechselfrist: null,     // offene Entscheidung an der Transferfrist
+      wechselGeprueft: false,
+      ziele: null,            // Vorgaben des Klubs fuer die laufende Saison
+      zielBilanz: { erfuellt: 0, verfehlt: 0 },
+      trainer: null,          // Name des aktuellen Trainers
+      mitspieler: null,       // engster Weggefaehrte im Team
+      freigeschaltet: [],     // durch Entscheidungen geoeffnete Stränge
+      strangNamen: {},        // wer zu welchem Strang gehoert (Kontinuitaet)
+      formzustand: 0,         // mehrjaehriger Lauf: -1 Krise ... +1 Hoehenflug
+      scheitel: 0,            // individueller Hoehepunkt des Koerpers
+      ruecktrittsfrage: null, // offene Frage: weitermachen oder aufhoeren?
+      zusatzjahre: 0,         // Jahre, die bewusst drangehaengt wurden
       laenderBilanz: { gp:0, g:0, a:0, p:0, wins:0, so:0, turniere:0, medaillen:0 },
       vertragJahre: 2,        // Restlaufzeit des aktuellen Vertrags
       fertig: false,
@@ -329,16 +373,27 @@ const PUCKERO = (() => {
       training: null
     };
 
+    // Individueller Scheitelpunkt: Torhueter reifen spaeter als Stuermer
+    st.scheitel = clamp((isG ? 29 : 27) + ri(r, -3, 4) + (r() - 0.5) * 1.5, 23, 33);
     st.jugend = null;   // wird direkt nach der Initialisierung gefuellt
 
-    const maxAge = clamp(32
-                      + Math.round((player.traits.langlebig || 0) * 0.15)
-                      - Math.round((player.traits.jung || 0) * 0.16)
-                      + ri(r, -3, 4), 24, 38);
+    // Nur noch eine aeussere Grenze – wann wirklich Schluss ist,
+    // entscheidet sich Jahr fuer Jahr an der Leistung.
+    const maxAge = clamp(38 + Math.round((player.traits.langlebig || 0) * 0.12)
+                            - Math.round((player.traits.jung || 0) * 0.14)
+                            + ri(r, -1, 3), 33, 43);
 
-    const addTrophy = (key, label, ptsVal, icon) => {
-      if (!st.trophies[key]) st.trophies[key] = { k: key, n: label, x: 0, pts: ptsVal, icon: icon || '🏆' };
+    /* 'wer' benennt, mit wem der Titel geholt wurde. Ohne Angabe ist es
+       der aktuelle Verein - Turniertitel gehoeren aber der Nationalmannschaft. */
+    const addTrophy = (key, label, ptsVal, icon, wer) => {
+      if (!st.trophies[key])
+        st.trophies[key] = { k: key, n: label, x: 0, pts: ptsVal, icon: icon || '🏆', jahre: [] };
       st.trophies[key].x++;
+      st.trophies[key].jahre.push({
+        jahr: st.year,
+        klub: wer || (st.club ? st.club.n : ''),
+        nat: !!wer
+      });
     };
 
     /* ---- Angebote aus dem Nachwuchs (Karrierestart) ---- */
@@ -372,6 +427,7 @@ const PUCKERO = (() => {
       if (!st.jugend) return false;
       const a = st.jugend[clamp(index, 0, st.jugend.length - 1)];
       st.club = a.club;
+      umfeldBenennen();
       st.jugend = null;
       st.vertragJahre = 2;
       st.entscheidungen.push(a.club.n);
@@ -392,6 +448,499 @@ const PUCKERO = (() => {
     }
 
     /* ---- Karriereereignisse ---- */
+    /* ---------------------------------------------------------------
+       Die Wechselfrist: mitten in der Saison entscheidet sich, ob dein
+       Klub angreift oder abbaut – und ob du dabei bleiben willst.
+       Ein zweiter Entscheidungspunkt pro Jahr, der die Saison kippen kann.
+       --------------------------------------------------------------- */
+    function pruefeWechselfrist(){
+      if (!st.club || st.age < 20 || st.klubJahre < 1) return null;
+      if (league(st.club.lg).prestige < 8) return null;
+      if (r() > 0.34) return null;                     // nicht jede Saison
+
+      const schnitt = lgAvgStr(st.club.lg);
+      const diff = st.club.str - schnitt;
+      const stark = clubsOf(st.club.lg)
+        .filter(c => c.n !== st.club.n && c.str > schnitt + 5);
+
+      /* Der seltenste und groesste Moment: ein Anruf aus einer staerkeren
+         Liga, mitten in der laufenden Saison. Gemessen wird an derselben
+         Huerde wie im regulaeren Angebotssystem (LG_MIN), damit niemand
+         aus dem Nichts in die NHL springt - nur zwei Punkte milder,
+         weil ein Klub im Januar auch mal ein Risiko eingeht. */
+      const eigeneLiga = league(st.club.lg);
+      const formJetzt = formFactor(st.age, player.traits,
+                                   (player.wirkung || {}).lernkurve, st.scheitel);
+      const ovrJetzt = overall(player, devAttrs(player.attrs, formJetzt));
+
+      const hoeher = D.LEAGUES.filter(l =>
+        l.prestige > eigeneLiga.prestige + 12 &&
+        LG_MIN[l.k] !== undefined && ovrJetzt >= LG_MIN[l.k] - 2 &&
+        clubsOf(l.k).length);
+
+      if (hoeher.length && st.age <= 33 && r() < 0.55){
+        const zielLiga = pick(r, hoeher);
+        const kandidaten = clubsOf(zielLiga.k);
+        const neuerKlub = pick(r, kandidaten);
+        return {
+          art: 'ligasprung', ikone: 'flug', tag: 'Wechselfrist',
+          titel: 'Ein Anruf aus der ' + zielLiga.n,
+          text: neuerKlub.n + ' hat kurzfristig einen Ausfall zu ersetzen und will dich – '
+              + 'sofort, mitten in der Saison. Du müsstest innerhalb von zwei Tagen dort sein, '
+              + 'in einer Kabine, in der dich niemand kennt, mit einem Vertrag bis Saisonende. '
+              + 'Danach entscheidet sich alles neu.',
+          stand: { klub: st.club.n, diff: Math.round(diff), ziel: neuerKlub.n,
+                   liga: zielLiga.n },
+          optionen: [
+            { t: 'Sofort zusagen', ikone: 'flug', chance: 58,
+              hinweis: 'Zu ' + neuerKlub.n + ' – die Chance kommt vielleicht nie wieder',
+              zielKlub: neuerKlub, folgt: 'wechsler',
+              gut: { moral: 12, ruf: 14, attr: { nerven: 4 },
+                     text: 'Zwei Tage später stehst du auf dem Eis, das du bisher nur im Fernsehen gesehen hast – und du gehörst dahin.' },
+              schlecht: { moral: -12, ruf: -6, form: -0.08,
+                     text: 'Es geht zu schnell. Du kommst nie richtig an, sitzt mehr auf der Bank als du spielst.' } },
+            { t: 'Garantien für die Eiszeit verlangen', ikone: 'stift', chance: 42,
+              hinweis: 'Mutig gegenüber einem größeren Klub',
+              zielKlub: neuerKlub, folgt: 'wechsler',
+              gut: { moral: 10, ruf: 16, trait: { playoff: 6 },
+                     text: 'Sie sagen zu. Wer so verhandelt, kommt nicht als Notlösung, sondern als Verstärkung.' },
+              schlecht: { moral: -8,
+                     text: 'Man legt auf und nimmt den Nächsten auf der Liste. Das war deine Chance.' } },
+            { t: 'Die Saison hier zu Ende bringen', ikone: 'schild', chance: 74,
+              hinweis: 'Im Sommer reden alle wieder', folgt: 'treue',
+              gut: { moral: 9, ruf: 6, form: 0.06,
+                     text: 'Du bleibst, spielst groß auf – und im Sommer liegen drei Angebote statt einem auf dem Tisch.' },
+              schlecht: { moral: -9,
+                     text: 'Der Anruf kommt nie wieder. Manche Türen öffnen sich genau einmal.' } }
+          ]
+        };
+      }
+      if (!stark.length) return null;
+      const ziel = pick(r, stark);
+      const ctx = ereignisKontext();
+
+      /* Schwellen an der gemessenen Verteilung der Kaderstaerken geeicht
+         (Median 7.9, 10%-Quantil 1.9, 85%-Quantil 9.9): sonst waere fast
+         jeder Klub ein Kaeufer und ein Wechsel praktisch unmoeglich. */
+      if (diff < 4.5){
+        return {
+          art: 'verkaeufer', ikone: 'transfer', tag: 'Wechselfrist',
+          titel: st.club.n + ' baut ab',
+          text: 'Zwei Leistungsträger sind schon weg, die Saison ist sportlich gelaufen. '
+              + 'Dein Berater sagt, ' + ziel.n + ' hätte Interesse – dort geht es um etwas. '
+              + 'Die Frist läuft heute Abend um sechs ab.',
+          stand: { klub: st.club.n, diff: Math.round(diff), ziel: ziel.n },
+          optionen: [
+            { t: 'Den Wechsel durchsetzen', ikone: 'flug', chance: 62,
+              hinweis: 'Zu ' + ziel.n + ' – dort zählt nur der Titel',
+              zielKlub: ziel, folgt: 'wechsler',
+              gut: { moral: 6, ruf: 4,
+                     text: 'Um 17:41 ist es durch. Am nächsten Abend stehst du in einem fremden Trikot auf fremdem Eis.' },
+              schlecht: { moral: -9, ruf: -5,
+                     text: 'Der Klub blockt ab. Jetzt weiß die Kabine, dass du weg wolltest – und du bist trotzdem noch da.' } },
+            { t: 'Bleiben und das Ding durchziehen', ikone: 'schild', chance: 78,
+              hinweis: 'Loyalität, die man dir anrechnet', folgt: 'treue',
+              gut: { moral: 8, ruf: 6, attr: { nerven: 3 },
+                     text: 'Du sagst öffentlich, dass du bleibst. Die Halle singt beim nächsten Heimspiel deinen Namen.' },
+              schlecht: { form: -0.05,
+                     text: 'Es bleibt eine lange, zähe Rückrunde ohne jedes Ziel.' } },
+            { t: 'Dich still anbieten lassen', ikone: 'fluestern', chance: 45,
+              hinweis: 'Riskant, aber ohne Gesichtsverlust',
+              zielKlub: ziel,
+              gut: { moral: 5, ruf: 7,
+                     text: 'Niemand erfährt, wer den ersten Schritt gemacht hat. Der Wechsel wirkt wie ein Zufall.' },
+              schlecht: { ruf: -7,
+                     text: 'Ein Journalist hat es doch erfahren. Am Morgen steht dein Name über einer Geschichte, die du nicht wolltest.' } }
+          ]
+        };
+      }
+
+      if (diff < 9.2){
+        return {
+          art: 'mittelmass', ikone: 'waage', tag: 'Wechselfrist',
+          titel: st.club.n + ' hält still',
+          text: 'Andere Klubs verstärken sich, bei euch passiert nichts. '
+              + 'Die Saison kann noch in beide Richtungen kippen. '
+              + ziel.n + ' hat bei deinem Berater angefragt, wie fest du gebunden bist.',
+          stand: { klub: st.club.n, diff: Math.round(diff), ziel: ziel.n },
+          optionen: [
+            { t: 'Den Wechsel zum Verfolger suchen', ikone: 'flug', chance: 48,
+              hinweis: 'Zu ' + ziel.n + ' – mehr Chance auf Titel, weniger Sicherheit',
+              zielKlub: ziel, folgt: 'wechsler',
+              gut: { moral: 7, ruf: 5,
+                     text: 'Zwei Tage später trainierst du woanders. Es fühlt sich sofort größer an.' },
+              schlecht: { moral: -8, ruf: -4,
+                     text: 'Die Ablöse ist zu hoch, der Wechsel platzt in der letzten Stunde.' } },
+            { t: 'Eine Vertragsverlängerung verlangen', ikone: 'stift', chance: 58,
+              hinweis: 'Sicherheit gegen Beweglichkeit',
+              gut: { ruf: 6, moral: 8,
+                     text: 'Der Klub verlängert und macht dich zum Gesicht der nächsten Jahre.' },
+              schlecht: { moral: -6,
+                     text: 'Man vertagt die Sache auf den Sommer. Bis dahin bleibst du in der Schwebe.' } },
+            { t: 'Nichts tun und weiterspielen', ikone: 'puck', chance: 72,
+              hinweis: 'Der ruhigste Weg',
+              gut: { form: 0.05, attr: { konstanz: 3 },
+                     text: 'Ohne Nebengeräusche spielst du deine beständigste Rückrunde.' },
+              schlecht: { moral: -4,
+                     text: 'Die Saison verläuft im Nichts, und die Anfrage kommt nie wieder.' } }
+          ]
+        };
+      }
+
+      return {
+        art: 'kaeufer', ikone: 'ziel', tag: 'Wechselfrist',
+        titel: st.club.n + ' rüstet auf',
+        text: 'Der Klub hat heute zwei erfahrene Spieler geholt. Das heißt: Es geht um den Titel – '
+            + 'und es heißt auch, dass die Reihen neu gemischt werden. '
+            + ctx.trainer + ' bittet dich noch vor dem Training zu sich.',
+        stand: { klub: st.club.n, diff: Math.round(diff), ziel: null },
+        optionen: [
+          { t: 'Platz in der ersten Reihe einfordern', ikone: 'krone', chance: 55,
+            hinweis: 'Mehr Eiszeit, mehr Verantwortung', folgt: 'wortfuehrer',
+            gut: { ruf: 8, moral: 6, trait: { playoff: 5 }, form: 0.06,
+                   text: 'Er stellt dich neben die Neuzugänge. Ab jetzt spielst du die wichtigen Minuten.' },
+            schlecht: { moral: -8,
+                   text: 'Du bekommst, was du dir verdienst – sagt er. Die Neuen spielen, du schaust zu.' } },
+          { t: 'Dich in den Dienst der Mannschaft stellen', ikone: 'herz', chance: 80,
+            hinweis: 'Weniger Rampenlicht, mehr Rückhalt',
+            gut: { moral: 10, attr: { defensive: 3 },
+                   text: 'Du übernimmst die undankbaren Aufgaben. In der Kabine steigt dein Wert deutlich.' },
+            schlecht: { ruf: -4,
+                   text: 'Deine Zahlen sacken ab – und Zahlen sind das, was am Ende zitiert wird.' } },
+          { t: 'Abwarten und über das Eis antworten', ikone: 'puck', chance: 65,
+            hinweis: 'Keine Forderung, kein Risiko',
+            gut: { form: 0.07, attr: { konstanz: 3, praezision: 3 },
+                   text: 'Kein Wort, nur Leistung. Nach vier Wochen ist die Sache von selbst geklärt.' },
+            schlecht: { moral: -5,
+                   text: 'Wer nichts fordert, bekommt nichts. Die Rolle bleibt, wie sie war.' } }
+        ]
+      };
+    }
+
+    function entscheideWechselfrist(index){
+      const w = st.wechselfrist;
+      if (!w) return null;
+      const o = w.optionen[clamp(index, 0, w.optionen.length - 1)];
+      const gelungen = r() * 100 < o.chance;
+      const e = gelungen ? o.gut : o.schlecht;
+      const ctx = ereignisKontext();
+
+      const folge = { gelungen, text: einsetzen(e.text || '', ctx), chance: o.chance,
+                      wahl: o.t, titel: w.titel, tag: w.tag, wirkungen: [] };
+      const merke = (t, gut) => folge.wirkungen.push({ t, gut });
+      const attrName = k => {
+        const x = D.ATTRS.skater.concat(D.ATTRS.goalie).find(y => y.k === k);
+        return x ? x.n : k;
+      };
+
+      if (e.attr) Object.entries(e.attr).forEach(([k, v]) => {
+        if (player.attrs[k] === undefined) return;
+        player.attrs[k] = clamp(player.attrs[k] + v, 1, 99);
+        merke('+' + v + ' ' + attrName(k), true);
+      });
+      if (e.trait) Object.entries(e.trait).forEach(([k, v]) =>
+        player.traits[k] = (player.traits[k] || 0) + v);
+      if (e.ruf){   st.ruf = clamp(st.ruf + e.ruf, 20, 99);
+                    merke((e.ruf > 0 ? '+' : '') + e.ruf + ' Ansehen', e.ruf > 0); }
+      if (e.moral){ st.moral = clamp(st.moral + e.moral, 10, 100);
+                    merke((e.moral > 0 ? '+' : '') + e.moral + ' Moral', e.moral > 0); }
+      if (e.form){  st.formBonus += e.form;
+                    merke((e.form > 0 ? '+' : '') + Math.round(e.form * 100) + '% Form', e.form > 0); }
+
+      /* Ein geglückter Wechsel bringt dich sofort zum neuen Klub */
+      if (gelungen && o.zielKlub){
+        st.wechselVon = st.club.n;
+        if (!st.ehemalige.includes(st.club.n)) st.ehemalige.push(st.club.n);
+        st.club = o.zielKlub;
+        st.klubJahre = 0;
+        st.kapitaenSeit = null;
+        umfeldBenennen();
+        merke('Wechsel zu ' + o.zielKlub.n, true);
+      }
+      if (!folge.wirkungen.length) merke('Keine bleibende Wirkung', true);
+
+      /* Was hier entschieden wird, holt dich spaeter wieder ein. */
+      if (gelungen && o.folgt && !st.freigeschaltet.includes(o.folgt)){
+        st.freigeschaltet.push(o.folgt);
+        st.strangNamen[o.folgt] = { trainer: st.trainer, mitspieler: st.mitspieler,
+                                    klub: w.stand ? w.stand.klub : null };
+      }
+
+      st.verlauf.push({
+        jahr: st.year, alter: st.age, art: 'wechselfrist',
+        tag: w.tag, titel: w.titel,
+        wahl: o.t, gelungen, chance: o.chance, wagnis: false
+      });
+      st.letzteFolge = folge;
+      st.offeneNotiz = { t: 'Wechselfrist: ' + o.t + (gelungen ? ' – gelungen' : ' – misslungen'),
+                         c: gelungen ? 'good' : 'bad' };
+      st.wechselfrist = null;
+      return folge;
+    }
+
+    /* ---------------------------------------------------------------
+       Saisonziele: Der Klub formuliert vor jeder Saison eine Erwartung
+       an die Mannschaft und eine an dich persoenlich. Beide werden am
+       Ende abgerechnet – das gibt jedem Jahr einen eigenen Einsatz.
+       --------------------------------------------------------------- */
+    function setzeSaisonZiel(club){
+      /* Die Schwellen sind an der gemessenen Verteilung der Kaderstaerken
+         geeicht: Titel fordert nur die Spitze, sonst waere jede Saison
+         eine Enttaeuschung. */
+      const diff = club.str - lgAvgStr(club.lg);
+      let team;
+      if (diff > 10.8)      team = { art:'titel',    n:'Den Titel holen',
+                                     d:'Alles andere gilt hier als verpasste Saison.' };
+      else if (diff > 8.6)  team = { art:'runden',   n:'Mindestens zwei Playoffrunden',
+                                     d:'Der Kader ist zu stark für ein frühes Aus.' };
+      else if (diff > 2.2)  team = { art:'playoffs', n:'Die Playoffs erreichen',
+                                     d:'Dafür wurde der Kader zusammengestellt.' };
+      else                  team = { art:'platz',    n:'Nicht Letzter werden',
+                                     d:'Ein realistisches Ziel für diesen Kader.' };
+
+      const letzte = st.seasons[st.seasons.length - 1];
+      let person;
+
+      if (!letzte || !letzte.gp){
+        /* Erste Profisaison: niemand erwartet Zahlen, nur Einsatzzeit. */
+        person = { art:'spiele', wert: 20, n:'20 Einsätze sammeln',
+                   d:'Im ersten Jahr zählt, dass du überhaupt spielst.' };
+        return { team, person };
+      }
+
+      /* Ein Ligawechsel verschiebt das Mass: In der NHL sind 70 Punkte
+         etwas anderes als in der zweiten Liga. */
+      const skala = k => Math.pow((league(k) || {}).level || 20, 0.45);
+      const ligaFaktor = clamp(skala(letzte.lg) / skala(club.lg), 0.5, 1.6);
+      const faktor = (st.age < 24 ? 1.14 : st.age > 32 ? 0.9 : 1.03) * ligaFaktor;
+
+      if (isG){
+        const ziel = clamp(Math.round((letzte.wins || 10) * faktor), 6, 46);
+        person = { art:'siege', wert: ziel, n: ziel + ' Siege', d:'Daran misst dich der Torwarttrainer.' };
+      } else if (player.pos !== 'D' && st.seasons.length % 3 === 1){
+        const tore = clamp(Math.round((letzte.g || 5) * faktor), 4, 60);
+        person = { art:'tore', wert: tore, n: tore + ' Tore', d:'Der Trainer will Abschlüsse sehen.' };
+      } else {
+        const ziel = clamp(Math.round((letzte.p || 12) * faktor), 8, 115);
+        person = { art:'punkte', wert: ziel, n: ziel + ' Scorerpunkte', d:'Deine Vorgabe für die Saison.' };
+      }
+      return { team, person };
+    }
+
+    function werteSaisonZiel(season){
+      const z = season.ziele;
+      if (!z) return;
+      const serien = season.playoffSerien || [];
+      const gewonnen = serien.filter(x => x.gewonnen).length;
+      const letzterPlatz = st.tabelle.length ? st.tabelle.length : 0;
+
+      z.team.erfuellt =
+        z.team.art === 'titel'    ? !!season.title :
+        z.team.art === 'runden'   ? gewonnen >= 2 :
+        z.team.art === 'playoffs' ? !!season.playoffs :
+        !(season.platz && letzterPlatz && season.platz === letzterPlatz);
+
+      const erreicht = z.person.art === 'siege'  ? (season.wins || 0)
+                     : z.person.art === 'tore'   ? (season.g || 0)
+                     : z.person.art === 'spiele' ? (season.gp || 0)
+                     : (season.p || 0);
+      z.person.erreicht = erreicht;
+      z.person.erfuellt = erreicht >= z.person.wert;
+
+      const treffer = (z.team.erfuellt ? 1 : 0) + (z.person.erfuellt ? 1 : 0);
+      st.zielBilanz.erfuellt += treffer;
+      st.zielBilanz.verfehlt += 2 - treffer;
+
+      if (treffer === 2){
+        st.ruf = clamp(st.ruf + 5, 20, 99);
+        st.moral = clamp(st.moral + 8, 10, 100);
+        season.events.push({ t: 'Beide Saisonziele erfüllt', c: 'good' });
+      } else if (treffer === 1){
+        st.ruf = clamp(st.ruf + 2, 20, 99);
+        st.moral = clamp(st.moral + 2, 10, 100);
+        season.events.push({ t: z.team.erfuellt ? 'Teamziel erreicht, persönliche Vorgabe verfehlt'
+                                                : 'Persönliche Vorgabe erfüllt, Teamziel verfehlt', c: '' });
+      } else {
+        st.ruf = clamp(st.ruf - 4, 20, 99);
+        st.moral = clamp(st.moral - 7, 10, 100);
+        season.events.push({ t: 'Beide Saisonziele verfehlt', c: 'bad' });
+      }
+    }
+
+    /* ---------------------------------------------------------------
+       Der Jahrgang: sieben Spieler, die im selben Jahr gezogen wurden.
+       Ihre Laufbahnen werden einmal vorausberechnet – danach laesst sich
+       fuer jedes Alter ablesen, wo man im Vergleich steht. Sie duerfen
+       dabei selbst keinen Jahrgang bekommen (Endlosschleife).
+       --------------------------------------------------------------- */
+    const JAHRGANG_GROESSE = 7;
+
+    function erzeugeJahrgang(season){
+      const gruppe = P.group;
+      const posAuswahl = gruppe === 'goalie' ? ['G'] : ['C', 'LW', 'RW', 'D'];
+      const mitglieder = [];
+
+      for (let i = 0; i < JAHRGANG_GROESSE; i++){
+        const rSeed = player.seed + ':jahrgang:' + i;
+        const rr = rng(rSeed);
+        const ident = {
+          name: pick(rr, D.FIRST) + ' ' + pick(rr, D.LAST),
+          num: ri(rr, 1, 97),
+          nation: pick(rr, D.NATIONS).k,
+          pos: pick(rr, posAuswahl), mode: 'klassisch'
+        };
+        if (ident.name === player.name) ident.name = pick(rr, D.FIRST) + ' ' + pick(rr, D.LAST);
+        /* Die Guete streut bewusst weit: ein Jahrgang hat Ausnahmetalente,
+           solide Profis und Spieler, die es nie ganz schaffen. */
+        const guete = 0.2 + (i / JAHRGANG_GROESSE) * 0.55 + rr() * 0.6;
+        const rPlayer = newPlayer(Object.assign({ seed: rSeed }, ident));
+        for (let rd = 0; rd < DRAFT.RUNDEN; rd++){
+          const f = draftFrage(rPlayer, rd);
+          if (!f) break;
+          const bewertet = f.karten.map(k => ({ k, s: karteWert(rPlayer, k) * guete + rr() * 30 }));
+          bewertet.sort((x, y) => y.s - x.s);
+          applyKarte(rPlayer, bewertet[0].k);
+        }
+        const res = simulate(rPlayer);
+        mitglieder.push({
+          name: ident.name, nation: ident.nation, num: ident.num, pos: ident.pos,
+          seasons: res.seasons, legacy: res.legacy, peak: res.peak,
+          rank: res.rank.n, totals: res.totals, klubs: res.klubs
+        });
+      }
+
+      mitglieder.sort((x, y) => y.legacy - x.legacy);
+      st.jahrgang = mitglieder;
+      // Der Beste des Jahrgangs ist der, an dem die Geschichten haengen
+      const bester = mitglieder[0];
+      st.rivale = bester;
+      season.events.push({ t: 'Im selben Jahrgang gezogen: ' + bester.name
+                              + ' – an ihm wirst du gemessen werden', c: '' });
+    }
+
+    /* Wo stehst du in deinem Jahrgang – gemessen am selben Alter? */
+    function jahrgangStand(){
+      if (!st.jahrgang.length) return null;
+      const isTor = isG;
+      const bisAlter = st.age;
+      const summe = (seasons, feld) => seasons
+        .filter(x => x.age <= bisAlter)
+        .reduce((a, x) => a + (x[feld] || 0), 0);
+      const feld = isTor ? 'wins' : 'p';
+
+      /* Rohe Punkte taugen nicht als Vergleich: 900 Punkte in der zweiten
+         Liga sind weniger wert als 700 in der NHL. Deshalb wird jede Saison
+         mit der Staerke ihrer Liga gewichtet, Titel und Auszeichnungen
+         kommen obendrauf. Die Wurzel daempft den Abstand, sonst waere
+         alles unterhalb der Topligen bedeutungslos. */
+      const ligaGewicht = k => {
+        const l = league(k);
+        return Math.sqrt(Math.max(6, (l && l.level) || 20) / 100);
+      };
+
+      const wertung = seasons => Math.round(seasons
+        .filter(x => x.age <= bisAlter)
+        .reduce((a, x) => a
+          + (isTor ? (x.wins || 0) : (x.p || 0)) * ligaGewicht(x.lg)
+          + (x.title ? 10 : 0)
+          + ((x.awards || []).length * 4), 0));
+
+      const eintrag = (name, nat, seasons, pos2, eigen) => {
+        const gespielt = seasons.filter(x => x.age <= bisAlter);
+        const letzte = gespielt[gespielt.length - 1];
+        const nochAktiv = seasons.some(x => x.age >= bisAlter);
+        return {
+          name, nation: nat, pos: pos2, eigen,
+          wert: wertung(seasons),
+          roh: summe(seasons, feld),
+          gp: summe(seasons, 'gp'),
+          titel: gespielt.filter(x => x.title).length,
+          ovr: letzte ? letzte.ovr : 0,
+          klub: letzte ? letzte.club : '–',
+          lg: letzte ? letzte.lg : null,
+          aktiv: nochAktiv
+        };
+      };
+
+      const liste = st.jahrgang.map(m => eintrag(m.name, m.nation, m.seasons, m.pos, false));
+      liste.push(eintrag(player.name, player.nation, st.seasons, player.pos, true));
+      liste.sort((a, b) => b.wert - a.wert || b.titel - a.titel || b.ovr - a.ovr);
+      liste.forEach((x, i) => x.platz = i + 1);
+
+      const vorher = st.jahrgangStand;
+      const alterPlatz = vorher ? (vorher.find(x => x.name === player.name) || {}).platz : null;
+      const jetzt = liste.find(x => x.eigen);
+      if (jetzt && alterPlatz) jetzt.bewegung = alterPlatz - jetzt.platz;
+
+      /* Wer wurde ueberholt, wer hat ueberholt? Das macht aus einer
+         Tabelle ein Rennen. Verglichen werden die Plaetze mit dem Vorjahr. */
+      st.jahrgangEreignis = null;
+      if (vorher && jetzt && alterPlatz){
+        const frueher = {};
+        vorher.forEach(x => frueher[x.name] = x.platz);
+        const ueberholt = liste.filter(x =>
+          !x.eigen && frueher[x.name] !== undefined &&
+          frueher[x.name] < alterPlatz && x.platz > jetzt.platz);
+        const verloren = liste.filter(x =>
+          !x.eigen && frueher[x.name] !== undefined &&
+          frueher[x.name] > alterPlatz && x.platz < jetzt.platz);
+        if (ueberholt.length)
+          st.jahrgangEreignis = { art:'vorbei', namen: ueberholt.map(x => x.name),
+                                  platz: jetzt.platz };
+        else if (verloren.length)
+          st.jahrgangEreignis = { art:'verloren', namen: verloren.map(x => x.name),
+                                  platz: jetzt.platz };
+      }
+
+      /* Abstand nach vorn und nach hinten - der Stoff fuer die Spannung */
+      if (jetzt){
+        const i = liste.indexOf(jetzt);
+        const vor = liste[i - 1], hinter = liste[i + 1];
+        st.jahrgangDelta = {
+          vorn:   vor    ? { name: vor.name,    abstand: vor.wert - jetzt.wert } : null,
+          hinten: hinter ? { name: hinter.name, abstand: jetzt.wert - hinter.wert } : null,
+          platz: jetzt.platz, von: liste.length, wert: jetzt.wert
+        };
+      }
+
+      st.jahrgangStand = liste;
+      return liste;
+    }
+
+    /* Baustelle fuer die Textbausteine: alles, was in einem Ereignis
+       vorkommen kann, wird hier mit echten Namen gefuellt. */
+    function ereignisKontext(){
+      const lg = st.club ? league(st.club.lg) : null;
+      const gegnerPool = st.club ? clubsOf(st.club.lg).filter(c => c.n !== st.club.n) : [];
+      const gegner = gegnerPool.length ? pick(r, gegnerPool).n : 'dem Tabellenführer';
+      const tabelle = st.tabelle || [];
+      const spitze = tabelle.length ? tabelle[0].n : gegner;
+      return {
+        name: player.name,
+        vorname: String(player.name).split(' ')[0],
+        nachname: String(player.name).split(' ').slice(-1)[0],
+        nummer: player.num,
+        position: pos(player.pos).n,
+        klub: st.club ? st.club.n : 'deinem Verein',
+        liga: lg ? lg.n : 'der Liga',
+        titel: lg ? lg.title : 'die Meisterschaft',
+        nation: nation(player.nation).n,
+        gegner, spitze,
+        ehemaliger: st.ehemalige.length
+          ? st.ehemalige[st.ehemalige.length - 1] : 'deinem alten Klub',
+        trainer: st.trainer || 'der Trainer',
+        mitspieler: st.mitspieler || 'ein Mitspieler',
+        rivale: st.rivale ? st.rivale.name : 'ein Spieler deines Jahrgangs',
+        alter: st.age,
+        jahre: st.klubJahre
+      };
+    }
+
+    function einsetzen(text, ctx){
+      return String(text).replace(/\{(\w+)\}/g, (treffer, k) =>
+        ctx[k] !== undefined ? ctx[k] : treffer);
+    }
+
     function waehleEreignis(letzteSaison){
       if (!window.EREIGNISSE || st.club === null) return null;
       if (league(st.club.lg).prestige < 8) return null;
@@ -402,20 +951,64 @@ const PUCKERO = (() => {
         const schonDa = st.erlebt.includes(e.id);
         if (schonDa && !e.mehrfach) return false;
         if (e.id === zuletzt) return false;
+        // Folgeereignisse brauchen eine fruehere Entscheidung
+        if (e.benoetigt && !st.freigeschaltet.includes(e.benoetigt)) return false;
+        // Positionsgebundene Ereignisse
+        if (e.nurPos && !e.nurPos.includes(player.pos)) return false;
+        // Charaktergebundene Ereignisse
+        if (e.nurEig && !(player.eigenschaften || []).includes(e.nurEig)) return false;
         return !e.bedingung || e.bedingung(st, letzteSaison);
       });
       if (!offen.length) return null;
-      const e = pick(r, offen);
+      /* Nicht jedes Ereignis ist gleich wichtig: Was aus einer frueheren
+         Entscheidung erwaechst oder zum Charakter passt, kommt bevorzugt.
+         Sonst gehen genau die persoenlichen Momente im grossen Pool unter. */
+      const gewicht = x => {
+        let w = 1;
+        if (x.gewicht)   w *= x.gewicht; // vom Autor gesetzter Vorrang
+        if (x.benoetigt) w *= 8;        // Folge einer eigenen Entscheidung
+        if (x.nurEig)    w *= 3.5;      // passt zum Charakter
+        if (x.nurPos)    w *= 2.5;      // passt zur Position
+        if (st.erlebt.includes(x.id)) w *= 0.35;   // Wiederholung seltener
+        return w;
+      };
+      const summe = offen.reduce((a2, x) => a2 + gewicht(x), 0);
+      let ziel = r() * summe, e = offen[offen.length - 1];
+      for (const kandidat of offen){
+        ziel -= gewicht(kandidat);
+        if (ziel <= 0){ e = kandidat; break; }
+      }
       st.erlebt.push(e.id);
       // Erfolg pro Option vorab auswürfeln, damit die Anzeige ehrlich bleibt
+      const ctx = ereignisKontext();
+      /* Ein Folgeereignis erzählt von denselben Menschen wie das Original –
+         auch wenn der Spieler das Team längst gewechselt hat. */
+      if (e.benoetigt && st.strangNamen[e.benoetigt]){
+        const alt = st.strangNamen[e.benoetigt];
+        ctx.trainer    = alt.trainer    || ctx.trainer;
+        ctx.mitspieler = alt.mitspieler || ctx.mitspieler;
+        ctx.damalsKlub = alt.klub       || ctx.klub;
+      } else ctx.damalsKlub = ctx.klub;
+      /* Optionen, die nicht zum Charakter passen, fallen weg –
+         dafuer kommen charaktergebundene hinzu. */
+      const passend = e.optionen.filter(o => {
+        if (o.nurEig && !(player.eigenschaften || []).includes(o.nurEig)) return false;
+        if (o.nurPos && !o.nurPos.includes(player.pos)) return false;
+        if (o.nurWenn && !o.nurWenn(st)) return false;
+        return true;
+      });
       return {
-        id: e.id, kat: e.kat, szene: e.szene, tag: e.tag, titel: e.titel, text: e.text,
+        id: e.id, kat: e.kat, szene: e.szene, tag: einsetzen(e.tag, ctx),
+        titel: einsetzen(e.titel, ctx), text: einsetzen(e.text, ctx),
         spieltag: ri(r, 3, league(st.club.lg).k === 'NHL' ? 78 : 48),
-        optionen: e.optionen.map(o => {
+        optionen: passend.map(o => {
           const bonus = (player.wirkung || {}).ereignis || 0;
           return {
-            t: o.t, chance: clamp(o.chance + bonus, 5, 95), grundChance: o.chance, bonus,
-            hinweis: o.hinweis, _gut: o.gut, _schlecht: o.schlecht, _wurf: r() * 100
+            t: einsetzen(o.t, ctx),
+            chance: clamp(o.chance + bonus, 5, 95), grundChance: o.chance, bonus,
+            hinweis: einsetzen(o.hinweis || '', ctx), wagnis: !!o.wagnis,
+            nurEig: o.nurEig || null, folgt: o.folgt || null,
+            _ctx: ctx, _gut: o.gut, _schlecht: o.schlecht, _wurf: r() * 100
           };
         })
       };
@@ -426,7 +1019,14 @@ const PUCKERO = (() => {
       const o = st.ereignis.optionen[clamp(index, 0, st.ereignis.optionen.length - 1)];
       const gelungen = o._wurf < o.chance;
       const w = gelungen ? o._gut : o._schlecht;
-      const folge = { gelungen, text: (w && w.text) || '', chance: o.chance,
+      if (o.folgt && !st.freigeschaltet.includes(o.folgt)){
+        st.freigeschaltet.push(o.folgt);
+        // Namen festhalten, damit das Folgeereignis dieselben Personen meint
+        const c = o._ctx || {};
+        st.strangNamen[o.folgt] = { trainer: c.trainer, mitspieler: c.mitspieler, klub: c.klub };
+      }
+      const folge = { gelungen,
+                      text: einsetzen((w && w.text) || '', o._ctx || {}), chance: o.chance,
                       wurf: Math.round(o._wurf), wahl: o.t, wirkungen: [] };
 
       const merke = (t, gut) => folge.wirkungen.push({ t, gut });
@@ -462,6 +1062,11 @@ const PUCKERO = (() => {
         if (w.form) st.formBonus += w.form;
         if (w.risiko) st.risikoBonus += w.risiko / 100;
       }
+      st.verlauf.push({
+        jahr: st.year, alter: st.age, art: 'ereignis',
+        tag: st.ereignis.tag, titel: st.ereignis.titel,
+        wahl: o.t, gelungen, chance: o.chance, wagnis: !!o.wagnis
+      });
       st.letzteFolge = Object.assign({ titel: st.ereignis.titel, tag: st.ereignis.tag }, folge);
       // Merken, damit die Entscheidung spaeter im Karriereverlauf auftaucht
       st.offeneNotiz = { t: st.ereignis.tag + ': ' + o.t + (gelungen ? ' – gelungen' : ' – misslungen'),
@@ -472,7 +1077,9 @@ const PUCKERO = (() => {
 
     /* ---- eine Saison ausspielen ---- */
     function playSeason(){
-      if (st.fertig || st.angebote || st.training || st.ereignis || st.jugend) return null;
+      if (st.fertig || st.angebote || st.training || st.ereignis || st.jugend
+          || st.rollenwahl || st.kapitaensfrage || st.ruecktrittsfrage
+          || st.wechselfrist) return null;
 
       // Vor der Saison kann ein Karriereereignis dazwischenkommen
       if (!st.ereignisGeprueft){
@@ -481,9 +1088,16 @@ const PUCKERO = (() => {
         if (e){ st.ereignis = e; return null; }
       }
 
+      // Die Wechselfrist mitten in der Saison
+      if (!st.wechselGeprueft){
+        st.wechselGeprueft = true;
+        const w = pruefeWechselfrist();
+        if (w){ st.wechselfrist = w; return null; }
+      }
+
       const club = st.club;
       const lg = league(club.lg);
-      const form = formFactor(st.age, player.traits, (player.wirkung || {}).lernkurve);
+      const form = formFactor(st.age, player.traits, (player.wirkung || {}).lernkurve, st.scheitel);
       const dev = devAttrs(player.attrs, form);
       const ovr = overall(player, dev);
       if (ovr > st.peak){ st.peak = ovr; st.peakAttrs = dev; }
@@ -492,14 +1106,22 @@ const PUCKERO = (() => {
                        lgName: lg.n, ovr, events: [], awards: [] };
       if (st.offeneNotiz){ season.events.push(st.offeneNotiz); st.offeneNotiz = null; }
 
+      /* Was der Klub in dieser Saison von dir und der Mannschaft erwartet */
+      st.ziele = setzeSaisonZiel(club);
+      season.ziele = st.ziele;
+
       /* Verletzungen */
       const robust = 1 + (player.traits.robust || 0) * 0.02;
+      const rollenRisiko = (st.rolle && st.rolle.w && st.rolle.w.risiko) || 0;
       const injRisk = clamp(0.19 + (st.age - 28) * 0.02 - (player.traits.robust || 0) * 0.011
-                            + st.risikoBonus, 0.05, 0.6);
+                            + st.risikoBonus + rollenRisiko, 0.04, 0.6);
       let missed = 0;
       if (r() < injRisk){
-        missed = ri(r, 4, Math.round(28 / robust));
-        season.events.push({ t: 'Verletzung: ' + missed + ' Spiele verpasst', c: 'bad' });
+        const V = pick(r, D.VERLETZUNGEN);
+        missed = Math.round(clamp(ri(r, V.min, V.max) / robust, 2, 55));
+        if (V.schwere >= 1) st.verletzungsjahre = (st.verletzungsjahre || 0) + V.schwere;
+        season.verletzung = { n: V.n, spiele: missed, schwere: V.schwere };
+        season.events.push({ t: V.n + ' – ' + missed + ' Spiele verpasst', c: 'bad' });
       }
       const fullGp = lg.k === 'NHL' ? 82 : (lg.k === 'JUN' ? 60 : 52);
 
@@ -516,13 +1138,41 @@ const PUCKERO = (() => {
         if (season.ovr > st.peak){ st.peak = season.ovr; st.peakAttrs = dev; }
       }
 
+      /* ---- Mehrjaehriger Formzustand ----
+         Laeufe und Krisen halten ueber Saisons an, statt jedes Jahr neu zu wuerfeln.
+         Konstante Spieler schwanken weniger. */
+      const konstanzWert = isG ? (dev.konstanz || 50) : (dev.nerven || 50);
+      const traegheit = 0.45 + konstanzWert / 260;             // 0.64 bis 0.83
+      const stoss = (r() - 0.5) * 2 * (1.25 - konstanzWert / 130);
+      st.formzustand = clamp(st.formzustand * traegheit + stoss * 0.5, -1, 1);
+      season.formzustand = Math.round(st.formzustand * 100) / 100;
+
+      /* ---- Eingewoehnung beim Klub ----
+         Das erste Jahr an einem neuen Ort kostet, ab dem dritten zahlt es sich aus. */
+      const eingewoehnung = st.klubJahre === 0 ? -0.055
+                          : st.klubJahre === 1 ? 0.01
+                          : Math.min(0.055, 0.02 + st.klubJahre * 0.008);
+
+      /* ---- Mitspieler ----
+         In einer starken Mannschaft faellt es leichter zu punkten. */
+      const mitspieler = clamp((club.str - lgAvgStr(club.lg)) * 0.006, -0.06, 0.07);
+
       /* Klassenunterschied zur Liga */
-      const tagesform = 0.97 + r() * 0.07 + (season.sternstunde ? 0.10 : 0) + st.formBonus;
+      const tagesform = 0.97 + r() * 0.04
+                      + st.formzustand * 0.055
+                      + eingewoehnung + mitspieler
+                      + (season.sternstunde ? 0.10 : 0) + st.formBonus;
       const kante = clamp((ovr * tagesform - lg.level * 0.58) / 32, -0.35, 1.7);
       season.kante = Math.round(kante * 100) / 100;
+      season.faktoren = {
+        form: Math.round(st.formzustand * 100) / 100,
+        eingewoehnung: Math.round(eingewoehnung * 1000) / 10,
+        mitspieler: Math.round(mitspieler * 1000) / 10
+      };
 
       if (isG){
-        const anteil = clamp(0.34 + kante * 0.46, 0.18, 0.92);
+        const rg = (st.rolle && st.rolle.w) || {};
+        const anteil = clamp(0.34 + kante * 0.46 + (rg.anteil || 0) * 1.6, 0.14, 0.96);
         const gp = Math.max(6, Math.min(fullGp - missed, Math.round((fullGp - missed) * anteil)));
         season.gp = gp;
         season.sv = clamp(0.885 + kante * 0.045 + (r() - 0.5) * 0.007, 0.868, 0.948);
@@ -540,9 +1190,13 @@ const PUCKERO = (() => {
                      : anteil >= 0.42 ? 'Geteiltes Tor' : 'Ersatztorhüter';
         if (anteil < 0.42) season.events.push({ t: 'Meist nur Ersatz – wenig Eiszeit', c: '' });
       } else {
+        const rw = (st.rolle && st.rolle.w) || {};
         const gp = Math.max(8, fullGp - missed);
         const posFactor = P.k === 'D' ? 0.62 : (P.k === 'C' ? 1.15 : 1.0);
-        const ppg = clamp(kante * posFactor * (0.88 + r() * 0.24), 0.02, 2.3);
+        // Die Rolle wirkt jetzt multiplikativ – die Wahl ist deutlich spuerbar.
+        const rollenFaktor = 1 + (rw.punkte || 0) * 1.9;
+        const streuung = 0.90 + r() * 0.20 * (1.3 - konstanzWert / 140);
+        const ppg = clamp(kante * posFactor * rollenFaktor * streuung, 0.02, 2.4);
         const punkte = Math.round(ppg * gp);
         const gShare = P.goalRate / (P.goalRate + P.assistRate);
         const tore = Math.round(punkte * gShare * (0.82 + r() * 0.36));
@@ -550,8 +1204,10 @@ const PUCKERO = (() => {
         season.g = Math.min(tore, punkte);
         season.a = punkte - season.g;
         season.p = punkte;
-        season.plus = Math.round((kante * 16 + (club.str - 76) * 0.5) * (0.6 + r() * 0.8));
-        season.pim = ri(r, 8, 12 + Math.round((dev.zweikampf || 50) / 2));
+        season.plus = Math.round((kante * 16 + (club.str - 76) * 0.5) * (0.6 + r() * 0.8)
+                                 + (rw.plus || 0));
+        season.pim = Math.round(ri(r, 8, 12 + Math.round((dev.zweikampf || 50) / 2))
+                                * (rw.strafen || 1));
         // Spezialteams, Schüsse und Eiszeit
         season.ppg = Math.round(season.g * (0.22 + r() * 0.20));
         season.shg = Math.round(season.g * (dev.defensive > 70 ? 0.05 : 0.02) * (r() < 0.5 ? 0 : 2));
@@ -559,7 +1215,8 @@ const PUCKERO = (() => {
         const quote = clamp(0.055 + (dev.praezision || 50) / 900 + (r() - 0.5) * 0.02, 0.04, 0.20);
         season.shots = Math.max(season.g, Math.round(season.g / quote));
         season.shotPct = season.shots ? Math.round(season.g / season.shots * 1000) / 10 : 0;
-        season.toi = Math.round(clamp(10 + kante * 7 + (P.k === 'D' ? 2.5 : 0), 8, 26) * 10) / 10;
+        season.toi = Math.round(clamp(10 + kante * 7 + (P.k === 'D' ? 2.5 : 0)
+                                      + (rw.eiszeit || 0), 8, 27) * 10) / 10;
         if (P.k === 'C') season.bully = Math.round(clamp(44 + (dev.zweikampf || 50) * 0.12
                                           + (r() - 0.5) * 5, 38, 62) * 10) / 10;
         season.rolle = kante > 1.0 ? 'Erste Reihe' : kante > 0.6 ? 'Zweite Reihe'
@@ -576,20 +1233,71 @@ const PUCKERO = (() => {
       season.platz = (st.tabelle.find(t => t.eigen) || {}).platz || null;
       const ligaSchnitt = lgAvgStr(club.lg);
       const poBoost = (player.traits.playoff || 0) * 0.42;
-      season.playoffs = teamPower > ligaSchnitt - 1;
+      season.playoffs = teamPower > ligaSchnitt + 2;
 
       if (season.playoffs){
-        const titelChance = clamp((teamPower - ligaSchnitt - 6) / 30 + poBoost / 130, 0.015, 0.38);
-        if (r() < titelChance){
+        /* ---- Playoffs als Serienfolge ----
+           Jede Runde ein echter Gegner, ein echtes Ergebnis. Das macht den
+           Weg zum Titel nachvollziehbar statt zu einem einzelnen Wuerfelwurf. */
+        const rundenNamen = lg.k === 'NHL'
+          ? ['Erste Runde', 'Viertelfinale', 'Halbfinale', 'Finale']
+          : ['Viertelfinale', 'Halbfinale', 'Finale'];
+        const gegnerPool = shuffle(r, clubsOf(club.lg).filter(c => c.n !== club.n));
+        const serien = [];
+        let weiter = true, poSpiele = 0;
+
+        for (let i = 0; i < rundenNamen.length && weiter; i++){
+          // Spaetere Runden bringen staerkere Gegner
+          const stufe = i / Math.max(1, rundenNamen.length - 1);
+          const kandidaten = gegnerPool.slice().sort((a, b) => b.str - a.str);
+          const index = clamp(Math.round(kandidaten.length * (0.62 - stufe * 0.55))
+                              + ri(r, -2, 2), 0, kandidaten.length - 1);
+          const gegner = kandidaten[index];
+          gegnerPool.splice(gegnerPool.indexOf(gegner), 1);
+
+          const chance = clamp(0.42 + (teamPower - gegner.str) * 0.018 + poBoost / 300, 0.14, 0.72);
+          const gewonnen = r() < chance;
+          const eigene = gewonnen ? 4 : ri(r, 1, 3);
+          const fremde = gewonnen ? ri(r, 1, 3) : 4;
+          const spiele = eigene + fremde;
+          poSpiele += spiele;
+
+          serien.push({ runde: rundenNamen[i], gegner: gegner.n,
+                        eigene, fremde, gewonnen,
+                        knapp: Math.abs(eigene - fremde) <= 1 });
+          weiter = gewonnen;
+        }
+
+        season.playoffSerien = serien;
+        season.poSpiele = poSpiele;
+
+        /* Eigene Ausbeute in den Playoffs – dort wird enger gedeckt */
+        if (isG){
+          season.poWins = serien.filter(x => x.gewonnen).length * 4
+                        + (weiter ? 0 : ri(r, 0, 3));
+          season.poSv = clamp(season.sv + (r() - 0.45) * 0.016 + poBoost / 900, 0.86, 0.955);
+        } else {
+          const poRate = (season.p / Math.max(1, season.gp)) * (0.80 + r() * 0.45)
+                       + poBoost / 500;
+          season.poP = Math.max(0, Math.round(poRate * poSpiele));
+          season.poG = Math.round(season.poP * (P.goalRate / (P.goalRate + P.assistRate)));
+          season.poA = season.poP - season.poG;
+        }
+
+        if (weiter){
           season.title = lg.title;
           addTrophy('lg_' + lg.k, lg.title, lg.prestige, '🏆');
           season.events.push({ t: lg.title + ' gewonnen', c: 'good' });
-          if (r() < 0.28 + poBoost / 120) season.awards.push('playoffMvp');
+          const poStark = isG ? (season.poSv > 0.925) : (season.poP >= poSpiele);
+          if (r() < (poStark ? 0.45 : 0.18) + poBoost / 140) season.awards.push('playoffMvp');
+          if (!isG && season.poP >= poSpiele * 1.1 && r() < 0.4) season.awards.push('poTop');
           st.ruf += 4;
         } else {
-          const runden = ['erste Runde','Viertelfinale','Halbfinale','Finale'];
-          const weit = clamp(Math.floor((teamPower - ligaSchnitt) / 5), 0, 3);
-          season.events.push({ t: 'Playoffs: aus im ' + runden[weit], c: '' });
+          const letzte = serien[serien.length - 1];
+          season.events.push({
+            t: 'Playoffs: ' + letzte.runde + ' gegen ' + letzte.gegner
+               + ' mit ' + letzte.eigene + ':' + letzte.fremde + ' verloren',
+            c: letzte.knapp ? 'bad' : '' });
         }
       } else if (lg.k !== 'JUN'){
         season.events.push({ t: 'Playoffs verpasst', c: '' });
@@ -609,7 +1317,8 @@ const PUCKERO = (() => {
           if (P.k === 'D' && ppg > 0.62 && kante > 0.85) season.awards.push('bestD');
           if (kante > 1.05 && ppg > 1.15 && r() < 0.5) season.awards.push('mvp');
           // Selke: defensivstarker Stürmer mit ordentlicher Offensive
-          if (P.k !== 'D' && (dev.defensive || 0) > 74 && kante > 0.75 && r() < 0.4)
+          const selkeBonus = (st.rolle && st.rolle.w && st.rolle.w.selke) || 0;
+          if (P.k !== 'D' && (dev.defensive || 0) > 74 && kante > 0.75 && r() < 0.4 + selkeBonus)
             season.awards.push('selke');
           if (season.plus >= 28 && kante > 0.8 && r() < 0.55) season.awards.push('plusminus');
           if (missed === 0 && season.gp === fullGp && r() < 0.5) season.awards.push('ironman');
@@ -717,7 +1426,7 @@ const PUCKERO = (() => {
 
           if (medaille){
             const M = D.INTL[medaille];
-            addTrophy('int_' + medaille, M.n, M.pts, M.icon);
+            addTrophy('int_' + medaille, M.n, M.pts, M.icon, nat.n);
             st.laenderBilanz.medaillen++;
             season.events.push({ t: M.n + ' mit ' + nat.n, c: platz === 'Gold' ? 'good' : '' });
           } else {
@@ -726,18 +1435,25 @@ const PUCKERO = (() => {
 
           if (stufe === 'A'){
             if (!isG && turnier.p >= spiele && r() < 0.35){
-              addTrophy('int_wmAllstar', D.INTL.wmAllstar.n, D.INTL.wmAllstar.pts, D.INTL.wmAllstar.icon);
+              addTrophy('int_wmAllstar', D.INTL.wmAllstar.n, D.INTL.wmAllstar.pts, D.INTL.wmAllstar.icon, nat.n);
               season.events.push({ t: T.kurz + '-All-Star-Team', c: 'good' });
             }
             if (platz === 'Gold' && kante > 1.0 && r() < 0.4){
-              addTrophy('int_wmMvp', D.INTL.wmMvp.n, D.INTL.wmMvp.pts, D.INTL.wmMvp.icon);
+              addTrophy('int_wmMvp', D.INTL.wmMvp.n, D.INTL.wmMvp.pts, D.INTL.wmMvp.icon, nat.n);
               season.events.push({ t: 'Wertvollster Spieler des Turniers', c: 'good' });
             }
           }
 
           st.laender.push(turnier);
           st.laenderBilanz.turniere++;
+          const vorherGp = st.laenderBilanz.gp;
           st.laenderBilanz.gp += turnier.gp;
+          if (stufe === 'A'){
+            [25, 50, 100, 150].forEach(m => {
+              if (vorherGp < m && st.laenderBilanz.gp >= m)
+                season.events.push({ t: 'Meilenstein: ' + m + '. Länderspiel für ' + nat.n, c: 'good' });
+            });
+          }
           if (stufe === 'A') st.laenderBilanz.aSpiele = (st.laenderBilanz.aSpiele || 0) + turnier.gp;
           if (isG){ st.laenderBilanz.wins += turnier.wins || 0; st.laenderBilanz.so += turnier.so || 0; }
           else {
@@ -749,12 +1465,39 @@ const PUCKERO = (() => {
         }
       }
 
+      /* ---- Hoehepunkt der Saison ---- */
+      (() => {
+        const gegner = clubsOf(club.lg).filter(c => c.n !== club.n);
+        if (!gegner.length) return;
+        const g = pick(r, gegner);
+        const liste = isG ? D.HOEHEPUNKTE.goalie : D.HOEHEPUNKTE.skater;
+        // Massstab: wie stark war die Saison im Verhaeltnis zur Liga?
+        const stufe = clamp(Math.round(kante * 3.4 + (r() - 0.4) * 1.6), 0, 5);
+        const vorlage = liste.find(x => x.ab <= stufe) || liste[liste.length - 1];
+        season.hoehepunkt = { t: vorlage.t.replace('{gegner}', g.n), gegner: g.n, stufe };
+      })();
+
+      /* ---- Kapitaensamt: wird angeboten, nicht verordnet ---- */
+      if (!st.kapitaenSeit && !st.kapitaenGefragt && st.klubJahre >= 2 && st.age >= 25
+          && kante > 0.65 && lg.k !== 'JUN' && r() < 0.55){
+        st.kapitaensfrage = { klub: club.n, jahr: st.year };
+      }
+      if (st.kapitaenSeit === club.n) season.kapitaen = true;
+
+      /* ---- Erzaehlung der Saison ---- */
+      if (st.klubJahre === 0 && lg.k !== 'JUN') season.story = pick(r, D.STORY.ankunft);
+      else if (kante > 1.1 && r() < 0.55)       season.story = pick(r, D.STORY.gut);
+      else if (kante < 0.3 && r() < 0.55)       season.story = pick(r, D.STORY.schlecht);
+      else if (r() < 0.35)                      season.story = pick(r, D.STORY.neutral);
+      st.klubJahre++;
+
       season.salary = round1(clamp((ovr - 58) * 0.5, 0.05, 15) * lg.salary + 0.05);
       season.marktwert = marktwert(ovr, st.age);
       st.formBonus *= 0.5;          // Nachwirkung klingt ab
       st.risikoBonus *= 0.5;
       st.moral = clamp(st.moral + (season.title ? 6 : (season.playoffs ? 2 : -3)), 10, 100);
       st.ereignisGeprueft = false;  // im nächsten Jahr wieder möglich
+      st.wechselGeprueft = false;
 
       /* Laufende Summen + Meilensteine */
       const vorher = { ...st.lauf };
@@ -774,8 +1517,52 @@ const PUCKERO = (() => {
         });
       });
 
+      if (st.wechselVon){ season.wechselVon = st.wechselVon; st.wechselVon = null; }
+      werteSaisonZiel(season);
       st.seasons.push(season);
       st.ruf = st.ruf * 0.5 + (ovr + season.awards.length * 3 + (season.title ? 4 : 0)) * 0.5;
+
+      /* Entry Draft: einmalig im Sommer nach der Saison mit 18 */
+      if (!st.entryDraft && st.age === 18){
+        const potenzial = overall(player, devAttrs(player.attrs,
+          formFactor(st.scheitel, player.traits, (player.wirkung || {}).lernkurve, st.scheitel)));
+        const wert = potenzial + (season.p || season.wins || 0) * 0.10 + (r() - 0.5) * 12;
+        let runde = 0, pick2 = 0, klub = null;
+        if (wert > 70){
+          runde = wert > 88 ? 1 : wert > 82 ? ri(r, 1, 2) : wert > 76 ? ri(r, 2, 4) : ri(r, 4, 7);
+          pick2 = ri(r, 1, 32);
+          const nhl = clubsOf('NHL').slice().sort((a, b) => a.str - b.str);
+          klub = nhl[clamp(Math.round((pick2 - 1) * (nhl.length / 32)), 0, nhl.length - 1)];
+          st.ruf = clamp(st.ruf + (runde === 1 ? 10 : runde <= 3 ? 5 : 2), 20, 95);
+          season.events.push({ t: 'Entry Draft: Runde ' + runde + ', Position ' + pick2
+                                 + ' – ' + klub.n, c: 'good' });
+        } else {
+          season.events.push({ t: 'Im Entry Draft nicht gezogen', c: 'bad' });
+        }
+        st.entryDraft = { runde, pick: pick2, klub: klub ? klub.n : null, ungezogen: !runde };
+
+        /* Ein Spieler desselben Jahrgangs, an dem du dich messen wirst.
+           Seine Laufbahn wird einmal vorausberechnet – dabei darf er selbst
+           keinen weiteren Rivalen bekommen. */
+        if (!rivaleWirdErzeugt){
+          rivaleWirdErzeugt = true;
+          try { erzeugeJahrgang(season); }
+          finally { rivaleWirdErzeugt = false; }
+        }
+      }
+
+      /* Stand im eigenen Jahrgang – erst ab dem Draft vergleichbar */
+      if (st.jahrgang.length){
+        season.jahrgang = jahrgangStand();
+        season.jahrgangDelta = st.jahrgangDelta;
+        const je = st.jahrgangEreignis;
+        if (je){
+          const wen = je.namen.slice(0, 2).join(' und ');
+          season.events.push(je.art === 'vorbei'
+            ? { t: 'Im Jahrgang an ' + wen + ' vorbeigezogen – jetzt Platz ' + je.platz, c: 'good' }
+            : { t: wen + ' hat dich im Jahrgang überholt – zurück auf Platz ' + je.platz, c: 'bad' });
+        }
+      }
 
       /* Sommerpause: erst Training, danach die Vertragsfrage */
       st.age++; st.year++;
@@ -808,17 +1595,35 @@ const PUCKERO = (() => {
 
     /* ---- Läuft der Vertrag weiter oder kommen Angebote? ---- */
     function vertragspruefung(season){
-      const naechsterOvr = overall(player, devAttrs(player.attrs, formFactor(st.age, player.traits, (player.wirkung || {}).lernkurve)));
+      const naechsterOvr = overall(player, devAttrs(player.attrs, formFactor(st.age, player.traits, (player.wirkung || {}).lernkurve, st.scheitel)));
       const bewertung = Math.max(naechsterOvr, st.ruf * 0.5 + naechsterOvr * 0.5);
       if (st.age >= 25 && bewertung < VERTRAG_MIN){ ende('vertraglos'); return; }
+
+      /* Hoert der Spieler freiwillig auf? */
+      const verschleiss = st.verletzungsjahre || 0;
+      const chance = ruecktrittsChance(st.age, naechsterOvr, player.traits.langlebig, verschleiss);
+      if (r() < chance){
+        /* Ab hier entscheidest du selbst – und wirst danach jedes Jahr neu gefragt. */
+        st.ruecktrittsfrage = {
+          alter: st.age,
+          ovr: naechsterOvr,
+          verschleiss,
+          zusatzjahre: st.zusatzjahre,
+          grund: verschleiss >= 3 && st.age < 33 ? 'verschleiss' : 'ruhestand',
+          // Was ein weiteres Jahr kostet
+          abbau: Math.round((3 + st.zusatzjahre * 1.6 + verschleiss * 0.8) * 10) / 10,
+          risiko: Math.round((6 + st.zusatzjahre * 3 + verschleiss * 2))
+        };
+        return;
+      }
 
       /* Weitere Wege, wie eine Laufbahn endet */
       const letzte = st.seasons[st.seasons.length - 1];
       const verletzungsRisiko = clamp(0.015 + (st.age - 28) * 0.007
                                       - (player.traits.robust || 0) * 0.0012, 0, 0.10);
       if (st.age >= 26 && r() < verletzungsRisiko){ ende('verletzung'); return; }
-      if (letzte && letzte.title && st.age >= 30 && r() < 0.20){ ende('hoehepunkt'); return; }
-      if (st.age >= 33 && r() < 0.07){ ende('familie'); return; }
+      if (letzte && letzte.title && st.age >= 33 && r() < 0.22){ ende('hoehepunkt'); return; }
+      if (st.age >= 34 && r() < 0.06){ ende('familie'); return; }
       if (st.age >= 34 && st.club.lg !== HOME_LG[player.nation]
           && bewertung < LG_MIN[st.club.lg] + 2 && r() < 0.12){ ende('heimkehr'); return; }
 
@@ -842,6 +1647,13 @@ const PUCKERO = (() => {
         return;
       }
       st.angebotsGrund = grund;
+      st.angebote = macheAngebote(bewertung);
+    }
+
+    /* Angebote erzeugen, ohne die uebrigen Pruefungen zu wiederholen */
+    function vertragsangebote(bewertung, season){
+      st.vertragJahre = 0;
+      st.angebotsGrund = 'Nach der Rücktrittsentscheidung wird neu verhandelt.';
       st.angebote = macheAngebote(bewertung);
     }
 
@@ -911,6 +1723,16 @@ const PUCKERO = (() => {
       return angebote;
     }
 
+    /* Trainer und engster Mitspieler beim aktuellen Klub */
+    function umfeldBenennen(){
+      const rr = rng(player.seed + ':umfeld:' + (st.club ? st.club.n : '') + ':' + st.year);
+      st.trainer = pick(rr, D.FIRST) + ' ' + pick(rr, D.LAST);
+      let m = pick(rr, D.FIRST) + ' ' + pick(rr, D.LAST);
+      let versuch = 0;
+      while (m === player.name && versuch++ < 5) m = pick(rr, D.FIRST) + ' ' + pick(rr, D.LAST);
+      st.mitspieler = m;
+    }
+
     /* ---- Angebot annehmen ---- */
     function choose(index){
       if (!st.angebote) return false;
@@ -922,15 +1744,102 @@ const PUCKERO = (() => {
         const wort = nachher.prestige > vorher.prestige ? 'Aufstieg zu '
                    : (nachher.prestige < vorher.prestige ? 'Wechsel nach unten zu ' : 'Wechsel zu ');
         letzte.events.push({ t: wort + a.club.n + ' (' + nachher.n + ', ' + dauer + ')', c: '' });
-        st.club = a.club;
       } else {
         letzte.events.push({ t: 'Vertrag bei ' + a.club.n + ' um ' + dauer + ' verlängert', c: '' });
       }
-      if (!a.bleibt){ st.klubJahre = 0; if (st.kapitaenSeit !== a.club.n) st.kapitaenSeit = null; }
+      if (!a.bleibt){
+        if (st.club && st.club.n !== a.club.n && !st.ehemalige.includes(st.club.n))
+          st.ehemalige.push(st.club.n);
+        st.klubJahre = 0;
+        if (st.kapitaenSeit !== a.club.n) st.kapitaenSeit = null;
+        st.club = a.club;          // fuer die Namensvergabe schon setzen
+        umfeldBenennen();
+      }
       st.entscheidungen.push(a.club.n);
       st.vertragJahre = a.jahre;
+      // Die Rolle wird bei einem Wechsel neu verhandelt – bei einer Verlaengerung
+      // bleibt sie bestehen, sofern schon eine festgelegt wurde.
+      if (!a.bleibt || !st.rolle){
+        st.rollenwahl = (isG ? D.ROLLEN_G : D.ROLLEN).map(x => Object.assign({}, x, {
+          gehalt: Math.round(a.gehalt * (x.w.gehalt || 1) * 100) / 100
+        }));
+      }
       st.angebote = null;
       st.angebotsGrund = null;
+      return true;
+    }
+
+    /* ---- Weitermachen oder aufhoeren? ---- */
+    function entscheideRuecktritt(weiter){
+      if (!st.ruecktrittsfrage) return false;
+      const f = st.ruecktrittsfrage;
+      st.ruecktrittsfrage = null;
+      if (!weiter){ ende(f.grund, 'mit ' + (st.age - 1)); return true; }
+
+      /* Ein weiteres Jahr fordert seinen Preis: Der Koerper baut ab,
+         das Verletzungsrisiko steigt, die Angebote werden duenner. */
+      st.zusatzjahre++;
+      const abzug = f.abbau / 100;
+      Object.keys(player.attrs).forEach(k => {
+        player.attrs[k] = clamp(Math.round(player.attrs[k] * (1 - abzug)), 1, 99);
+      });
+      st.risikoBonus += f.risiko / 100;
+      const letzte = st.seasons[st.seasons.length - 1];
+      if (letzte) letzte.events.push({
+        t: 'Ein weiteres Jahr drangehängt (' + st.zusatzjahre + '.)', c: '' });
+
+      /* Danach normal weiter mit der Vertragsfrage */
+      const naechsterOvr = overall(player, devAttrs(player.attrs,
+        formFactor(st.age, player.traits, (player.wirkung || {}).lernkurve, st.scheitel)));
+      const bewertung = Math.max(naechsterOvr, st.ruf * 0.5 + naechsterOvr * 0.5);
+      if (bewertung < VERTRAG_MIN){ ende('vertraglos'); return true; }
+      vertragsangebote(bewertung, letzte);
+      return true;
+    }
+
+    /* ---- Rolle im Team festlegen ---- */
+    function waehleRolle(index){
+      if (!st.rollenwahl) return false;
+      const gewaehlt = st.rollenwahl[clamp(index, 0, st.rollenwahl.length - 1)];
+      st.rolle = gewaehlt;
+      const letzte = st.seasons[st.seasons.length - 1];
+      if (letzte) letzte.events.push({ t: 'Rolle im Team: ' + gewaehlt.n, c: '' });
+      if (gewaehlt.w && gewaehlt.w.moral) st.moral = clamp(st.moral + gewaehlt.w.moral, 10, 100);
+      if (gewaehlt.w && gewaehlt.w.playoff)
+        player.traits.playoff = (player.traits.playoff || 0) + gewaehlt.w.playoff;
+      st.rollenwahl = null;
+      return true;
+    }
+    function autoRolle(){
+      if (!st.rollenwahl) return false;
+      const bewertet = st.rollenwahl.map((x, i) => ({ i,
+        s: (x.w.punkte || 0) * 60 + (x.w.plus || 0) * 0.6 + (x.w.anteil || 0) * 90
+           - (x.w.risiko || 0) * 120 + r() * 8 })).sort((a, b) => b.s - a.s);
+      return waehleRolle(bewertet[0].i);
+    }
+
+    /* ---- Kapitaensamt annehmen oder ablehnen ---- */
+    function entscheideKapitaen(annehmen){
+      if (!st.kapitaensfrage) return false;
+      const k = st.kapitaensfrage;
+      const letzte = st.seasons[st.seasons.length - 1];
+      st.kapitaenGefragt = true;
+      if (annehmen){
+        st.kapitaenSeit = k.klub;
+        st.moral = clamp(st.moral + 8, 10, 100);
+        st.ruf = clamp(st.ruf + 4, 20, 99);
+        player.traits.playoff = (player.traits.playoff || 0) + 4;
+        if (letzte){
+          letzte.kapitaen = true;
+          letzte.events.push({ t: 'Kapitän von ' + k.klub, c: 'good' });
+          letzte.story = pick(r, D.STORY.kapitaen);
+        }
+      } else if (letzte){
+        letzte.events.push({ t: 'Kapitänsamt abgelehnt', c: '' });
+        st.moral = clamp(st.moral - 3, 10, 100);
+        st.formBonus += 0.04;
+      }
+      st.kapitaensfrage = null;
       return true;
     }
 
@@ -944,14 +1853,25 @@ const PUCKERO = (() => {
       return choose(bewertet[0].i);
     }
 
+    /* Der Berater haengt nur an, wenn es sich sportlich noch lohnt */
+    function autoWeiter(){
+      const f = st.ruecktrittsfrage;
+      if (!f) return false;
+      return f.ovr >= 78 && f.zusatzjahre < 3 && f.verschleiss < 3 && r() < 0.6;
+    }
+
     function runToEnd(maxSchritte){
       let n = 0;
       while (!st.fertig && n++ < (maxSchritte || 120)){
         if (st.jugend) waehleJugend(0);
         if (st.ereignis) chooseEreignis(0);
+        if (st.wechselfrist) entscheideWechselfrist(0);
+        if (st.kapitaensfrage) entscheideKapitaen(true);
+        if (st.ruecktrittsfrage) entscheideRuecktritt(autoWeiter());
         playSeason();
         if (st.training) autoTraining();
         if (st.angebote) autoChoose();
+        if (st.rollenwahl) autoRolle();
       }
       return result();
     }
@@ -963,6 +1883,11 @@ const PUCKERO = (() => {
         t.gp += s.gp || 0;
         t.pim += s.pim || 0;
         t.gehalt += s.salary || 0;
+        t.poGp += s.poSpiele || 0;
+        t.poP += s.poP || 0; t.poG += s.poG || 0; t.poA += s.poA || 0;
+        t.poWins += s.poWins || 0;
+        t.serien += (s.playoffSerien || []).length;
+        t.serienGewonnen += (s.playoffSerien || []).filter(x => x.gewonnen).length;
         if (isG){
           t.wins += s.wins || 0; t.so += s.so || 0;
           t.losses += s.losses || 0; t.otl += s.otl || 0;
@@ -976,7 +1901,8 @@ const PUCKERO = (() => {
         return t;
       }, { gp:0, g:0, a:0, p:0, wins:0, so:0, pim:0, gehalt:0, svSum:0, gaaSum:0,
            losses:0, otl:0, saves:0, shotsAgainst:0, ga:0,
-           ppg:0, shg:0, gwg:0, shots:0, plus:0 });
+           ppg:0, shg:0, gwg:0, shots:0, plus:0,
+           poGp:0, poP:0, poG:0, poA:0, poWins:0, serien:0, serienGewonnen:0 });
       totals.shotPct = totals.shots ? Math.round(totals.g / totals.shots * 1000) / 10 : 0;
       totals.ppg100 = totals.gp ? Math.round(totals.p / totals.gp * 100) / 100 : 0;
 
@@ -989,6 +1915,50 @@ const PUCKERO = (() => {
       if (isG && totals.gp){ totals.sv = totals.svSum / totals.gp; totals.gaa = totals.gaaSum / totals.gp; }
       totals.gehalt = round1(totals.gehalt);
 
+      /* Bilanz je Verein – in der Reihenfolge der Karriere */
+      const klubs = [];
+      seasons.forEach(x => {
+        let k = klubs.find(y => y.n === x.club);
+        if (!k){
+          k = { n: x.club, lg: x.lg, lgName: x.lgName, saisons: 0, gp: 0, g: 0, a: 0, p: 0,
+                wins: 0, so: 0, titel: 0, vonJahr: x.year, bisJahr: x.year };
+          klubs.push(k);
+        }
+        k.saisons++; k.bisJahr = x.year;
+        k.gp += x.gp || 0;
+        if (isG){ k.wins += x.wins || 0; k.so += x.so || 0; }
+        else { k.g += x.g || 0; k.a += x.a || 0; k.p += x.p || 0; }
+        if (x.title) k.titel++;
+      });
+
+      /* Bilanz je Liga – zeigt, wo eine Laufbahn wirklich stattgefunden hat */
+      const ligen = [];
+      seasons.forEach(x => {
+        let l = ligen.find(y => y.k === x.lg);
+        if (!l){
+          l = { k: x.lg, n: x.lgName, saisons: 0, gp: 0, g: 0, a: 0, p: 0,
+                wins: 0, so: 0, pim: 0, titel: 0, ehrungen: 0,
+                svSum: 0, gaaSum: 0, bestOvr: 0, vonJahr: x.year, bisJahr: x.year };
+          ligen.push(l);
+        }
+        l.saisons++; l.bisJahr = x.year;
+        l.gp += x.gp || 0;
+        l.pim += x.pim || 0;
+        l.bestOvr = Math.max(l.bestOvr, x.ovr || 0);
+        l.ehrungen += (x.awards || []).length;
+        if (x.title) l.titel++;
+        if (isG){
+          l.wins += x.wins || 0; l.so += x.so || 0;
+          l.svSum += (x.sv || 0) * (x.gp || 0); l.gaaSum += (x.gaa || 0) * (x.gp || 0);
+        } else { l.g += x.g || 0; l.a += x.a || 0; l.p += x.p || 0; }
+      });
+      ligen.forEach(l => {
+        if (isG && l.gp){ l.sv = l.svSum / l.gp; l.gaa = l.gaaSum / l.gp; }
+        l.ppg = l.gp ? Math.round((isG ? l.wins : l.p) / l.gp * 100) / 100 : 0;
+        l.prestige = league(l.k) ? league(l.k).prestige : 0;
+      });
+      ligen.sort((a, b) => b.prestige - a.prestige);
+
       const trophyList = Object.values(st.trophies).sort((a, b) => b.pts * b.x - a.pts * a.x);
       const trophyPts = trophyList.reduce((s, t) => s + t.pts * t.x, 0);
       const profi = seasons.filter(s => league(s.lg).prestige >= 14);
@@ -996,6 +1966,21 @@ const PUCKERO = (() => {
         ? profi.reduce((s, x) => s + (x.wins || 0), 0) * 0.20 + profi.reduce((s, x) => s + (x.so || 0), 0) * 1.2
         : profi.reduce((s, x) => s + (x.p || 0), 0) * 0.15;
       const legacy = Math.round(trophyPts + prodPts + Math.max(0, st.peak - 60) * 3.2 + profi.length * 2);
+
+      /* Was von dieser Laufbahn bleibt */
+      const vermaechtnis = [];
+      const nimm = id => {
+        const v = D.VERMAECHTNIS.find(x => x.id === id);
+        if (v && !vermaechtnis.some(x => x.id === id)) vermaechtnis.push(v);
+      };
+      const hauptklub = klubs.slice().sort((a, b) => b.saisons - a.saisons)[0];
+      if (legacy >= 1700) nimm('statue');
+      if (legacy >= 1300) nimm('hof');
+      if (hauptklub && hauptklub.saisons >= 7 && (hauptklub.titel > 0 || legacy >= 1050)) nimm('nummer');
+      if (st.kapitaenSeit && legacy >= 870) nimm('kapitaen');
+      if (legacy >= 870 && st.peak >= 84) nimm('legende');
+      if (seasons.length >= 14 && legacy >= 700) nimm('trainer');
+      if (hauptklub && hauptklub.saisons >= 9) nimm('nachwuchs');
       // Juniorenjahre zaehlen nicht als beste Saison – zu schwache Gegner
       const bewertbar = seasons.filter(s => s.lg !== 'JUN');
       const besteSaison = (bewertbar.length ? bewertbar : seasons).slice().sort((a, b) =>
@@ -1005,8 +1990,17 @@ const PUCKERO = (() => {
         player, seasons, totals, isG,
         trophies: trophyList,
         peak: st.peak, peakAttrs: st.peakAttrs || player.attrs,
-        besteSaison, rekorde,
+        besteSaison, rekorde, klubs, ligen, vermaechtnis,
+        rivale: st.rivale,
+        jahrgang: st.jahrgang,
+        jahrgangStand: st.jahrgangStand,
+        jahrgangDelta: st.jahrgangDelta,
+        ziele: st.ziele,
+        ehemalige: st.ehemalige,
+        zielBilanz: st.zielBilanz,
+        hauptklub: klubs.slice().sort((a, b) => b.saisons - a.saisons)[0] || null,
         entscheidungen: st.entscheidungen,
+        verlauf: st.verlauf,
         retireAge: Math.max(18, st.age - 1),
         grund: st.grund,
         endeArt: st.endeArt,
@@ -1014,6 +2008,14 @@ const PUCKERO = (() => {
         laender: st.laender,
         laenderBilanz: st.laenderBilanz,
         natDebuet: st.natDebuet,
+        entryDraft: st.entryDraft,
+        rolle: st.rolle,
+        trainer: st.trainer,
+        mitspieler: st.mitspieler,
+        freigeschaltet: st.freigeschaltet,
+        strangNamen: st.strangNamen,
+        zusatzjahre: st.zusatzjahre,
+        scheitel: Math.round(st.scheitel),
         kapitaenSeit: st.kapitaenSeit,
         moral: Math.round(st.moral),
         erlebt: st.erlebt,
@@ -1031,11 +2033,23 @@ const PUCKERO = (() => {
       get angebote(){ return st.angebote; },
       get training(){ return st.training; },
       get ereignis(){ return st.ereignis; },
+      get wechselfrist(){ return st.wechselfrist; },
+      /* Die Vorgaben fuer die naechste Saison – sichtbar, bevor gespielt wird */
+      get kommendeZiele(){
+        if (st.fertig || !st.club) return null;
+        return setzeSaisonZiel(st.club);
+      },
       get jugend(){ return st.jugend; },
+      get rollenwahl(){ return st.rollenwahl; },
+      get kapitaensfrage(){ return st.kapitaensfrage; },
+      get ruecktrittsfrage(){ return st.ruecktrittsfrage; },
       get letzteSaison(){ return st.seasons[st.seasons.length - 1] || null; },
       maxAge,
       playSeason, choose, autoChoose, chooseTraining, autoTraining,
-      waehleJugend, chooseEreignis, runToEnd, result
+      entscheideWechselfrist,
+      waehleJugend, chooseEreignis, waehleRolle, autoRolle, entscheideKapitaen,
+      entscheideRuecktritt, autoWeiter,
+      runToEnd, result
     };
   }
 

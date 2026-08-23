@@ -567,9 +567,968 @@ const EREIGNISSE = (() => {
           gut:{ ruf:3, text:'Kurz, aber alle haben ein Foto.' },
           schlecht:{ ruf:-2, text:'Man hatte mit mehr gerechnet.' } }
       ] }
+,
+
+    /* ---------- Aberglaube und Kabine ---------- */
+    { id:'bart1', kat:'kabine', szene:'kabine', tag:'Playoff-Ritual', mehrfach:true,
+      titel:'Die halbe Mannschaft rasiert sich seit sechs Wochen nicht',
+      text:'Es fing als Witz an und ist längst keiner mehr. Wer gewinnt, lässt stehen. '
+         + 'Deine Partnerin hat eine Meinung dazu, der Sponsor auch, und in der Kabine '
+         + 'schaut man beim Frühstück, wer noch mitmacht.',
+      bedingung: (st, s) => s && s.playoffs && st.age >= 21,
+      optionen:[
+        { t:'Mitmachen bis zum Schluss', chance:75, hinweis:'Gemeinschaft vor Eitelkeit',
+          gut:{ moral:8, text:'Das Mannschaftsfoto danach hängt heute noch im Klubmuseum.' },
+          schlecht:{ text:'Ihr scheidet aus. Der Bart bleibt trotzdem drei Tage.' } },
+        { t:'Nicht mitmachen', chance:60, hinweis:'Dein Gesicht, deine Regeln',
+          gut:{ form:0.04, text:'Du fühlst dich wohler und spielst befreiter.' },
+          schlecht:{ moral:-6, text:'Es wird nicht ausgesprochen, aber es fällt allen auf.' } }
+      ] },
+
+    /* ---------- Auslandserfahrung ---------- */
+    { id:'olympia1', kat:'trainer', szene:'eis', tag:'Vor dem Turnier',
+      titel:'Zwei Wochen Olympia oder zwei Wochen Regeneration',
+      text:'Die Liga pausiert, der Verband ruft, und dein Rücken meldet sich seit Januar '
+         + 'jeden Morgen zuerst. Der Klubarzt sagt nichts Verbindliches, aber er sagt es '
+         + 'auf eine Art, die man versteht.',
+      bedingung: st => st.natDebuet && st.age >= 26 && st.verletzungsjahre >= 1,
+      optionen:[
+        { t:'Fahren', chance:60, hinweis:'So eine Chance kommt alle vier Jahre',
+          gut:{ ruf:8, moral:5, trait:{ playoff:5 },
+                text:'Du kommst mit einer Medaille und neuem Selbstvertrauen zurück.' },
+          schlecht:{ risiko:11, form:-0.07, text:'Der Rücken hält zwei Spiele. Danach ist die Saison gelaufen.' } },
+        { t:'Absagen und behandeln lassen', chance:80, hinweis:'Der Klub zahlt dein Gehalt',
+          gut:{ trait:{ robust:5 }, form:0.06, text:'Schmerzfrei zurück – und die stärkste Rückrunde deiner Karriere.' },
+          schlecht:{ ruf:-6, text:'Der Verband ist verstimmt, die Presse noch mehr.' } }
+      ] },
+
+    /* ---------- Jugendsünde ---------- */
+    { id:'nacht1', kat:'privat', szene:'stadt', tag:'Nach dem Sieg', mehrfach:true,
+      titel:'Die Mannschaft zieht los, morgen ist Training um neun',
+      text:'Ein Heimsieg gegen den Tabellenführer, die Stadt ist wach, und irgendjemand '
+         + 'hat schon einen Tisch reserviert. Der Trainer hat nichts verboten. '
+         + 'Er hat auch nichts erlaubt.',
+      bedingung: st => st.age <= 27,
+      optionen:[
+        { t:'Mitgehen und früh raus', chance:65, hinweis:'Zwei Stunden, dann Schluss',
+          gut:{ moral:7, text:'Genau die richtige Dosis. Die Kabine schweißt so etwas zusammen.' },
+          schlecht:{ form:-0.04, text:'Aus zwei Stunden wurden fünf. Das Training am nächsten Tag war eine Qual.' } },
+        { t:'Direkt nach Hause', chance:80, hinweis:'Professionell, aber einsam',
+          gut:{ attr:{ nerven:2 }, text:'Ausgeruht, konzentriert, am Mittwoch der Beste auf dem Eis.' },
+          schlecht:{ moral:-4, text:'„Der ist halt so." Man gewöhnt sich daran, dich nicht mehr zu fragen.' } }
+      ] },
+
+    /* ---------- Vereinskrise ---------- */
+    { id:'insolvenz1', kat:'presse', szene:'buero', tag:'Schlechte Nachrichten',
+      titel:'Dem Klub fehlt das Geld für die nächste Lizenz',
+      text:'Die Gehälter kamen diesen Monat drei Tage zu spät, beim letzten Mal war es eine Woche. '
+         + 'In der Kabine reden alle darüber und niemand offiziell. Dein Berater rät, '
+         + 'sich still nach etwas anderem umzusehen.',
+      bedingung: st => st.klubJahre >= 1 && st.age >= 23,
+      optionen:[
+        { t:'Bleiben und auf Gehalt verzichten', chance:55, hinweis:'Loyalität mit Preisschild',
+          gut:{ moral:14, ruf:11, text:'Der Klub übersteht es. Du bist ab heute unantastbar.' },
+          schlecht:{ text:'Es reicht trotzdem nicht. Am Ende stehst du ohne Verein und ohne Geld da.' } },
+        { t:'Freigabe verlangen', chance:75, hinweis:'Vernünftig, aber unpopulär',
+          gut:{ text:'Du wechselst geordnet und ohne Verluste.' },
+          schlecht:{ ruf:-7, moral:-8, text:'„Der Erste, der von Bord ging" – das haftet.' } },
+        { t:'Abwarten und spielen', chance:60, hinweis:'Keine Entscheidung ist auch eine',
+          gut:{ form:0.05, text:'Du blendest alles aus und lieferst die konstanteste Saison seit Jahren.' },
+          schlecht:{ moral:-5, form:-0.05, text:'Die Unsicherheit frisst sich in jedes Spiel.' } }
+      ] },
+
+    /* ---------- Technik ---------- */
+    { id:'video1', kat:'trainer', szene:'buero', tag:'Videoanalyse',
+      titel:'Die Analysten haben eine Schwäche in deinem Spiel gefunden',
+      text:'Vierzehn Sequenzen, alle gleich: Du drehst bei Druck immer über dieselbe Schulter. '
+         + 'Drei Gegner haben es bereits kopiert. Auf der Leinwand sieht es peinlich offensichtlich aus.',
+      bedingung: st => st.age >= 22 && st.klubJahre >= 1,
+      optionen:[
+        { t:'Bewegungsmuster umlernen', chance:55, hinweis:'Monate an Arbeit gegen einen Reflex',
+          gut:{ attr:{ puck:5, skating:4 }, text:'Nach einem halben Jahr greift der neue Reflex – und niemand kann dich mehr lesen.' },
+          schlecht:{ form:-0.06, text:'Du denkst zu viel nach und verlierst dein natürliches Spiel.' } },
+        { t:'Die Schwäche zur Falle machen', chance:45, hinweis:'Erwartung ausnutzen',
+          gut:{ attr:{ uebersicht:6, praezision:4 }, ruf:6,
+                text:'Sie erwarten die Drehung – und du spielst genau dann den Pass. Herrlich.' },
+          schlecht:{ text:'Klingt schlau, funktioniert aber selten. Es bleibt beim Alten.' } },
+        { t:'Ignorieren', chance:70, hinweis:'Was bisher funktioniert hat',
+          gut:{ form:0.03, text:'Deine Stärken überdecken die Schwäche weiterhin.' },
+          schlecht:{ form:-0.05, text:'Die Liga stellt sich darauf ein. Deine Werte sinken spürbar.' } }
+      ] },
+
+    /* ---------- Familie ---------- */
+    { id:'kind1', kat:'privat', szene:'stadt', tag:'Zu Hause',
+      titel:'Dein Kind kommt in die Schule – in einer Stadt, in der ihr vielleicht nicht bleibt',
+      text:'Die Anmeldung liegt seit zwei Wochen auf dem Küchentisch. Dein Vertrag läuft '
+         + 'noch ein Jahr, das Angebot aus dem Ausland liegt daneben, und im Nebenzimmer '
+         + 'wird gerade ein Schulranzen anprobiert.',
+      bedingung: st => st.age >= 29,
+      optionen:[
+        { t:'Sesshaft werden', chance:75, hinweis:'Ruhe im Rücken',
+          gut:{ moral:8, trait:{ langlebig:5 }, text:'Zum ersten Mal seit Jahren fühlt sich ein Ort wie zu Hause an.' },
+          schlecht:{ text:'Ein Jahr später wirst du trotzdem abgegeben. So ist das Geschäft.' } },
+        { t:'Flexibel bleiben', chance:55, hinweis:'Die Karriere zuerst',
+          gut:{ ruf:5, form:0.05, text:'Der Wechsel bringt die beste Phase deiner Laufbahn.' },
+          schlecht:{ moral:-8, form:-0.05, text:'Zu Hause wird es still. Das nimmst du mit aufs Eis.' } }
+      ] },
+
+    /* ---------- Rekordjagd ---------- */
+    { id:'rekord1', kat:'spiel', szene:'eis', tag:'Auf Rekordkurs',
+      titel:'Dir fehlt ein Punkt zum Vereinsrekord – und das Spiel ist längst entschieden',
+      text:'Fünf Tore Vorsprung, viereinhalb Minuten übrig, und der Trainer hat die vierte Reihe '
+         + 'draußen. Du sitzt auf der Bank und weißt genau, wie viele Punkte dir fehlen. '
+         + 'Ein Blick würde reichen.',
+      bedingung: st => st.klubJahre >= 3 && st.age >= 26,
+      optionen:[
+        { t:'Um einen Wechsel bitten', chance:45, hinweis:'Persönliches vor Mannschaft',
+          gut:{ ruf:9, attr:{ praezision:3 }, text:'Der Rekord fällt, die Halle tobt, der Trainer lacht.' },
+          schlecht:{ moral:-8, ruf:-4, text:'Er lässt dich draußen. Alle haben gehört, was du gefragt hast.' } },
+        { t:'Sitzen bleiben', chance:85, hinweis:'Der Rekord läuft nicht weg',
+          gut:{ moral:8, attr:{ nerven:3 }, text:'Zwei Wochen später fällt er ohnehin – im vollen Haus.' },
+          schlecht:{ text:'Die Saison endet mit einem Punkt Rückstand auf den Rekord.' } }
+      ] },
+
+    /* ---------- Trainingslager ---------- */
+    { id:'lager1', kat:'trainer', szene:'eis', tag:'Vorbereitung', mehrfach:true,
+      titel:'Das Trainingslager ist brutal, und ein Mitspieler bricht zusammen',
+      text:'Dritter Tag, zweite Einheit, achtunddreißig Grad in der Halle. '
+         + 'Der Konditionstrainer zählt weiter, während zwei Betreuer den Jungen '
+         + 'von der Bande wegtragen. Niemand sagt etwas.',
+      bedingung: st => st.age >= 22,
+      optionen:[
+        { t:'Die Einheit abbrechen lassen', chance:50, hinweis:'Gegen den Trainerstab',
+          gut:{ moral:12, ruf:6, text:'Der Klub überarbeitet danach sein ganzes Konzept. Man dankt es dir.' },
+          schlecht:{ ruf:-8, text:'„Wer nicht mitzieht, spielt nicht." Du bekommst das zu spüren.' } },
+        { t:'Durchziehen', chance:70, hinweis:'Härte hat auch ihren Wert',
+          gut:{ trait:{ robust:6 }, form:0.06, text:'Du startest fitter in die Saison als je zuvor.' },
+          schlecht:{ risiko:9, text:'Dein Körper zahlt die Rechnung im November.' } }
+      ] },
+
+    /* ---------- Nachwuchsförderung ---------- */
+    { id:'stiftung1', kat:'privat', szene:'stadt', tag:'Nach der Karriere denken',
+      titel:'Man bietet dir an, eine Nachwuchsstiftung zu gründen',
+      text:'Ein Anwalt, ein Steuerberater und ein alter Weggefährte sitzen dir gegenüber. '
+         + 'Es geht um Kinder, die sich die Ausrüstung nicht leisten können, und um '
+         + 'einen erheblichen Teil deines Vermögens.',
+      bedingung: st => st.age >= 30 && st.ruf > 80,
+      optionen:[
+        { t:'Gründen und selbst führen', chance:65, hinweis:'Zeit und Geld',
+          gut:{ ruf:12, moral:6, text:'Zehn Jahre später spielen zwei Stiftungskinder in der ersten Liga.' },
+          schlecht:{ form:-0.05, text:'Die Verwaltung frisst mehr Zeit, als dir während der Saison bleibt.' } },
+        { t:'Nur den Namen geben', chance:80, hinweis:'Wirkung ohne Aufwand',
+          gut:{ ruf:6, text:'Es läuft gut, ohne dass du dich kümmern musst.' },
+          schlecht:{ ruf:-4, text:'Es kommt heraus, dass du kaum beteiligt bist.' } },
+        { t:'Später', chance:70, hinweis:'Nach der Karriere ist auch noch Zeit',
+          gut:{ form:0.04, text:'Voller Fokus aufs Eis – und du gründest sie tatsächlich später.' },
+          schlecht:{ text:'Aus „später" wird nie.' } }
+      ] },
+
+    /* ---------- Abschied ---------- */
+    { id:'abschied1', kat:'kabine', szene:'kabine', tag:'Das Ende einer Ära',
+      titel:'Der dienstälteste Spieler der Mannschaft hört auf',
+      text:'Zwanzig Jahre, ein Verein, dreihundert Spiele mehr als jeder andere im Raum. '
+         + 'Er räumt seinen Platz aus, ohne Rede, ohne Aufhebens. Die jüngeren wissen nicht, '
+         + 'wohin sie schauen sollen.',
+      bedingung: st => st.age >= 27 && st.klubJahre >= 2,
+      optionen:[
+        { t:'Eine Rede halten', chance:65, hinweis:'Jemand muss es tun',
+          gut:{ moral:11, ruf:6, text:'Du findest die richtigen Worte. Er umarmt dich, und die Kabine steht.' },
+          schlecht:{ moral:-4, text:'Es wird zu lang und zu pathetisch. Peinliche Stille.' } },
+        { t:'Seinen Platz übernehmen', chance:50, hinweis:'Symbolisch aufgeladen',
+          gut:{ moral:9, ruf:5, trait:{ playoff:4 },
+                text:'Die Botschaft ist klar: Die Verantwortung wechselt, nicht der Anspruch.' },
+          schlecht:{ moral:-9, text:'Zu früh, zu forsch. Man findet es respektlos.' } },
+        { t:'Ihn in Ruhe gehen lassen', chance:85, hinweis:'Manche Abschiede brauchen keine Zuschauer',
+          gut:{ moral:4, text:'Ihr telefoniert am Abend eine Stunde. Das war ihm mehr wert als jede Rede.' },
+          schlecht:{ text:'Es fühlt sich unfertig an. Ihr sprecht nie wieder darüber.' } }
+      ] }
+,
+
+    /* ==========================================================
+       Strang 1: Der Rivale aus dem eigenen Jahrgang
+       ========================================================== */
+    { id:'riv_start', kat:'presse', szene:'presse', tag:'Der Vergleich',
+      titel:'Ein Journalist stellt dich neben {rivale}',
+      text:'Die Doppelseite trägt eure beiden Fotos nebeneinander, dazu zwei Statistikspalten '
+         + 'und die Frage, wer von euch am Ende weiter kommt. Ihr wurdet im selben Jahr gezogen, '
+         + 'und seitdem wird jede eurer Saisons gegeneinander gerechnet.',
+      bedingung: st => st.rivale && st.age >= 22 && st.age <= 30,
+      optionen:[
+        { t:'Den Vergleich annehmen', chance:60, hinweis:'Öffentlicher Druck als Antrieb',
+          folgt:'rivalitaet',
+          gut:{ ruf:7, form:0.06, attr:{ nerven:3 },
+                text:'Du sagst, du freust dich darauf. Der Satz steht am nächsten Tag als Überschrift – und du lieferst.' },
+          schlecht:{ moral:-5, form:-0.04,
+                text:'Jetzt wird jedes deiner Spiele an seinem gemessen. Das nagt mehr, als du dachtest.' } },
+        { t:'Höflich abwiegeln', chance:80, hinweis:'Keine Angriffsfläche',
+          gut:{ text:'„Wir spielen verschiedene Rollen." Damit ist das Thema vom Tisch.' },
+          schlecht:{ ruf:-3, text:'Es klingt, als würdest du dem Vergleich ausweichen.' } },
+        { t:'Ihn offen als Maßstab nennen', chance:55, hinweis:'Nur wer sich sicher ist', nurEig:'medienliebling',
+          folgt:'rivalitaet',
+          gut:{ ruf:10, attr:{ nerven:4 },
+                text:'Souveränität kommt an. Er ruft dich am Abend an, und ihr lacht beide.' },
+          schlecht:{ ruf:-6, text:'Es wirkt wie ein Eingeständnis, dass er der Bessere ist.' } }
+      ] },
+
+    { id:'riv_duell', kat:'spiel', szene:'eis', tag:'Direktes Duell', mehrfach:true,
+      benoetigt:'rivalitaet',
+      titel:'{rivale} steht heute Abend auf der anderen Seite',
+      text:'Ausverkauftes Haus, beide Reihen werden gegeneinander aufgestellt, und die Übertragung '
+         + 'blendet vor jedem Wechsel eure Statistiken ein. {trainer} hat in der Besprechung '
+         + 'genau ein Mal seinen Namen gesagt – und dabei dich angeschaut.',
+      bedingung: st => st.age >= 23,
+      optionen:[
+        { t:'Ihn den ganzen Abend beschatten', chance:55, hinweis:'Deine Statistik leidet, seine auch',
+          gut:{ moral:8, ruf:6, attr:{ defensive:4 },
+                text:'Er bleibt ohne Punkt. Nach dem Spiel klopft er dir anerkennend auf die Schulter.' },
+          schlecht:{ form:-0.05, text:'Er dreht trotzdem auf – und du hast nebenbei dein eigenes Spiel verloren.' } },
+        { t:'Dein Spiel durchziehen', chance:70, hinweis:'Nicht ablenken lassen',
+          gut:{ ruf:5, form:0.05, text:'Drei Punkte. Er hat zwei. Genau so gewinnt man solche Abende.' },
+          schlecht:{ moral:-4, text:'Ihr verliert, und er war der Beste auf dem Eis.' } },
+        { t:'Ihn körperlich fordern', chance:45, hinweis:'Auf der Kippe zur Grenze',
+          gut:{ moral:9, attr:{ zweikampf:4 },
+                text:'Nach zwei harten Checks sucht er dich nicht mehr. Die Halle tobt.' },
+          schlecht:{ risiko:8, ruf:-5, text:'Eine Strafzeit zu viel – in Unterzahl fällt das Gegentor.' } }
+      ] },
+
+    /* ==========================================================
+       Strang 2: Der Trainer
+       ========================================================== */
+    { id:'tr_konflikt', kat:'trainer', szene:'buero', tag:'Aussprache',
+      titel:'{trainer} stellt dein Spielverständnis öffentlich infrage',
+      text:'In der Pressekonferenz nach der Niederlage gegen {gegner} fiel ein Satz über '
+         + '„Spieler, die glauben, das System gelte nicht für sie". Alle wissen, wer gemeint war. '
+         + 'Am nächsten Morgen steht seine Bürotür offen.',
+      bedingung: (st, se) => se && !se.title && st.klubJahre >= 1 && st.age >= 22,
+      optionen:[
+        { t:'Reingehen und es ausdiskutieren', chance:60, hinweis:'Direkt, aber respektvoll',
+          folgt:'trainerpakt',
+          gut:{ ruf:6, moral:7, attr:{ uebersicht:3 },
+                text:'Ihr redet vierzig Minuten. Danach versteht ihr euch besser als je zuvor.' },
+          schlecht:{ moral:-7, form:-0.06, text:'Es endet im Streit. Deine Eiszeit halbiert sich.' } },
+        { t:'Die Tür ignorieren', chance:50, hinweis:'Schweigen als Antwort',
+          gut:{ form:0.04, text:'Er respektiert, dass du auf dem Eis antwortest statt im Büro.' },
+          schlecht:{ ruf:-6, moral:-6, text:'Aus einem Satz wird eine Fehde.' } },
+        { t:'Es auf deine Art klären', chance:40, hinweis:'Kompromisslos wie immer', nurEig:'dickkopf',
+          folgt:'trainerpakt',
+          gut:{ ruf:9, moral:5, attr:{ nerven:5 },
+                text:'Du sagst ihm klar, was du brauchst. Er ändert tatsächlich etwas am System.' },
+          schlecht:{ ruf:-9, moral:-9, text:'Einer von euch muss gehen. Du bist es nicht – aber es fühlt sich nicht wie ein Sieg an.' } }
+      ] },
+
+    { id:'tr_pakt', kat:'trainer', szene:'eis', tag:'Vertrauenssache',
+      benoetigt:'trainerpakt',
+      titel:'{trainer} macht dich zum verlängerten Arm auf dem Eis',
+      text:'Er will, dass du in engen Spielen die Reihen selbst zusammenstellst. '
+         + 'Kein anderer Trainer hat dir je so viel überlassen. Es ist ein Vertrauensbeweis '
+         + 'und eine Bürde in einem.',
+      bedingung: st => st.age >= 25 && st.strangNamen && st.strangNamen.trainerpakt
+                    && st.club && st.club.n === st.strangNamen.trainerpakt.klub,
+      optionen:[
+        { t:'Die Verantwortung übernehmen', chance:65, hinweis:'Mehr Einfluss, mehr Schuld',
+          gut:{ moral:10, ruf:8, trait:{ playoff:6 }, attr:{ uebersicht:4 },
+                text:'Zwei Wechsel in der Schlussminute, beide sitzen. Die Kabine nennt dich ab jetzt „Co".' },
+          schlecht:{ moral:-8, ruf:-5, text:'Eine falsche Reihe zur falschen Zeit – und alle wissen, wer sie aufgestellt hat.' } },
+        { t:'Dankend ablehnen', chance:75, hinweis:'Spieler bleiben, nicht Trainer werden',
+          gut:{ form:0.05, text:'Kopf frei fürs eigene Spiel. Deine beste Ausbeute seit Jahren.' },
+          schlecht:{ ruf:-3, text:'Er hatte auf mehr gehofft.' } }
+      ] },
+
+    /* ==========================================================
+       Strang 3: Der Weggefährte
+       ========================================================== */
+    { id:'mit_freund', kat:'kabine', szene:'kabine', tag:'Der Weggefährte',
+      titel:'{mitspieler} wird auf der Bank durchgereicht',
+      text:'Ihr sitzt seit deinem ersten Tag bei {klub} nebeneinander, teilt Zimmer auf '
+         + 'Auswärtsfahrten und einen ziemlich schlechten Musikgeschmack. Seit sechs Wochen '
+         + 'spielt er kaum noch, und heute stand er beim Aufwärmen als Überzähliger daneben.',
+      bedingung: st => st.klubJahre >= 2 && st.age >= 23,
+      optionen:[
+        { t:'Beim Trainer für ihn eintreten', chance:55, hinweis:'Dein Kredit für seinen Platz',
+          folgt:'weggefaehrte',
+          gut:{ moral:11, ruf:4,
+                text:'Er bekommt eine Chance und macht das entscheidende Tor. Das vergisst er nie.' },
+          schlecht:{ ruf:-5, text:'„Kümmer dich um dein Spiel." Das war deutlich.' } },
+        { t:'Ihm privat zur Seite stehen', chance:80, hinweis:'Ohne großen Auftritt',
+          folgt:'weggefaehrte',
+          gut:{ moral:7, text:'Ihr trainiert morgens zu zweit. Nach einem Monat spielt er wieder.' },
+          schlecht:{ text:'Er wird im Winter abgegeben. Ihr telefoniert noch jahrelang.' } },
+        { t:'Es ist nicht dein Problem', chance:70, hinweis:'Profigeschäft',
+          gut:{ form:0.04, text:'Du konzentrierst dich auf dich – und lieferst.' },
+          schlecht:{ moral:-8, text:'Die Kabine merkt sich, wer weggeschaut hat.' } }
+      ] },
+
+    { id:'mit_wiedersehen', kat:'spiel', szene:'eis', tag:'Wiedersehen',
+      benoetigt:'weggefaehrte',
+      titel:'{mitspieler} spielt jetzt bei {gegner} – und trifft heute auf dich',
+      text:'Vor dem Bully nickt ihr euch zu wie früher in der Kabine von {damalsKlub}. '
+         + 'Dann geht es los, und plötzlich ist er einfach ein Gegenspieler, der dir '
+         + 'den Weg zum Tor versperrt.',
+      bedingung: st => st.age >= 26 && st.strangNamen && st.strangNamen.weggefaehrte
+                    && st.club && st.club.n !== st.strangNamen.weggefaehrte.klub,
+      optionen:[
+        { t:'Freundschaft ruht für sechzig Minuten', chance:75, hinweis:'Profis verstehen das',
+          gut:{ attr:{ nerven:3 }, ruf:4,
+                text:'Ihr nehmt euch nichts, spielt beide stark, und trinkt danach ein Bier.' },
+          schlecht:{ moral:-3, text:'Ein Check zu hart, ein Blick zu lang. Ihr redet danach nicht.' } },
+        { t:'Ihm den Abend gönnen', chance:60, hinweis:'Menschlich, sportlich fragwürdig',
+          gut:{ moral:6, text:'Er trifft, ihr gewinnt trotzdem. Perfekter Abend für beide.' },
+          schlecht:{ ruf:-5, form:-0.04, text:'{trainer} sieht dein Zögern auf dem Video. Zweimal.' } }
+      ] },
+
+    /* ==========================================================
+       Positionsgebundene Momente
+       ========================================================== */
+    { id:'g_wechsel', kat:'trainer', szene:'eis', tag:'Torwartfrage', nurPos:['G'],
+      titel:'{trainer} zieht dich nach dem dritten Gegentor',
+      text:'Zweites Drittel, 15:22 auf der Uhr, und der Schuss von der blauen Linie war haltbar. '
+         + 'Als du zur Bank fährst, klatscht niemand ab. Der Ersatzmann hält danach alles, '
+         + 'was kommt, und die Halle feiert ihn.',
+      bedingung: st => st.age >= 21,
+      optionen:[
+        { t:'Am nächsten Tag als Erster auf dem Eis stehen', chance:70, hinweis:'Antwort ohne Worte',
+          gut:{ attr:{ konstanz:4, nerven:3 }, ruf:5,
+                text:'Du holst dir den Platz im nächsten Spiel mit einem Shutout zurück.' },
+          schlecht:{ risiko:4, text:'Du überziehst im Training und gehst angeschlagen ins nächste Spiel.' } },
+        { t:'Den Ersatzmann öffentlich loben', chance:80, hinweis:'Größe zeigen',
+          gut:{ moral:9, ruf:6, text:'Aus einem Konkurrenten wird ein Verbündeter. Ihr teilt euch die Saison stark auf.' },
+          schlecht:{ ruf:-2, text:'Man liest es als Aufgabe des Anspruchs auf die Nummer eins.' } },
+        { t:'Sofort eine Aussprache verlangen', chance:50, hinweis:'Torhüter sind Diven, sagt man', nurEig:'dickkopf',
+          gut:{ ruf:7, attr:{ nerven:5 }, text:'Er sichert dir die nächsten fünf Spiele zu. Du hältst vier davon zu null.' },
+          schlecht:{ moral:-7, text:'Ab jetzt wechseln sie euch nach Tagesform. Das zermürbt.' } }
+      ] },
+
+    { id:'d_quarterback', kat:'trainer', szene:'buero', tag:'Überzahlspiel', nurPos:['D'],
+      titel:'Das Powerplay läuft künftig über dich – oder über {mitspieler}',
+      text:'Zwei Verteidiger, eine Position an der blauen Linie. {trainer} legt beide Videoprofile '
+         + 'nebeneinander auf den Tisch: deine Schusshärte gegen seine ruhigere Hand. '
+         + 'Er sagt, er entscheide diese Woche.',
+      bedingung: st => st.age >= 22 && st.klubJahre >= 1,
+      optionen:[
+        { t:'Auf den Schuss setzen', chance:60, hinweis:'Deine offensichtliche Stärke',
+          gut:{ attr:{ schuss:5, praezision:3 }, text:'Vierzehn Überzahltore in einer Saison. Die Diskussion ist beendet.' },
+          schlecht:{ form:-0.04, text:'Der Gegner stellt sich in den Schusskanal. Nach zwei Monaten bist du raus.' } },
+        { t:'Auf Passspiel umstellen', chance:55, hinweis:'Umlernen mitten in der Saison',
+          gut:{ attr:{ pass:5, uebersicht:4 }, ruf:4,
+                text:'Du wirst zum Taktgeber – und sammelst mehr Vorlagen als je zuvor.' },
+          schlecht:{ text:'Es passt nicht zu dir. Nach sechs Wochen läuft es wieder über ihn.' } },
+        { t:'{mitspieler} den Vortritt lassen', chance:75, hinweis:'Teamgedanke',
+          gut:{ moral:9, text:'Das Überzahlspiel läuft besser als je zuvor. Alle wissen, warum du verzichtet hast.' },
+          schlecht:{ ruf:-4, text:'Du bekommst die Position nie zurück.' } }
+      ] },
+
+    { id:'c_bully', kat:'spiel', szene:'eis', tag:'Bullypunkt', nurPos:['C'],
+      titel:'Das entscheidende Bully im eigenen Drittel',
+      text:'Neunzehn Sekunden, ein Tor Vorsprung, Bully links vor eurem Tor. '
+         + 'Der Gegner schickt seinen besten Bullyspieler aufs Eis. {trainer} schaut dich an '
+         + 'und nickt Richtung Punkt.',
+      bedingung: st => st.age >= 20,
+      optionen:[
+        { t:'Auf Sieg gehen', chance:55, hinweis:'Alles oder nichts am Punkt',
+          gut:{ attr:{ zweikampf:4, nerven:3 }, moral:6,
+                text:'Puck zurück zum Verteidiger, raus aus dem Drittel, Spiel gewonnen.' },
+          schlecht:{ moral:-5, text:'Verloren. Zwölf Sekunden später steht es unentschieden.' } },
+        { t:'Den Schläger des Gegners blocken', chance:70, hinweis:'Unsauber, aber wirksam',
+          gut:{ attr:{ zweikampf:3 }, text:'Kein sauberer Sieg, aber der Puck landet an der Bande. Reicht.' },
+          schlecht:{ ruf:-3, text:'Der Schiedsrichter pfeift dich vom Punkt. Der Ersatzmann verliert das Bully.' } }
+      ] },
+
+    /* ==========================================================
+       Charaktergebundene Momente
+       ========================================================== */
+    { id:'eig_kabinenherz', kat:'kabine', szene:'kabine', tag:'Die Kabine hört auf dich',
+      nurEig:'kabinenherz',
+      titel:'Zwei Mitspieler tragen ihren Streit vor dir aus',
+      text:'Sie stehen sich in der Mitte des Raums gegenüber, es geht angeblich um einen Fehlpass '
+         + 'und in Wahrheit um Eiszeit. Alle anderen schauen weg. Nur einer im Raum kann das '
+         + 'beenden, und alle wissen, wer.',
+      bedingung: st => st.age >= 24,
+      optionen:[
+        { t:'Beide zur Seite nehmen', chance:80, hinweis:'Was du am besten kannst',
+          gut:{ moral:12, ruf:5, text:'Am Abend sitzen sie zusammen beim Essen. So etwas kannst nur du.' },
+          schlecht:{ moral:-4, text:'Diesmal sitzt es zu tief. Einer der beiden wird im Winter abgegeben.' } },
+        { t:'Sie ausdiskutieren lassen', chance:55, hinweis:'Manches muss raus',
+          gut:{ moral:6, text:'Nach zehn lauten Minuten ist die Luft raus – und die Kabine klarer.' },
+          schlecht:{ moral:-9, text:'Es eskaliert. Der Trainerstab muss eingreifen, und das kommt an die Presse.' } }
+      ] },
+
+    { id:'eig_einzel', kat:'privat', szene:'stadt', tag:'Der eigene Weg', nurEig:'einzelgaenger',
+      titel:'Die Mannschaft fährt ins Teambuilding – du wurdest nicht gefragt',
+      text:'Drei Tage Hütte, Wandern, gemeinsames Kochen. Die Einladung ging an alle. '
+         + 'Bei dir hat man offenbar angenommen, dass du ohnehin absagst. '
+         + 'Vielleicht stimmt das sogar.',
+      bedingung: st => st.age >= 23,
+      optionen:[
+        { t:'Unangekündigt auftauchen', chance:60, hinweis:'Gegen dein eigenes Muster',
+          gut:{ moral:14, ruf:5, text:'Der Abend, an dem sich alles änderte. Die Kabine sieht dich seitdem anders.' },
+          schlecht:{ moral:-5, text:'Es bleibt steif. Nach einem Tag fährst du zurück.' } },
+        { t:'Die Zeit allein zum Training nutzen', chance:80, hinweis:'Dein gewohnter Weg',
+          gut:{ attr:{ praezision:4, reflexe:4 }, form:0.05,
+                text:'Drei Tage ungestörtes Eis. Du kommst besser zurück als alle anderen.' },
+          schlecht:{ moral:-4, text:'Der Abstand zur Mannschaft wird ein Stück größer.' } }
+      ] },
+
+    { id:'eig_heimat', kat:'privat', szene:'stadt', tag:'Ruf aus der Heimat', nurEig:'heimverbunden',
+      titel:'Dein Jugendverein steht vor dem Aus',
+      text:'Die Halle ist marode, der Hauptsponsor abgesprungen, und in zwei Monaten '
+         + 'entscheidet sich, ob es die Nachwuchsabteilung weiter gibt. '
+         + 'Man fragt dich nicht um Geld. Man fragt, ob du kommst.',
+      bedingung: st => st.age >= 26,
+      optionen:[
+        { t:'Ein Benefizspiel organisieren', chance:65, hinweis:'Dein Name als Zugpferd',
+          gut:{ ruf:11, moral:6, text:'Ausverkaufte Halle, genug Geld für drei Jahre. Sie benennen die Kabine nach dir.' },
+          schlecht:{ form:-0.05, text:'Die Organisation frisst deine ganze Sommerpause – und es reicht trotzdem nicht.' } },
+        { t:'Still einen größeren Betrag überweisen', chance:80, hinweis:'Ohne Aufhebens',
+          gut:{ moral:7, text:'Niemand erfährt davon. Der Verein überlebt.' },
+          schlecht:{ text:'Es verzögert das Ende nur um ein Jahr.' } },
+        { t:'Es tut dir leid, aber die Saison läuft', chance:65, hinweis:'Der Profi vor dem Menschen',
+          gut:{ form:0.05, text:'Voller Fokus – deine stärkste Rückrunde. Der Verein schafft es auch ohne dich.' },
+          schlecht:{ ruf:-8, moral:-6, text:'Die Halle schließt. In deiner Heimatstadt spricht man anders über dich.' } }
+      ] },
+
+    /* ---------- Weitere personalisierte Momente ---------- */
+    { id:'pers_trikot', kat:'kabine', szene:'kabine', tag:'Nummernstreit',
+      titel:'Ein Neuzugang bei {klub} will deine Nummer {nummer}',
+      text:'Er hat sie seit der Jugend getragen, sagt er, und bietet dir eine teure Uhr dafür. '
+         + 'Du trägst diese Zahl, seit dich jemand zum ersten Mal aufs Eis geschickt hat.',
+      bedingung: st => st.klubJahre >= 1 && st.age >= 22,
+      optionen:[
+        { t:'Abgeben und eine neue wählen', chance:70, hinweis:'Es ist nur eine Zahl',
+          gut:{ moral:6, text:'Die neue Nummer wird später unter dem Hallendach hängen. Ausgerechnet.' },
+          schlecht:{ form:-0.03, text:'Es fühlt sich das ganze Jahr falsch an.' } },
+        { t:'Behalten', chance:85, hinweis:'Deine Zahl',
+          gut:{ attr:{ nerven:2 }, text:'Er nimmt die 71 und sagt nie wieder ein Wort darüber.' },
+          schlecht:{ moral:-3, text:'Zwischen euch bleibt es kühl.' } }
+      ] },
+
+    { id:'pers_stadt', kat:'privat', szene:'stadt', tag:'Angekommen',
+      titel:'Nach {jahre} Jahren bei {klub} erkennt dich die halbe Stadt',
+      text:'Beim Bäcker wird nicht mehr gefragt, was du möchtest, sondern ob es wie immer sein soll. '
+         + 'Ein Kind im {klub}-Trikot winkt dir vom Fenster des Busses. '
+         + 'Es ist der Moment, in dem aus einem Arbeitsort eine Heimat wird.',
+      bedingung: st => st.klubJahre >= 4,
+      optionen:[
+        { t:'Eine Wohnung kaufen', chance:75, hinweis:'Ein Bekenntnis',
+          gut:{ moral:9, trait:{ langlebig:4 }, text:'Du bleibst noch Jahre. Der Klub weiß das zu schätzen.' },
+          schlecht:{ text:'Zwei Jahre später wirst du abgegeben und vermietest sie.' } },
+        { t:'Zur Miete bleiben', chance:70, hinweis:'Beweglich bleiben',
+          gut:{ text:'Gut so. Das nächste Angebot kommt schneller als gedacht.' },
+          schlecht:{ moral:-4, text:'Du bleibst überall ein Gast, auch nach vielen Jahren.' } }
+      ] },
+
+    { id:'pers_derby', kat:'spiel', szene:'eis', tag:'Gegen {spitze}', mehrfach:true,
+      titel:'{spitze} führt die {liga} an – heute kommen sie zu euch',
+      text:'Der Tabellenführer, ausverkauftes Haus, und {trainer} hat die Woche über '
+         + 'nichts anderes trainiert als das Umschaltspiel gegen genau diese Mannschaft. '
+         + 'Draußen stehen Leute ohne Karte.',
+      bedingung: st => st.age >= 21,
+      optionen:[
+        { t:'Von der ersten Sekunde Druck machen', chance:55, hinweis:'Mut gegen den Besten',
+          gut:{ moral:9, ruf:6, form:0.05, text:'Zwei Tore in den ersten sieben Minuten. Die Halle explodiert.' },
+          schlecht:{ moral:-5, text:'Nach dem frühen Gegentor läuft ihr nur noch hinterher.' } },
+        { t:'Kompakt stehen und auf Konter warten', chance:70, hinweis:'Unspektakulär, aber wirksam',
+          gut:{ attr:{ defensive:3 }, moral:5, text:'1:0 durch einen Konter, danach macht ihr hinten dicht.' },
+          schlecht:{ text:'Ihr haltet lange mit, verliert aber im letzten Drittel.' } }
+      ] }
+  ,
+
+    /* ==========================================================
+       Folgen der Wechselfrist
+       ========================================================== */
+    { id:'wf_heimspiel', kat:'spiel', szene:'eis', tag:'Rückkehr',
+      benoetigt:'wechsler',
+      titel:'Erstes Spiel bei {ehemaliger} – auf der falschen Bank',
+      text:'Du kennst den Weg zur Kabine, nur biegst du heute anders ab. '
+         + 'Auf der Tribüne hängt ein Banner mit deinem Namen, und niemand weiß, '
+         + 'ob es Dank oder Vorwurf sein soll. Beim Aufwärmen schaust du einmal zu lange hoch.',
+      bedingung: st => st.age >= 22,
+      optionen:[
+        { t:'Den Empfang annehmen und winken', chance:70, hinweis:'Bevor das Spiel beginnt',
+          gut:{ ruf:7, moral:8,
+                text:'Die Halle applaudiert dreißig Sekunden lang. Danach ist es ein Spiel wie jedes andere.' },
+          schlecht:{ moral:-6, text:'Ein Pfeifkonzert. Es trifft dich mehr, als du zugeben willst.' } },
+        { t:'Nach dem Tor bewusst nicht jubeln', chance:65, hinweis:'Respekt vor der alten Kurve',
+          gut:{ ruf:9, attr:{ nerven:3 },
+                text:'Du triffst, hebst kurz die Hand und senkst sie wieder. Genau das bleibt in Erinnerung.' },
+          schlecht:{ ruf:-4, text:'Du triffst nicht. Die Geste, die du dir zurechtgelegt hattest, verpufft.' } },
+        { t:'Ihnen zeigen, was sie verloren haben', chance:50, hinweis:'Kein Zurückhalten',
+          gut:{ ruf:11, moral:9, form:0.06,
+                text:'Zwei Tore, eine Vorlage, und beim letzten Wechsel steht die halbe Halle auf – widerwillig.' },
+          schlecht:{ moral:-9, ruf:-6,
+                text:'Du überziehst, kassierst zwei Strafen, und die Kurve hat ihren Abend.' } }
+      ] },
+
+    { id:'wf_treuelohn', kat:'trainer', szene:'buero', tag:'Treue',
+      benoetigt:'treue',
+      titel:'{klub} erinnert sich daran, dass du geblieben bist',
+      text:'Damals hättest du gehen können, und alle wussten es. '
+         + 'Jetzt sitzt die Vereinsführung dir gegenüber und redet von Verlässlichkeit, '
+         + 'von einem Gesicht für den Verein – und davon, dass so etwas seinen Preis hat.',
+      bedingung: st => st.age >= 24 && st.klubJahre >= 2,
+      optionen:[
+        { t:'Den Preis benennen', chance:60, hinweis:'Treue darf etwas kosten',
+          gut:{ ruf:8, moral:7,
+                text:'Sie zahlen ohne Widerspruch. Wer einmal geblieben ist, verhandelt aus einer anderen Lage.' },
+          schlecht:{ moral:-7, text:'Der Ton kippt. Aus Dankbarkeit wird ein zähes Gespräch über Zahlen.' } },
+        { t:'Um Verantwortung statt Geld bitten', chance:72, hinweis:'Eine Rolle, kein Betrag',
+          gut:{ ruf:10, moral:9, trait:{ playoff:5 },
+                text:'Sie machen dich zum Bindeglied zwischen Kabine und Büro. Kein Vertrag, aber mehr Gewicht.' },
+          schlecht:{ ruf:-3, text:'Man nickt freundlich und ändert nichts.' } }
+      ] },
+
+    { id:'wf_stimme', kat:'presse', szene:'presse', tag:'Wortführer',
+      benoetigt:'wortfuehrer',
+      titel:'Du hast die erste Reihe gefordert – jetzt willst du auch reden',
+      text:'Nach der vierten Niederlage in Folge stehen zwanzig Mikrofone im Gang, '
+         + 'und {trainer} ist schon durch. Die Mannschaft schaut auf dich, weil du derjenige warst, '
+         + 'der damals den Mund aufgemacht hat.',
+      // Der Strang oeffnet sich nur bei starken Klubs - die erreichen fast
+      // immer die Playoffs. Deshalb hier keine Playoff-Bedingung.
+      bedingung: st => st.age >= 24 && st.klubJahre >= 1,
+      optionen:[
+        { t:'Die Verantwortung auf dich nehmen', chance:68, hinweis:'Vor die Mannschaft stellen',
+          gut:{ ruf:9, moral:10, attr:{ nerven:4 },
+                text:'Du sagst, es liege an dir. Am nächsten Abend spielt die Mannschaft, als schulde sie dir etwas.' },
+          schlecht:{ ruf:-5, text:'Es klingt nach einer Ausrede, die niemand verlangt hat.' } },
+        { t:'Die Mannschaft in die Pflicht nehmen', chance:48, hinweis:'Deutlich und riskant',
+          gut:{ ruf:7, moral:6, attr:{ zweikampf:3 },
+                text:'Harte Worte, die sitzen. Drei Siege in Folge geben dir recht.' },
+          schlecht:{ moral:-11, ruf:-7,
+                text:'Am nächsten Morgen hängt dein Zitat in der Kabine – jemand hat es ausgedruckt und angepinnt.' } },
+        { t:'Nichts sagen und gehen', chance:55, hinweis:'Schweigen hat auch einen Preis',
+          gut:{ text:'Kein Wort, keine Schlagzeile. Manchmal ist das die ganze Kunst.' },
+          schlecht:{ ruf:-6, text:'Wer laut wird, wenn er etwas will, und still, wenn es schlecht läuft, verliert Kredit.' } }
+      ] },
+
+    /* ==========================================================
+       Mehr Tiefe im Karriereverlauf
+       ========================================================== */
+    { id:'st_mentor', kat:'kabine', szene:'kabine', tag:'Der Nachrücker',
+      titel:'Ein Achtzehnjähriger bekommt deinen Platz im Training zugeteilt',
+      text:'Er spielt deine Position, hat deine Nummer als Kind getragen und fragt nach jedem '
+         + 'Training, ob du ihm etwas zeigst. Er ist gut. Er ist schnell gut geworden.',
+      bedingung: st => st.age >= 27,
+      optionen:[
+        { t:'Ihm alles beibringen, was du weißt', chance:75, hinweis:'Auch wenn es dich Platz kostet',
+          folgt:'ziehvater',
+          gut:{ moral:11, ruf:6,
+                text:'Er wird besser, ihr spielt zusammen in einer Reihe, und der Klub verlängert mit euch beiden.' },
+          schlecht:{ moral:-5, text:'Nach vier Monaten spielt er, wo du gespielt hast.' } },
+        { t:'Höflich bleiben, aber auf Abstand', chance:70, hinweis:'Profigeschäft',
+          gut:{ form:0.05, text:'Du konzentrierst dich auf dich und verteidigst deinen Platz mit Leistung.' },
+          schlecht:{ moral:-6, text:'Die Kabine merkt, dass du dich bedroht fühlst. Das ist kein gutes Bild.' } }
+      ] },
+
+    { id:'st_ziehvater', kat:'kabine', szene:'kabine', tag:'Der Schüler',
+      benoetigt:'ziehvater',
+      titel:'{mitspieler} wird vor dir zum Nationalspieler berufen',
+      text:'Du hast ihm gezeigt, wie man den Schläger hält, wenn es eng wird. '
+         + 'Jetzt liest du seinen Namen auf einer Liste, auf der deiner nicht steht. '
+         + 'Er ruft dich am Abend an und weiß nicht, was er sagen soll.',
+      bedingung: st => st.age >= 29,
+      optionen:[
+        { t:'Dich ehrlich für ihn freuen', chance:78, hinweis:'Es kostet etwas, und das ist in Ordnung',
+          gut:{ moral:10, ruf:5,
+                text:'Ihr redet zwei Stunden. So etwas hält länger als jede Nominierung.' },
+          schlecht:{ moral:-4, text:'Du sagst die richtigen Sätze und legst mit einem Kloß im Hals auf.' } },
+        { t:'Es als Ansporn nehmen', chance:58, hinweis:'Noch ist nichts vorbei',
+          gut:{ form:0.08, attr:{ nerven:4 }, ruf:6,
+                text:'Deine stärkste Rückrunde seit Jahren. Beim nächsten Turnier stehst du wieder auf der Liste.' },
+          schlecht:{ moral:-7, text:'Du willst zu viel, spielst verkrampft, und niemand ruft an.' } }
+      ] },
+
+    { id:'st_formtief', kat:'privat', szene:'stadt', tag:'Formtief', mehrfach:true,
+      titel:'Vierzehn Spiele ohne Scorerpunkt',
+      text:'Du machst nichts anders als vorher. Du trainierst mehr, schläfst schlechter, '
+         + 'und der Puck findet trotzdem jeden Weg außer den ins Tor. '
+         + 'In der Zeitung steht das Wort, das niemand ausspricht: Formkrise.',
+      bedingung: (st, se) => st.age >= 22 && se && se.gp > 20,
+      optionen:[
+        { t:'Mehr trainieren als alle anderen', chance:55, hinweis:'Der offensichtliche Weg',
+          gut:{ attr:{ praezision:4, schuss:3, reflexe:4 }, form:0.06,
+                text:'Nach drei Wochen fällt einer rein, und danach fallen sie alle.' },
+          schlecht:{ risiko:7, moral:-5, text:'Du läufst dir die Beine wund und wirst nur müder.' } },
+        { t:'Einen Sportpsychologen aufsuchen', chance:70, hinweis:'Ungewöhnlich, aber wirksam',
+          gut:{ attr:{ nerven:6, konstanz:4 }, moral:8,
+                text:'Zwei Sitzungen, ein Satz, der hängen bleibt. Der Kopf war das Problem, nicht die Hände.' },
+          schlecht:{ ruf:-3, text:'Es spricht sich herum und wird zu einer Geschichte, die du nicht wolltest.' } },
+        { t:'Eine Woche komplett abschalten', chance:60, hinweis:'Gegen jeden Instinkt',
+          gut:{ moral:10, form:0.07,
+                text:'Sieben Tage ohne Eis. Danach macht es wieder Spaß, und der Rest kommt von selbst.' },
+          schlecht:{ form:-0.06, text:'Du kommst zurück und bist noch weiter weg als vorher.' } }
+      ] },
+
+    { id:'st_rekordnacht', kat:'spiel', szene:'eis', tag:'Rekordjagd',
+      titel:'Ein Punkt fehlt dir zum Klubrekord von {klub}',
+      text:'Der Mann, der ihn hält, sitzt heute auf der Tribüne und ist eigens angereist. '
+         + 'Die Halle weiß Bescheid, die Anzeigetafel zeigt es mit, und jeder deiner Wechsel '
+         + 'beginnt mit einem Raunen.',
+      bedingung: st => st.klubJahre >= 3 && st.age >= 25,
+      optionen:[
+        { t:'Den Rekord holen wollen', chance:58, hinweis:'Alles auf diesen Abend',
+          gut:{ ruf:12, moral:10,
+                text:'Sechs Minuten vor Schluss fällt er. Der alte Rekordhalter steht als Erster auf.' },
+          schlecht:{ moral:-6, ruf:-3, text:'Du erzwingst zu viel, verlierst Pucks, und der Abend geht ohne Punkt zu Ende.' } },
+        { t:'Normal spielen und abwarten', chance:72, hinweis:'Er kommt oder er kommt nicht',
+          gut:{ ruf:9, attr:{ nerven:3 },
+                text:'Eine unscheinbare Vorlage in der zweiten Minute. Danach spielst du frei auf.' },
+          schlecht:{ text:'Diesmal nicht. Es bleiben noch Spiele.' } }
+      ] },
+
+    { id:'st_comeback', kat:'privat', szene:'kabine', tag:'Rückkehr',
+      titel:'Das erste Spiel nach der Verletzung',
+      text:'Die Ärzte haben dich freigegeben, der Körper hält, und trotzdem steht beim Aufwärmen '
+         + 'die Frage im Raum, die niemand stellt: Gehst du in den nächsten Zweikampf so hinein '
+         + 'wie vorher? Die Stelle, an der es passiert ist, kennst du auf Zentimeter genau.',
+      bedingung: (st, se) => se && se.verletzung && se.verletzung.spiele >= 10,
+      optionen:[
+        { t:'Sofort den ersten harten Check suchen', chance:55, hinweis:'Die Frage sofort beantworten',
+          gut:{ moral:12, attr:{ zweikampf:4, nerven:4 },
+                text:'Es tut nichts weh. Nach diesem einen Moment ist die Verletzung wirklich vorbei.' },
+          schlecht:{ risiko:10, moral:-8, text:'Es zieht wieder. Diesmal nur ein Schreck – aber der sitzt.' } },
+        { t:'Vorsichtig herantasten', chance:75, hinweis:'Wochen statt Minuten',
+          gut:{ attr:{ konstanz:3 }, text:'Nach einem Monat bist du wieder ganz da, ohne Rückschlag.' },
+          schlecht:{ form:-0.06, moral:-5, text:'Die Vorsicht bleibt und kostet dich den entscheidenden Schritt.' } },
+        { t:'Die Ausrüstung komplett umstellen', chance:48, hinweis:'Neuer Schutz, neues Gefühl',
+          gut:{ trait:{ robust:8 }, moral:7,
+                text:'Anderes Material, anderer Sitz – und plötzlich denkst du nicht mehr daran.' },
+          schlecht:{ form:-0.05, text:'Nichts passt richtig. Du wechselst nach sechs Wochen wieder zurück.' } }
+      ] },
+
+    { id:'st_familie', kat:'privat', szene:'stadt', tag:'Zuhause',
+      titel:'Ein Angebot in einer Stadt, die nicht deine ist',
+      text:'Es geht diesmal nicht um dich. Jemand, der dir wichtig ist, hat die Chance seines Lebens – '
+         + 'siebenhundert Kilometer entfernt. Dein Vertrag hier läuft noch zwei Jahre.',
+      bedingung: st => st.age >= 26,
+      optionen:[
+        { t:'Um eine Freigabe bitten', chance:52, hinweis:'Dein Weg richtet sich nach jemand anderem',
+          gut:{ moral:12, text:'Der Klub lässt dich ziehen, ohne es an die große Glocke zu hängen. Das vergisst du nie.' },
+          schlecht:{ moral:-8, ruf:-4, text:'Man besteht auf dem Vertrag. Zwei Jahre Fernbeziehung liegen vor euch.' } },
+        { t:'Die Entfernung aushalten', chance:62, hinweis:'Zwei Jahre sind zwei Jahre',
+          gut:{ attr:{ nerven:4 }, text:'Es geht gut. Anstrengend, aber es geht.' },
+          schlecht:{ moral:-9, form:-0.05, text:'Es zermürbt euch beide, und man sieht es deinem Spiel an.' } },
+        { t:'Gemeinsam gegen das Angebot entscheiden', chance:66, hinweis:'Auch das ist eine Wahl',
+          gut:{ moral:9, text:'Ihr bleibt. Es fühlt sich richtig an, auch wenn es niemand versteht.' },
+          schlecht:{ moral:-10, text:'Der Verzicht steht ab jetzt zwischen euch im Raum.' } }
+      ] },
+
+    { id:'st_abschiedsfrage', kat:'kabine', szene:'kabine', tag:'Wie lange noch',
+      titel:'Ein Mitspieler fragt dich, wie lange du noch spielst',
+      text:'Er meint es nicht böse, er fragt aus echtem Interesse. '
+         + 'Trotzdem ist es das erste Mal, dass dir jemand diese Frage stellt – '
+         + 'und das erste Mal, dass du keine schnelle Antwort hast.',
+      bedingung: st => st.age >= 33,
+      optionen:[
+        { t:'Ehrlich sagen, dass du es nicht weißt', chance:80, hinweis:'Offenheit statt Pose',
+          gut:{ moral:7, text:'Ihr redet lange. Danach ist der Gedanke kleiner als vorher.' },
+          schlecht:{ moral:-5, text:'Es auszusprechen macht es realer, als dir lieb ist.' } },
+        { t:'Noch drei Jahre ankündigen', chance:50, hinweis:'Ein Versprechen an dich selbst',
+          gut:{ trait:{ langlebig:9 }, moral:8,
+                text:'Du sagst es laut, und ab da trainierst du wie jemand, der ein Ziel hat.' },
+          schlecht:{ moral:-6, text:'Der Satz steht im Raum, und dein Körper hat ihn nicht mitgehört.' } }
+      ] }
+  ,
+
+    /* ==========================================================
+       Torhüter
+       ========================================================== */
+    { id:'g_penalty', kat:'spiel', szene:'eis', tag:'Penalty', nurPos:['G'], mehrfach:true,
+      titel:'Penalty gegen {klub} – 40 Sekunden vor Schluss, ihr führt mit einem Tor',
+      text:'Die Halle steht, der Schiedsrichter legt den Puck auf den Punkt, '
+         + 'und der Schütze nimmt sich betont viel Zeit. Du kennst ihn: '
+         + 'Er geht in acht von zehn Fällen in die kurze Ecke. Meistens.',
+      bedingung: st => st.age >= 20,
+      optionen:[
+        { t:'Auf die kurze Ecke festlegen', chance:52, hinweis:'Sein Muster – wenn er es diesmal spielt',
+          gut:{ moral:12, ruf:8, attr:{ reflexe:4, lesen:3 },
+                text:'Du bist da, bevor er schießt. Der Puck klatscht in deine Fanghand, die Halle explodiert.' },
+          schlecht:{ moral:-7, text:'Er hat es geahnt und schiebt in die andere Ecke. Ausgleich.' } },
+        { t:'Lange stehen bleiben und reagieren', chance:64, hinweis:'Kein Muster, nur Reflex',
+          gut:{ attr:{ reflexe:5 }, moral:8,
+                text:'Du bleibst stehen, bis er sich entschieden hat. Der Rest ist Handwerk.' },
+          schlecht:{ moral:-5, text:'Eine Zehntelsekunde zu spät. Der Puck ist schon vorbei.' } },
+        { t:'Ihn mit einem Wort aus dem Konzept bringen', chance:40, hinweis:'Grenzwertig, aber wirksam',
+          gut:{ ruf:9, moral:10, attr:{ nerven:5 },
+                text:'Was du sagst, versteht nur er. Sein Schuss geht einen halben Meter am Tor vorbei.' },
+          schlecht:{ ruf:-8, text:'Er trifft und dreht sich zu dir um. Das Bild läuft eine Woche lang in jeder Zusammenfassung.' } }
+      ] },
+
+    { id:'g_maske', kat:'privat', szene:'stadt', tag:'Die Maske', nurPos:['G'],
+      titel:'Ein Maler fragt, was auf deine neue Maske soll',
+      text:'Er hat schon für halbe Nationalmannschaften gearbeitet und will wissen, '
+         + 'wofür du stehst. Nicht welche Farben – wofür. '
+         + 'Du sitzt in seiner Werkstatt und merkst, dass du länger nachdenkst als erwartet.',
+      bedingung: st => st.age >= 21,
+      optionen:[
+        { t:'Die Heimatstadt aufs Kinn', chance:78, hinweis:'Woher du kommst',
+          gut:{ moral:9, ruf:5,
+                text:'Die Skyline deiner Kleinstadt auf einer Maske in der besten Liga der Welt. Zuhause hängt das Foto in jeder Kneipe.' },
+          schlecht:{ text:'Es wird schön, aber niemand erkennt, was es darstellen soll.' } },
+        { t:'Etwas, das dem Gegner Angst macht', chance:60, hinweis:'Ein Bild, das im Kopf bleibt',
+          gut:{ ruf:9, attr:{ nerven:3 },
+                text:'Zwei Augen, sonst nichts. Stürmer sagen später, sie hätten nie gern draufgeschaut.' },
+          schlecht:{ ruf:-4, text:'Es wirkt bemüht. In den Netzwerken macht man sich lustig.' } },
+        { t:'Die Namen der Menschen, die dich hergebracht haben', chance:85, hinweis:'Klein, nur für dich',
+          gut:{ moral:12, text:'Winzige Schrift am Hinterkopf, lesbar nur aus einem Meter. Du weißt, dass sie da sind.' },
+          schlecht:{ moral:-3, text:'Ein Journalist fotografiert es heran und macht eine Geschichte daraus, die dir nicht gehört.' } }
+      ] },
+
+    { id:'g_serie', kat:'presse', szene:'presse', tag:'Die Serie', nurPos:['G'],
+      titel:'Seit 187 Minuten hast du kein Gegentor bekommen',
+      text:'Noch zwei Drittel bis zum Klubrekord. Alle reden davon, nur in der Kabine '
+         + 'spricht es niemand aus – dort gilt es als sicherer Weg, die Serie zu beenden. '
+         + '{trainer} fragt, ob du eine Pause willst.',
+      bedingung: st => st.age >= 22,
+      optionen:[
+        { t:'Spielen und die Serie jagen', chance:55, hinweis:'Der Rekord ist zum Greifen',
+          gut:{ ruf:12, moral:10, attr:{ konstanz:4 },
+                text:'Vier Minuten vor Schluss ist der Rekord deiner. Die Bank leert sich, bevor die Sirene geht.' },
+          schlecht:{ moral:-6, text:'Nach elf Minuten ein abgefälschter Schuss. Aus.' } },
+        { t:'Die Pause annehmen', chance:70, hinweis:'Der Körper vor dem Rekord',
+          gut:{ attr:{ reflexe:3, konstanz:3 }, form:0.06,
+                text:'Frisch zurück, und die Serie läuft trotzdem weiter – zwei Spiele später fällt der Rekord doch.' },
+          schlecht:{ moral:-5, ruf:-3, text:'Dein Vertreter hält zu null. Plötzlich diskutiert die Stadt über die Nummer eins.' } }
+      ] },
+
+    { id:'g_aussetzer', kat:'kabine', szene:'kabine', tag:'Der weiche Treffer', nurPos:['G'], mehrfach:true,
+      titel:'Ein Schuss von der Mittellinie geht dir durch die Beine',
+      text:'Es gibt keine Erklärung dafür. Der Puck war langsam, du hast ihn gesehen, '
+         + 'und trotzdem liegt er im Netz. Auf dem Videowürfel läuft die Szene dreimal. '
+         + 'Danach spielt ihr noch vierzig Minuten.',
+      bedingung: st => st.age >= 20,
+      optionen:[
+        { t:'Es sofort abhaken und weitermachen', chance:62, hinweis:'Die Kunst des Torhüters',
+          gut:{ attr:{ nerven:5, konstanz:3 }, moral:7,
+                text:'Danach hältst du alles. Am Ende redet niemand mehr über den einen Puck.' },
+          schlecht:{ moral:-8, form:-0.05, text:'Es geht dir den ganzen Abend nicht aus dem Kopf. Zwei weitere fallen.' } },
+        { t:'Dich in der Pause bei der Mannschaft entschuldigen', chance:72, hinweis:'Offen damit umgehen',
+          gut:{ moral:9, ruf:4,
+                text:'Zwei Mitspieler klopfen dir auf die Maske. Danach spielt ihr befreiter als vorher.' },
+          schlecht:{ moral:-4, text:'Es macht das Ganze größer, als es war.' } },
+        { t:'Die Videoanalyse noch am Abend durchgehen', chance:58, hinweis:'Verstehen statt vergessen',
+          gut:{ attr:{ stellung:5, lesen:4 },
+                text:'Du findest den Fehler: eine Handbreit zu weit rechts. So etwas passiert dir nicht wieder.' },
+          schlecht:{ moral:-6, text:'Du siehst die Szene zwanzigmal und findest nichts. Das ist schlimmer.' } }
+      ] },
+
+    /* ==========================================================
+       Verteidiger
+       ========================================================== */
+    { id:'d_block', kat:'spiel', szene:'eis', tag:'Der Block', nurPos:['D'], mehrfach:true,
+      titel:'Letzte Minute, Unterzahl, und ihr führt gegen {gegner} mit einem Tor',
+      text:'Ihr Verteidiger zieht ab, und zwischen dem Puck und eurem Tor stehst nur du. '
+         + 'Der Schuss kommt aus zwölf Metern. Du hast eine halbe Sekunde für die Entscheidung, '
+         + 'ob du dich hineinwirfst.',
+      bedingung: st => st.age >= 20,
+      optionen:[
+        { t:'Dich in den Schuss werfen', chance:66, hinweis:'Der Knochen hält meistens',
+          gut:{ moral:11, ruf:7, attr:{ defensive:4 },
+                text:'Der Puck trifft dich am Schienbein, springt an die Bande, die Sirene geht. Die Bank steht.' },
+          schlecht:{ risiko:12, moral:-5, text:'Der Puck trifft den Spann. Du humpelst vom Eis und weißt sofort, dass es länger dauert.' } },
+        { t:'Den Schusskanal zustellen, ohne zu fallen', chance:72, hinweis:'Stehend verteidigen',
+          gut:{ attr:{ uebersicht:3, defensive:3 },
+                text:'Er findet keinen Weg durch und muss abdrehen. Unspektakulär und genau richtig.' },
+          schlecht:{ moral:-7, text:'Der Schuss geht an dir vorbei und rein. Ausgleich in der letzten Minute.' } }
+      ] },
+
+    { id:'d_partner', kat:'kabine', szene:'kabine', tag:'Der Partner', nurPos:['D'],
+      titel:'{mitspieler} soll nicht mehr neben dir verteidigen',
+      text:'Ihr habt zwei Jahre lang jede Schicht zusammen gespielt und braucht keine Blicke mehr, '
+         + 'um zu wissen, wer wohin geht. {trainer} will die Paare neu mischen '
+         + 'und stellt dir einen Neuzugang an die Seite.',
+      bedingung: st => st.klubJahre >= 2 && st.age >= 23,
+      optionen:[
+        { t:'Für euer Paar kämpfen', chance:55, hinweis:'Eingespielt schlägt talentiert',
+          folgt:'weggefaehrte',
+          gut:{ moral:10, attr:{ defensive:3 },
+                text:'Er lässt euch zusammen. Ihr seid am Saisonende das beste Paar der Liga.' },
+          schlecht:{ ruf:-5, moral:-6, text:'Die Entscheidung steht. Jetzt weiß auch der Neue, dass du ihn nicht wolltest.' } },
+        { t:'Dich auf den Neuen einlassen', chance:70, hinweis:'Ein Paar neu aufbauen',
+          gut:{ attr:{ uebersicht:4, pass:3 }, ruf:5,
+                text:'Nach sechs Wochen läuft es. Du merkst, wie viel du dabei selbst dazugelernt hast.' },
+          schlecht:{ form:-0.05, text:'Ihr findet den Rhythmus nicht. Die Gegentore fallen auf eurer Seite.' } }
+      ] },
+
+    /* ==========================================================
+       Stürmer
+       ========================================================== */
+    { id:'s_ladehemmung', kat:'spiel', szene:'eis', tag:'Ladehemmung', nurPos:['C','LW','RW'], mehrfach:true,
+      titel:'Neunzehn Torschüsse in vier Spielen – und kein Treffer',
+      text:'Die Chancen sind da, die Beine sind da, nur der Puck geht nicht rein. '
+         + 'Beim letzten Spiel hast du zweimal Pfosten getroffen. '
+         + 'Der Videotrainer legt dir wortlos eine Zusammenstellung deiner Abschlüsse hin.',
+      bedingung: st => st.age >= 20,
+      optionen:[
+        { t:'Den Schläger komplett wechseln', chance:58, hinweis:'Aberglaube mit System',
+          gut:{ attr:{ schuss:4, praezision:4 },
+                text:'Anderer Flex, anderes Gefühl – im nächsten Spiel zwei Tore.' },
+          schlecht:{ form:-0.05, text:'Es fühlt sich fremd an. Du wechselst nach zwei Wochen zurück, um nichts gebessert.' } },
+        { t:'Einfacher spielen und vors Tor gehen', chance:72, hinweis:'Keine schönen Tore mehr',
+          gut:{ attr:{ zweikampf:3, puck:3 }, moral:6,
+                text:'Ein abgefälschter Schuss vom Schlittschuh. Hässlich und genau das, was du gebraucht hast.' },
+          schlecht:{ moral:-5, text:'Du bekommst Prügel vor dem Tor und trotzdem nichts.' } },
+        { t:'Auf den nächsten Schuss alles setzen', chance:44, hinweis:'Ein Versuch, ganz oder gar nicht',
+          gut:{ ruf:8, moral:11, attr:{ schuss:5 },
+                text:'Aus der Drehung in den Winkel. Manche Serien enden mit dem schönsten Tor des Jahres.' },
+          schlecht:{ moral:-8, text:'Wieder Pfosten. Du beginnst, an den einfachsten Dingen zu zweifeln.' } }
+      ] }
+  ,
+
+    /* ==========================================================
+       Das Jahrgangsrennen
+       ========================================================== */
+    { id:'jg_jagd', gewicht:3.5, kat:'presse', szene:'presse', tag:'Die Jagd', mehrfach:true,
+      titel:'Zwischen dir und dem Nächsten liegen keine zwanzig Punkte mehr',
+      text:'Seit ihr im selben Jahr gezogen wurdet, wird jede eurer Saisons nebeneinander gelegt. '
+         + 'Diesmal ist der Abstand so klein wie nie. Ein Reporter hat ausgerechnet, '
+         + 'wie viele Spiele du brauchst, um vorbeizuziehen, und legt dir den Zettel hin.',
+      bedingung: st => st.jahrgangDelta && st.jahrgangDelta.vorn
+                    && st.jahrgangDelta.vorn.abstand <= 20 && st.age >= 23,
+      optionen:[
+        { t:'Den Zettel einstecken und liefern', chance:58, hinweis:'Die Jagd annehmen',
+          gut:{ form:0.08, moral:9, attr:{ nerven:3 },
+                text:'Du ziehst vorbei, und es fühlt sich an wie ein Titel, von dem sonst niemand weiß.' },
+          schlecht:{ moral:-6, text:'Du willst zu viel. Der Abstand wächst wieder.' } },
+        { t:'Sagen, dass du nicht gegen Zahlen spielst', chance:76, hinweis:'Kopf frei behalten',
+          gut:{ attr:{ konstanz:4 }, form:0.05,
+                text:'Ohne den Vergleich im Nacken spielst du befreit – und ziehst nebenbei vorbei.' },
+          schlecht:{ ruf:-3, text:'Es liest sich, als hättest du den Vergleich längst aufgegeben.' } }
+      ] },
+
+    { id:'jg_spitze', gewicht:3.5, kat:'presse', szene:'presse', tag:'An der Spitze',
+      titel:'Du führst deinen Jahrgang an',
+      text:'Von den acht Namen, die damals zusammen gezogen wurden, steht deiner ganz oben. '
+         + 'Zwei spielen längst nicht mehr, einer ist in die zweite Liga zurück. '
+         + 'Man fragt dich, ob du damit gerechnet hättest.',
+      bedingung: st => st.jahrgangDelta && st.jahrgangDelta.platz === 1 && st.age >= 26,
+      optionen:[
+        { t:'An die erinnern, die es nicht geschafft haben', chance:80, hinweis:'Größe zeigen',
+          gut:{ ruf:9, moral:8,
+                text:'Du nennst zwei Namen, die sonst niemand mehr nennt. Der Satz wird oft zitiert.' },
+          schlecht:{ text:'Es wirkt einstudiert, obwohl es das nicht war.' } },
+        { t:'Sagen, dass du erst am Anfang stehst', chance:62, hinweis:'Die Messlatte höher legen',
+          gut:{ ruf:8, trait:{ langlebig:6 },
+                text:'Ein Satz, an dem du dich messen lassen musst – und der dich noch Jahre trägt.' },
+          schlecht:{ ruf:-5, text:'Man hakt nach, was denn noch kommen soll. Du hast keine gute Antwort.' } }
+      ] },
+
+    { id:'jg_hinterher', gewicht:3.5, kat:'privat', szene:'stadt', tag:'Hinterher', mehrfach:true,
+      titel:'{rivale} ist längst dort, wo du hinwolltest',
+      text:'Ihr habt im selben Sommer angefangen, im selben Draft, mit denselben Aussichten. '
+         + 'Heute liest du seinen Namen in Zusammenhängen, in denen deiner nicht vorkommt. '
+         + 'Es ist niemandes Schuld, und genau das macht es schwer.',
+      bedingung: st => st.jahrgangDelta && st.jahrgangDelta.platz >= 5
+                    && st.rivale && st.age >= 25,
+      optionen:[
+        { t:'Den Vergleich endgültig loslassen', chance:74, hinweis:'Deine Laufbahn ist deine',
+          gut:{ moral:11, attr:{ konstanz:4 },
+                text:'Von dem Tag an spielst du nur noch für dich. Es wird deine beständigste Phase.' },
+          schlecht:{ moral:-5, text:'Man lässt so etwas nicht los, weil man es beschließt.' } },
+        { t:'Ihn anrufen', chance:66, hinweis:'Der unbequeme Weg',
+          gut:{ moral:12, ruf:4, folgt:'rivalitaet',
+                text:'Zwei Stunden am Telefon. Am Ende habt ihr beide erzählt, wovor ihr Angst habt.' },
+          schlecht:{ moral:-6, text:'Es bleibt bei Höflichkeiten. Ihr habt euch nichts mehr zu sagen.' } },
+        { t:'Alles auf eine letzte große Saison setzen', chance:42, hinweis:'Wenig zu verlieren',
+          gut:{ form:0.11, ruf:10, moral:10,
+                text:'Die beste Saison deines Lebens, mit achtundzwanzig. Plötzlich reden alle wieder von dir.' },
+          schlecht:{ risiko:9, moral:-9, text:'Du überziehst in jeder Hinsicht und zahlst dafür.' } }
+      ] }
   ];
 
-  return { LISTE };
+  /* ==========================================================
+     Wagnisse – Optionen mit kleiner Erfolgschance und grosser
+     Wirkung. Sie werden an bestehende Ereignisse angehaengt.
+     ========================================================== */
+  const WAGNISSE = {
+    kabine1: { t:'Den Platz des Kapitäns beanspruchen', chance:20,
+      hinweis:'Dreist bis zur Grenze – aber wer es überlebt, ist gemacht',
+      gut:{ ruf:14, moral:12, attr:{ nerven:6 },
+            text:'Er lacht laut, steht auf und setzt sich neben dich. Ab heute bist du wer.' },
+      schlecht:{ moral:-14, ruf:-8, form:-0.05,
+            text:'Die halbe Kabine redet zwei Monate nicht mit dir.' } },
+
+    kabine2: { t:'Dem Trainer den Stuhl zurückreichen', chance:22,
+      hinweis:'Provokation mit Ansage',
+      gut:{ ruf:12, moral:14, attr:{ nerven:7 },
+            text:'Zwei Sekunden Totenstille, dann bricht die Kabine in Gelächter aus. Der Bann ist gebrochen.' },
+      schlecht:{ ruf:-12, moral:-10, form:-0.12,
+            text:'Du wirst suspendiert. Der Verein prüft die Vertragsauflösung.' } },
+
+    presse1: { t:'Einen Wechsel offen ankündigen', chance:18,
+      hinweis:'Alles auf eine Karte',
+      gut:{ ruf:16, text:'Drei Spitzenklubs melden sich noch in derselben Woche. Dein Marktwert explodiert.' },
+      schlecht:{ moral:-15, ruf:-10, text:'Der Klub setzt dich auf die Tribüne. Die Fans pfeifen dich aus.' } },
+
+    trainer1: { t:'Ihm ein eigenes System vorschlagen', chance:25,
+      hinweis:'Spieler denken nicht, Spieler spielen – normalerweise',
+      gut:{ attr:{ uebersicht:8, pass:6 }, ruf:10,
+            text:'Er probiert es aus. Es funktioniert. Man nennt es später nach dir.' },
+      schlecht:{ ruf:-9, form:-0.08, text:'Er hört dir zwei Minuten zu und stellt dich danach nie wieder auf Sonderrollen.' } },
+
+    spiel1: { t:'Zwischen zwei Verteidigern durchziehen', chance:16,
+      hinweis:'Das versucht niemand in dieser Situation',
+      gut:{ ruf:18, moral:10, attr:{ puck:6, antritt:5 }, trait:{ playoff:8 },
+            text:'Das Tor läuft zwanzig Jahre lang in jeder Jahresrückblick-Sendung.' },
+      schlecht:{ moral:-8, ruf:-6, risiko:6,
+            text:'Puckverlust, Konter, Empty-Net. Die Bilder wirst du auch nicht los.' } },
+
+    spiel2: { t:'Den Gegner sofort stellen und nicht loslassen', chance:24,
+      hinweis:'Fünf Minuten sicher, alles andere offen',
+      gut:{ moral:16, ruf:10, attr:{ zweikampf:6 },
+            text:'Die ganze Bank steht. Ab heute geht dieses Team für dich durch die Bande.' },
+      schlecht:{ risiko:14, ruf:-9,
+            text:'Sechs Spiele Sperre, eine Anzeige und ein Klub, der sich distanziert.' } },
+
+    fuehrung1: { t:'Eine Rücktrittsdrohung in den Raum stellen', chance:15,
+      hinweis:'Entweder es zündet oder es zerreißt alles',
+      gut:{ moral:18, ruf:12, trait:{ playoff:10 },
+            text:'Ihr gewinnt das siebte Spiel. Diese Ansprache steht später in Büchern.' },
+      schlecht:{ moral:-16, ruf:-10, text:'Es wirkt wie Erpressung. Ihr verliert deutlich.' } },
+
+    rivale1: { t:'Dem Trainer sagen, du oder er', chance:20,
+      hinweis:'Ein Ultimatum mit dreißig',
+      gut:{ ruf:11, form:0.10, text:'Der Junge wird abgegeben. Du spielst die Saison deines Lebens.' },
+      schlecht:{ ruf:-12, moral:-10, text:'Du wirst abgegeben. Er wird Kapitän.' } },
+
+    berater1: { t:'Öffentlich einen Wechselwunsch hinterlegen', chance:22,
+      hinweis:'Maximaler Druck',
+      gut:{ ruf:13, text:'Der Klub knickt ein und zahlt weit über Marktwert.' },
+      schlecht:{ moral:-14, ruf:-11, form:-0.06, text:'Du trainierst drei Monate mit der zweiten Mannschaft.' } },
+
+    comeback1: { t:'Ohne Freigabe auflaufen', chance:18,
+      hinweis:'Gegen jeden ärztlichen Rat',
+      gut:{ moral:15, ruf:12, trait:{ playoff:8 },
+            text:'Du erzielst das Siegtor und kannst danach zwei Tage nicht laufen. Es war es wert.' },
+      schlecht:{ risiko:22, form:-0.14, text:'Kreuzband. Die Saison ist vorbei, und die nächste auch fast.' } },
+
+    krise1: { t:'Die ganze Mannschaft öffentlich in die Pflicht nehmen', chance:24,
+      hinweis:'Vor laufenden Kameras statt hinter Türen',
+      gut:{ moral:14, ruf:12, text:'Am nächsten Abend spielt ihr wie ausgewechselt. Die Serie ist gebrochen.' },
+      schlecht:{ moral:-15, ruf:-8, text:'Die Kabine fühlt sich verraten. Es wird noch schlimmer.' } },
+
+    transfer1: { t:'Zusagen und den laufenden Vertrag brechen', chance:14,
+      hinweis:'Rechtlich heikel, sportlich verlockend',
+      gut:{ ruf:15, form:0.09, text:'Der Wechsel klappt. Du spielst plötzlich zwei Ligen höher.' },
+      schlecht:{ ruf:-15, moral:-12, text:'Der Streit landet vor dem Schiedsgericht. Du spielst ein halbes Jahr gar nicht.' } },
+
+    nat1: { t:'Absagen und öffentlich Kritik am Verband üben', chance:17,
+      hinweis:'Ein Konflikt mit langem Nachhall',
+      gut:{ ruf:12, form:0.08, text:'Die Debatte ändert tatsächlich etwas. Andere Spieler danken es dir.' },
+      schlecht:{ ruf:-14, text:'Der Verband nominiert dich nie wieder. Nie.' } },
+
+    alter1: { t:'Eine Vertragsverlängerung über drei Jahre fordern', chance:21,
+      hinweis:'Mit vierunddreißig eine steile Forderung',
+      gut:{ trait:{ langlebig:12 }, ruf:8, text:'Er unterschreibt. Du spielst noch drei starke Jahre.' },
+      schlecht:{ ruf:-8, text:'Das Gespräch endet freundlich – und mit einem Auslaufvertrag.' } }
+  };
+
+  /* Wagnisse anhaengen */
+  LISTE.forEach(e => {
+    const w = WAGNISSE[e.id];
+    if (w) e.optionen.push(Object.assign({ wagnis:true }, w));
+  });
+
+  return { LISTE, WAGNISSE };
 })();
 
 if (typeof window !== 'undefined') window.EREIGNISSE = EREIGNISSE;

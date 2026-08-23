@@ -12,7 +12,8 @@ function CareerGame(root, cfg){
     runde: 0,                // Draftrunde 0..7
     skipStufe: 0,            // wie oft die aktuelle Runde neu gemischt wurde
     skipsUebrig: PUCKERO.MAX_SKIPS,
-    ident: cfg.ident || { name:'', num:9, nation:'GER', pos:'C', mode:'klassisch' },
+    ident: cfg.ident || { name:'', num:9, nation:'GER', pos:'C', mode:'klassisch',
+                          trainingAuto:true },
     seed: cfg.seed || cfg.startSeed || null,
     player: null,
     lauf: null,              // laufende Karriere (createCareer)
@@ -68,19 +69,29 @@ function CareerGame(root, cfg){
             <p class="small" id="nat-hint"></p>
           </div>
           <div>
-            <label class="field"><span>Position</span></label>
-            <div class="choice-row" id="f-pos">
-              ${D.POSITIONS.map(p =>
-                `<button class="choice ${p.k === i.pos ? 'on' : ''}" data-pos="${p.k}">${p.n}</button>`).join('')}
-            </div>
-            <p class="small mt" id="pos-desc">${PUCKERO.pos(i.pos).desc}</p>
+            <label class="field"><span>Position – tipp auf deinen Platz</span></label>
+            <div id="f-pos">${UI.eisfeld(i.pos)}</div>
+            <p class="small" id="pos-desc">${PUCKERO.pos(i.pos).desc}</p>
+          </div>
+        </div>
 
-            <label class="field mt"><span>Spielmodus</span></label>
+        <div class="grid g2 mt">
+          <div>
+            <label class="field"><span>Spielmodus</span></label>
             <div class="choice-row" id="f-mode">
               <button class="choice ${i.mode === 'klassisch' ? 'on' : ''}" data-mode="klassisch">Klassisch</button>
               <button class="choice ${i.mode === 'blind' ? 'on' : ''}" data-mode="blind">Purist</button>
             </div>
             <p class="small mt" id="mode-desc"></p>
+          </div>
+          <div>
+            <label class="field"><span>Sommertraining</span></label>
+            <div class="choice-row" id="f-training">
+              <button class="choice ${i.trainingAuto !== false ? 'on' : ''}" data-training-auto="1">Automatisch</button>
+              <button class="choice ${i.trainingAuto === false ? 'on' : ''}" data-training-auto="0">Selbst wählen</button>
+            </div>
+            <p class="small mt">Automatisch heißt: Dein Trainerstab wählt jeden Sommer den
+              Bereich mit dem größten Nachholbedarf. Du kannst das jederzeit in der Karriere umstellen.</p>
           </div>
         </div>
 
@@ -118,10 +129,21 @@ function CareerGame(root, cfg){
     natHint(); modeHint();
     root.querySelector('#f-nation').onchange = natHint;
 
-    root.querySelectorAll('#f-pos .choice').forEach(b => b.onclick = () => {
-      S.ident.pos = b.dataset.pos;
-      root.querySelectorAll('#f-pos .choice').forEach(x => x.classList.toggle('on', x === b));
-      root.querySelector('#pos-desc').textContent = PUCKERO.pos(b.dataset.pos).desc;
+    const posWaehlen = k => {
+      S.ident.pos = k;
+      root.querySelectorAll('[data-feld-pos]').forEach(x =>
+        x.classList.toggle('on', x.dataset.feldPos === k));
+      root.querySelector('#pos-desc').textContent = PUCKERO.pos(k).desc;
+    };
+    root.querySelectorAll('[data-feld-pos]').forEach(el => {
+      el.onclick = () => posWaehlen(el.dataset.feldPos);
+      el.onkeydown = e => {
+        if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); posWaehlen(el.dataset.feldPos); }
+      };
+    });
+    root.querySelectorAll('[data-training-auto]').forEach(b => b.onclick = () => {
+      S.ident.trainingAuto = b.dataset.trainingAuto === '1';
+      root.querySelectorAll('[data-training-auto]').forEach(x => x.classList.toggle('on', x === b));
     });
     root.querySelectorAll('#f-mode .choice').forEach(b => b.onclick = () => {
       S.ident.mode = b.dataset.mode;
@@ -308,6 +330,16 @@ function CareerGame(root, cfg){
   /* ---------- Karriere: drei Spalten ---------- */
   function renderKarriere(){
     const lauf = S.lauf, st = lauf.st;
+    /* Sommertraining kann der Trainerstab uebernehmen – dann faellt
+       dieser Zwischenschritt weg und die Saison laeuft fluessig weiter. */
+    if (st.training && S.ident.trainingAuto !== false){
+      lauf.autoTraining();
+      const letzte = lauf.letzteSaison;
+      if (letzte){
+        const e = letzte.events[letzte.events.length - 1];
+        if (e && e.t.indexOf('Sommertraining') === 0) e.c = 'auto';
+      }
+    }
     const letzte = lauf.letzteSaison;
     const isG = S.player.group === 'goalie';
 
@@ -321,10 +353,37 @@ function CareerGame(root, cfg){
       <div class="panel-body karriere">
         <aside class="k-spalte k-links">${spielerkarte(st, letzte, isG)}</aside>
         <main class="k-spalte k-mitte">${mitte(lauf, st, letzte, isG)}</main>
-        <aside class="k-spalte k-rechts">${altersraster(st, isG)}</aside>
+        <aside class="k-spalte k-rechts">${UI.jahrgangTabelle(st.jahrgangStand, isG, { delta: st.jahrgangDelta })}${altersraster(st, isG)}</aside>
       </div>`;
 
     bindeKarriere(lauf, st);
+  }
+
+  /* Die Menschen um den Spieler herum – sie tauchen in Ereignissen namentlich auf */
+  const STRANG_NAMEN = {
+    rivalitaet:  'Rivalität',
+    trainerpakt: 'Vertrauen zum Trainer',
+    weggefaehrte:'Weggefährte'
+  };
+
+  function umfeldBlock(st){
+    if (!st.club || (!st.trainer && !st.mitspieler)) return '';
+    const straenge = (st.freigeschaltet || []).filter(k => STRANG_NAMEN[k]);
+    const zeile = (ik, rolle, name, warm) => name ? `
+      <div class="uf-zeile" title="${rolle}">
+        <span class="uf-ik">${UI.ikone(ik, 15)}</span>
+        <span class="uf-punkt ${warm ? 'warm' : ''}"></span>
+        <span class="uf-name">${esc(name)}</span>
+      </div>` : '';
+    return `
+      <div class="sk-umfeld">
+        ${zeile('pfeife', 'Trainer', st.trainer, straenge.includes('trainerpakt'))}
+        ${zeile('gruppe', 'Kabine', st.mitspieler, straenge.includes('weggefaehrte'))}
+        ${st.rivale ? zeile('flamme', 'Rivale', st.rivale.name,
+                            straenge.includes('rivalitaet')) : ''}
+        ${straenge.length ? `<div class="sk-straenge">${straenge
+          .map(k => `<span class="sk-strang">${STRANG_NAMEN[k]}</span>`).join('')}</div>` : ''}
+      </div>`;
   }
 
   /* Linke Spalte: Spielerkarte, Aktionen, Ligatabelle */
@@ -335,10 +394,15 @@ function CareerGame(root, cfg){
     const l = st.lauf;
     const trophaeen = Object.values(st.trophies).reduce((a,x)=>a+x.x,0);
 
-    const zeile = (a, b) => `<div class="sk-zelle"><span>${a}</span><b>${b}</b></div>`;
+    /* Icon statt Beschriftung: derselbe Inhalt auf halbem Raum.
+       Der Klartext bleibt als title-Attribut erhalten. */
+    const zeile = (ik, a, b) => `<div class="sk-zelle" title="${a}">
+      <span class="sk-ik">${UI.ikone(ik, 15)}</span><b>${b}</b></div>`;
     const stats = isG
-      ? zeile('Einsätze', l.gp) + zeile('Siege', l.wins) + zeile('Shutouts', l.so)
-      : zeile('Einsätze', l.gp) + zeile('Tore', l.g) + zeile('Vorlagen', l.a);
+      ? zeile('kalender', 'Einsätze', l.gp) + zeile('haken', 'Siege', l.wins)
+        + zeile('schild', 'Shutouts', l.so)
+      : zeile('kalender', 'Einsätze', l.gp) + zeile('tor', 'Tore', l.g)
+        + zeile('gruppe', 'Vorlagen', l.a);
 
     return `
       <div class="spielerkarte anim">
@@ -355,19 +419,39 @@ function CareerGame(root, cfg){
           </div>
         </div>
         <div class="sk-raster">
-          ${zeile('Alter', letzte ? letzte.age : 16)}
-          ${zeile('Marktwert', wert ? wert.toFixed(1) + ' Mio' : '–')}
+          ${zeile('uhr', 'Alter', letzte ? letzte.age : 16)}
+          ${zeile('stern', 'Marktwert', wert ? wert.toFixed(1) + ' Mio' : '–')}
         </div>
         <div class="sk-raster">${stats}</div>
         <div class="sk-raster">
-          ${zeile('Vertrag', st.vertragJahre > 0 ? st.vertragJahre + ' J.' : '–')}
-          ${zeile('Moral', Math.round(st.moral))}
+          ${zeile('stift', 'Vertrag', st.vertragJahre > 0 ? st.vertragJahre + ' J.' : '–')}
+          ${zeile('herz', 'Moral', Math.round(st.moral))}
         </div>
+        ${st.rolle ? `<div class="sk-rolle">${st.rolle.icon} ${esc(st.rolle.n)}</div>` : ''}
+        ${umfeldBlock(st)}
+        ${st.entryDraft ? `<div class="sk-rolle draft">${st.entryDraft.ungezogen
+          ? '📋 Im Draft nicht gezogen'
+          : '📋 Draft: Runde ' + st.entryDraft.runde + ', Pos. ' + st.entryDraft.pick}</div>` : ''}
         <div class="sk-vitrine">
           <span>Vitrine <b class="gold">${trophaeen}</b></span>
           ${trophaeen ? '' : '<span class="small">🏆 Leere Vitrine</span>'}
         </div>
       </div>
+
+      ${UI.meilensteinJagd(st, S.player.group === 'goalie')}
+
+      <div class="einstellung">
+        <span class="small">Sommertraining</span>
+        <span class="schalter-klein">
+          <button type="button" data-tauto="1" class="${S.ident.trainingAuto !== false ? 'on' : ''}">Auto</button>
+          <button type="button" data-tauto="0" class="${S.ident.trainingAuto === false ? 'on' : ''}">Selbst</button>
+        </span>
+      </div>
+
+      ${UI.formKurve(st)}
+
+      ${st.rivale ? UI.rivaleKarte({ rivale: st.rivale, seasons: st.seasons,
+        isG: S.player.group === 'goalie' }, letzte ? letzte.age : 99) : ''}
 
       <button class="btn btn-ghost btn-sm mt" id="restart" style="width:100%">↺ Karriere neu starten</button>
 
@@ -392,10 +476,19 @@ function CareerGame(root, cfg){
   function mitte(lauf, st, letzte, isG){
     const kopf = folgeHtml(st.letzteFolge);
 
-    if (st.jugend)   return kopf + jugendHtml(st.jugend);
-    if (st.ereignis) return ereignisHtml(st.ereignis);
-    if (st.angebote) return kopf + angeboteHtml(st.angebote, st.angebotsGrund);
-    if (st.training) return kopf + trainingHtml(st.training, st.age);
+    /* Reihenfolge: erst die Folge der Entscheidung, dann die Zahlen der
+       gerade gespielten Saison, danach der naechste Schritt. Vorher sprangen
+       Training und Vertragsfragen heraus, ohne dass man das Ergebnis sah. */
+    const bilanz = letzte ? UI.seasonCard(letzte, isG, blind(), true) : '';
+
+    if (st.jugend)        return kopf + jugendHtml(st.jugend);
+    if (st.ereignis)      return kopf + ereignisHtml(st.ereignis);
+    if (lauf.wechselfrist) return kopf + wechselfristHtml(lauf.wechselfrist);
+    if (st.ruecktrittsfrage) return kopf + bilanz + ruecktrittHtml(st.ruecktrittsfrage, st);
+    if (st.kapitaensfrage)return kopf + bilanz + kapitaenHtml(st.kapitaensfrage);
+    if (st.angebote)      return kopf + bilanz + angeboteHtml(st.angebote, st.angebotsGrund);
+    if (st.rollenwahl)    return kopf + bilanz + rollenHtml(st.rollenwahl, st.club);
+    if (st.training)      return kopf + bilanz + trainingHtml(st.training, st.age);
     if (st.fertig)   return kopf + `
       <div class="card center pad-lg anim">
         <h2 style="margin-bottom:6px">Schluss nach ${st.seasons.length} Saisons</h2>
@@ -410,6 +503,7 @@ function CareerGame(root, cfg){
           <h3>Bereit für die erste Saison</h3>
           <p class="small mb0">Der Vertrag steht. Jetzt zählt nur noch, was auf dem Eis passiert.</p>
         </div>`}
+      ${UI.zielKarte(lauf.kommendeZiele)}
       <div class="row mt-l">
         <button class="btn btn-primary" id="weiter">Nächste Saison →</button>
         <button class="btn btn-ghost" id="rest">Rest automatisch</button>
@@ -483,6 +577,106 @@ function CareerGame(root, cfg){
   }
 
   /* ---------- Bausteine der mittleren Spalte ---------- */
+  /* Rolle im Team – direkt nach der Vertragsunterschrift */
+  function rollenHtml(rollen, klub){
+    return `
+      <div class="anim">
+        <h2 style="margin-bottom:6px">Deine Rolle bei ${esc(klub ? klub.n : 'dem Klub')}</h2>
+        <p class="lead" style="font-size:15px">Der Trainer will wissen, wofür er dich einplant.
+          Die Absprache gilt für die gesamte Vertragslaufzeit.</p>
+        <div class="rollenliste mt-l stagger">
+          ${rollen.map((x, i) => `
+            <button class="rollenkarte" data-rolle="${i}">
+              <span class="rk-icon">${x.icon}</span>
+              <span class="rk-text">
+                <b>${esc(x.n)}</b>
+                <span class="small">${esc(x.d)}</span>
+              </span>
+              <span class="rk-gehalt">${x.gehalt < 1 ? x.gehalt.toFixed(2) : x.gehalt.toFixed(1)}<span>Mio/Jahr</span></span>
+            </button>`).join('')}
+        </div>
+      </div>`;
+  }
+
+  /* Weitermachen oder aufhoeren – wird ab jetzt jedes Jahr gefragt */
+  function ruecktrittHtml(f, st){
+    const szene = (typeof SZENE !== 'undefined') ? SZENE.bild('kabine') : '';
+    const koerper = f.verschleiss >= 3 ? 'Der Körper hat viel mitgemacht.'
+                  : f.verschleiss >= 1 ? 'Ein paar Blessuren sitzen tief.'
+                  : 'Der Körper fühlt sich noch gut an.';
+    return `
+      <div class="ereignis anim ruecktritt">
+        <div class="ereignis-bild">${szene}</div>
+        <div class="ereignis-text">
+          <div class="row" style="gap:10px;margin-bottom:10px">
+            <span class="pill">${f.alter} Jahre</span>
+            <span class="ereignis-tag" style="color:var(--gold)">⚡ Am Ende der Saison</span>
+            ${f.zusatzjahre ? `<span class="pill">${f.zusatzjahre}. Zusatzjahr</span>` : ''}
+          </div>
+          <h2 style="font-family:var(--font);font-size:23px;font-weight:750">
+            ${f.zusatzjahre ? 'Noch ein Jahr?' : 'Ist es Zeit aufzuhören?'}</h2>
+          <p style="color:var(--muted);margin:0 0 10px">
+            Die Beine werden schwerer, die Wege länger. ${koerper}
+            Der Klub würde dich behalten, aber niemand würde sich wundern,
+            wenn du jetzt Schluss machst.</p>
+          <div class="rt-werte">
+            <div class="kk-zelle"><span>Gesamtwertung</span><b>${f.ovr}</b></div>
+            <div class="kk-zelle"><span>Verschleiß</span><b>${f.verschleiss}</b></div>
+            <div class="kk-zelle"><span>Zusatzjahre</span><b>${f.zusatzjahre}</b></div>
+          </div>
+        </div>
+        <div class="ereignis-wahl">
+          <button class="wahlzeile" data-weiter="1">
+            <span class="wz-text"><b>Noch ein Jahr dranhängen</b>
+              <span class="small">Kostet etwa ${f.abbau}% deiner Werte und
+                hebt das Verletzungsrisiko um ${f.risiko} Punkte</span></span>
+            <span class="wz-balken"><i class="gut" style="width:100%">Weiterspielen</i></span>
+            <span class="wz-pfeil">→</span>
+          </button>
+          <button class="wahlzeile" data-weiter="0">
+            <span class="wz-text"><b>Die Schlittschuhe an den Nagel hängen</b>
+              <span class="small">Karriereende – die Bilanz wird gezogen</span></span>
+            <span class="wz-balken"><i class="schlecht" style="width:100%">Aufhören</i></span>
+            <span class="wz-pfeil">→</span>
+          </button>
+        </div>
+      </div>`;
+  }
+
+  /* Kapitaensamt */
+  function kapitaenHtml(frage){
+    const szene = (typeof SZENE !== 'undefined') ? SZENE.bild('kabine') : '';
+    return `
+      <div class="ereignis anim">
+        <div class="ereignis-bild">${szene}</div>
+        <div class="ereignis-text">
+          <div class="row" style="gap:10px;margin-bottom:10px">
+            <span class="pill gold">Kapitänsamt</span>
+            <span class="ereignis-tag">⚡ ${esc(frage.klub)}</span>
+          </div>
+          <h2 style="font-family:var(--font);font-size:23px;font-weight:750">
+            Der Trainer will dir das C geben</h2>
+          <p style="color:var(--muted);margin:0">Er sagt, die Kabine höre ohnehin auf dich,
+            und man wolle das jetzt auch auf dem Trikot sehen. Das Amt bringt Verantwortung
+            in den engen Momenten – und die Aufmerksamkeit, wenn es schlecht läuft.</p>
+        </div>
+        <div class="ereignis-wahl">
+          <button class="wahlzeile" data-kapitaen="1">
+            <span class="wz-text"><b>Annehmen</b>
+              <span class="small">Mehr Moral, mehr Ansehen, stärker in den Playoffs</span></span>
+            <span class="wz-balken"><i class="gut" style="width:100%">Verantwortung</i></span>
+            <span class="wz-pfeil">→</span>
+          </button>
+          <button class="wahlzeile" data-kapitaen="0">
+            <span class="wz-text"><b>Ablehnen</b>
+              <span class="small">Freierer Kopf, bessere eigene Form – aber leichte Enttäuschung</span></span>
+            <span class="wz-balken"><i class="schlecht" style="width:100%">Freiheit</i></span>
+            <span class="wz-pfeil">→</span>
+          </button>
+        </div>
+      </div>`;
+  }
+
   function jugendHtml(angebote){
     return `
       <div class="anim">
@@ -521,9 +715,9 @@ function CareerGame(root, cfg){
         </div>
         <div class="ereignis-wahl">
           ${e.optionen.map((o, i) => `
-            <button class="wahlzeile" data-ereignis="${i}">
+            <button class="wahlzeile ${o.wagnis ? 'wagnis' : ''}" data-ereignis="${i}">
               <span class="wz-text">
-                <b>${esc(o.t)}</b>
+                <b>${o.wagnis ? '<span class="wz-marke">Wagnis</span> ' : ''}${esc(o.t)}</b>
                 <span class="small">${esc(o.hinweis || '')}${o.bonus
                   ? ' · +' + o.bonus + '% durch Eigenschaft' : ''}</span>
               </span>
@@ -532,6 +726,51 @@ function CareerGame(root, cfg){
                 <i class="schlecht" style="width:${100 - o.chance}%">${100 - o.chance}%</i>
               </span>
               <span class="wz-pfeil">→</span>
+            </button>`).join('')}
+        </div>
+      </div>`;
+  }
+
+  /* Die Wechselfrist: eigener Auftritt, weil sie mitten in der Saison
+     stattfindet und nicht wie ein normales Ereignis aussehen soll. */
+  const WF_LAGE = {
+    verkaeufer: { n:'Abbau',      ik:'runter', k:'lage-abbau' },
+    mittelmass: { n:'Stillstand', ik:'waage',  k:'lage-halt' },
+    kaeufer:    { n:'Angriff',    ik:'hoch',   k:'lage-angriff' },
+    ligasprung: { n:'Der Anruf',  ik:'flug',   k:'lage-sprung' }
+  };
+
+  function wechselfristHtml(w){
+    const lage = WF_LAGE[w.art] || WF_LAGE.mittelmass;
+    return `
+      <div class="wechselfrist anim">
+        <div class="wf-kopf ${lage.k}">
+          <span class="wf-uhr">${UI.ikone('uhr', 18)} ${esc(w.tag)}</span>
+          <span class="wf-lage">${UI.ikone(lage.ik, 15)} ${lage.n}</span>
+        </div>
+        <div class="wf-text">
+          <h2>${esc(w.titel)}</h2>
+          <p>${esc(w.text)}</p>
+          ${w.stand ? `<div class="wf-stand">
+            ${UI.kennzahl('schild', (w.stand.diff > 0 ? '+' : '') + w.stand.diff,
+                          'Kaderstaerke gegenueber dem Ligaschnitt')}
+            ${w.stand.ziel ? `<span class="wf-ziel">${UI.ikone('transfer', 15)}
+              <span>${esc(w.stand.ziel)}${w.stand.liga ? ' · ' + esc(w.stand.liga) : ''}</span></span>` : ''}
+          </div>` : ''}
+        </div>
+        <div class="ereignis-wahl">
+          ${w.optionen.map((o, i) => `
+            <button class="wahlzeile" data-wechsel="${i}">
+              <span class="wz-ikone">${UI.ikone(o.ikone || 'puck', 20)}</span>
+              <span class="wz-text">
+                <b>${esc(o.t)}</b>
+                <span class="small">${esc(o.hinweis || '')}</span>
+              </span>
+              <span class="wz-balken">
+                <i class="gut" style="width:${o.chance}%">${o.chance}%</i>
+                <i class="schlecht" style="width:${100 - o.chance}%">${100 - o.chance}%</i>
+              </span>
+              <span class="wz-pfeil">${UI.ikone('transfer', 16)}</span>
             </button>`).join('')}
         </div>
       </div>`;
@@ -587,8 +826,22 @@ function CareerGame(root, cfg){
       lauf.playSeason();
       neu();
     });
+    root.querySelectorAll('[data-wechsel]').forEach(el => el.onclick = () => {
+      lauf.entscheideWechselfrist(+el.dataset.wechsel);
+      lauf.playSeason();
+      neu();
+    });
     root.querySelectorAll('[data-training]').forEach(el => el.onclick = () => {
       lauf.chooseTraining(+el.dataset.training); neu();
+    });
+    root.querySelectorAll('[data-rolle]').forEach(el => el.onclick = () => {
+      lauf.waehleRolle(+el.dataset.rolle); neu();
+    });
+    root.querySelectorAll('[data-kapitaen]').forEach(el => el.onclick = () => {
+      lauf.entscheideKapitaen(el.dataset.kapitaen === '1'); neu();
+    });
+    root.querySelectorAll('[data-weiter]').forEach(el => el.onclick = () => {
+      lauf.entscheideRuecktritt(el.dataset.weiter === '1'); neu();
     });
     root.querySelectorAll('[data-angebot]').forEach(el => el.onclick = () => {
       lauf.choose(+el.dataset.angebot); neu();
@@ -602,6 +855,11 @@ function CareerGame(root, cfg){
     if (b) b.onclick = () => beendeKarriere(lauf.result());
     const rs = root.querySelector('#restart');
     if (rs) rs.onclick = bestaetigtNeustart;
+
+    root.querySelectorAll('[data-tauto]').forEach(b => b.onclick = () => {
+      S.ident.trainingAuto = b.dataset.tauto === '1';
+      renderKarriere();
+    });
 
     const letzte = lauf.letzteSaison;
     if (letzte && letzte.title && letzte !== S.letzteGefeierte){
@@ -628,19 +886,88 @@ function CareerGame(root, cfg){
       </div>
       <div class="panel-body">
 
-        <div class="row" style="gap:20px;align-items:flex-start">
-          ${UI.ovrBadge(res.peak, gold)}
-          <div style="flex:1;min-width:240px">
-            <h2 style="margin-bottom:4px">${esc(p.name)} <span style="color:var(--dim)">#${p.num}</span></h2>
-            <p class="small" style="margin-bottom:10px">
-              ${nat.flag} ${nat.n} · ${PUCKERO.pos(p.pos).n} ·
-              ${res.seasons.length} Saisons · Rücktritt mit ${res.retireAge}
-              ${res.kapitaenSeit ? ' · Kapitän von ' + esc(res.kapitaenSeit) : ''}</p>
-            <p style="color:var(--muted);margin:0 0 10px">${res.rank.d}</p>
-            <div class="story" style="margin:0"><b style="color:var(--text)">${esc(res.grund || 'Karriereende')}.</b>
+        <div class="abschluss-kopf">
+          <div class="ak-karte">
+            <div class="row between" style="align-items:flex-start;gap:14px">
+              <div style="min-width:0">
+                <div class="small" style="letter-spacing:.1em">KARRIERE ABGESCHLOSSEN</div>
+                <h2 style="margin:2px 0 6px;line-height:1">${esc(p.name)}</h2>
+                <div class="sk-tags">
+                  <span class="pill">#${p.num}</span>
+                  <span class="pill">${p.pos}</span>
+                  <span class="pill">${nat.flag} ${nat.n}</span>
+                  <span class="pill">Rücktritt mit ${res.retireAge}</span>
+                  ${res.entryDraft && !res.entryDraft.ungezogen
+                    ? `<span class="pill">Draft ${res.entryDraft.runde}.${res.entryDraft.pick}</span>`
+                    : (res.entryDraft ? '<span class="pill">Ungedraftet</span>' : '')}
+                  ${res.kapitaenSeit ? '<span class="pill gold">Kapitän</span>' : ''}
+                </div>
+              </div>
+              ${UI.ovrBadge(res.peak, gold)}
+            </div>
+            <div class="ak-raster">
+              <div class="kk-zelle"><span>Höchster Marktwert</span><b>${(res.marktwertMax || 0).toFixed(1)} Mio</b></div>
+              <div class="kk-zelle"><span>Karriereeinnahmen</span><b>${t.gehalt.toFixed(0)} Mio</b></div>
+              <div class="kk-zelle"><span>Einsätze</span><b>${t.gp}</b></div>
+              <div class="kk-zelle"><span>${res.isG ? 'Siege' : 'Tore'}</span><b>${res.isG ? t.wins : t.g}</b></div>
+              <div class="kk-zelle"><span>${res.isG ? 'Shutouts' : 'Vorlagen'}</span><b>${res.isG ? t.so : t.a}</b></div>
+            </div>
+            <div class="story" style="margin:12px 0 0">
+              <b style="color:var(--text)">${esc(res.grund || 'Karriereende')}.</b>
               ${esc(res.endeText || '')}</div>
           </div>
+
+          ${UI.natKarte(res)}
+
+          <div class="ak-ehrungen">
+            <div class="small" style="letter-spacing:.1em;color:var(--gold);margin-bottom:10px">
+              INDIVIDUELLE AUSZEICHNUNGEN</div>
+            ${(() => {
+              const person = res.trophies.filter(x => String(x.k||'').indexOf('aw_') === 0
+                || x.k === 'int_wmMvp' || x.k === 'int_wmAllstar');
+              return person.length
+                ? '<div class="ehrenliste">' + person.map(x =>
+                    `<span>${esc(x.n)}${x.x > 1 ? ' <b>×' + x.x + '</b>' : ''}</span>`).join('') + '</div>'
+                : '<p class="small mb0">Keine Einzelauszeichnung erreicht.</p>';
+            })()}
+            <div class="ak-rang">
+              <span class="small">Einordnung</span>
+              <b class="${gold ? 'gold' : ''}">${res.rank.n}</b>
+              <span class="small">${res.legacy} Legendenpunkte</span>
+            </div>
+          </div>
         </div>
+
+        <h2 class="mt-l" style="margin-top:30px">Was bleibt</h2>
+        <div class="grid g2">
+          <div class="card">${UI.vermaechtnisKarte(res)}</div>
+          <div class="card">
+            <h3>Dein Jahrgang im Vergleich</h3>
+            ${res.rivale ? `
+              ${UI.rivaleKarte(res)}
+              <div class="rv-tabelle mt">
+                <div><span></span><b>Du</b><b>${esc(res.rivale.name.split(' ')[0])}</b></div>
+                <div><span>Bestwert</span><b>${res.peak}</b><b>${res.rivale.peak}</b></div>
+                <div><span>Saisons</span><b>${res.seasons.length}</b><b>${res.rivale.seasons.length}</b></div>
+                <div><span>${res.isG ? 'Siege' : 'Punkte'}</span>
+                  <b>${res.isG ? t.wins : t.p}</b>
+                  <b>${res.isG ? res.rivale.totals.wins : res.rivale.totals.p}</b></div>
+                <div><span>Legendenpunkte</span><b class="${res.legacy >= res.rivale.legacy ? 'gold' : ''}">${res.legacy}</b>
+                  <b class="${res.rivale.legacy > res.legacy ? 'gold' : ''}">${res.rivale.legacy}</b></div>
+                <div><span>Einordnung</span><b>${res.rank.n}</b><b>${res.rivale.rank}</b></div>
+              </div>
+              <p class="small mt mb0">${res.legacy >= res.rivale.legacy
+                ? 'Du hast das Duell deines Jahrgangs gewonnen.'
+                : 'Er war am Ende der Bessere. Vielleicht beim nächsten Versuch.'}</p>`
+              : '<p class="small mb0">Kein Vergleichsspieler – die Karriere begann zu spät.</p>'}
+          </div>
+        </div>
+
+        <h2 class="mt-l" style="margin-top:30px">Bilanz nach Ligen</h2>
+        ${UI.ligaBilanz(res)}
+
+        <h2 class="mt-l" style="margin-top:30px">Stationen</h2>
+        ${UI.klubKarten(res)}
 
         ${UI.rankLeiste(res.legacy)}
 
@@ -661,8 +988,12 @@ function CareerGame(root, cfg){
             <div class="attrs" style="grid-template-columns:1fr">${UI.attrRows(p, res.peakAttrs)}</div>
           </div>
           <div class="card">
-            <h3>Vitrine</h3>
-            ${UI.trophyList(res)}
+            <h3>Vereinstitel</h3>
+            ${UI.trophyList(res, 'team')}
+            <h3 class="mt-l">Mit der Nationalmannschaft</h3>
+            ${UI.trophyList(res, 'national')}
+            <h3 class="mt-l">Persönliche Auszeichnungen</h3>
+            ${UI.trophyList(res, 'person')}
 
             ${bs ? `<h3 class="mt-l">Beste Saison</h3>
               <p class="small mb0">${bs.year}/${String(bs.year + 1).slice(2)} bei ${esc(bs.club)} –
@@ -683,16 +1014,23 @@ function CareerGame(root, cfg){
           ? [['Spiele', t.gp], ['Siege', t.wins], ['Niederlagen', t.losses],
              ['Fangquote', (t.sv * 100).toFixed(1) + '%'], ['Gegentorschnitt', t.gaa.toFixed(2)],
              ['Shutouts', t.so, 'gold'], ['Paraden', t.saves],
+             ['Playoffspiele', t.poGp], ['Playoffsiege', t.poWins, 'gold'],
+             ['Serien gewonnen', t.serienGewonnen + '/' + t.serien],
              ['Verdienst', t.gehalt.toFixed(1) + ' Mio']]
           : [['Spiele', t.gp], ['Tore', t.g], ['Vorlagen', t.a], ['Punkte', t.p, 'gruen'],
              ['Punkte/Spiel', t.ppg100], ['Powerplay', t.ppg], ['Unterzahl', t.shg],
              ['Siegtore', t.gwg, 'gold'], ['Schüsse', t.shots], ['Quote', t.shotPct + '%'],
              ['+/-', (t.plus > 0 ? '+' : '') + t.plus], ['Strafminuten', t.pim],
+             ['Playoffspiele', t.poGp], ['Playoffpunkte', t.poP, 'gold'],
+             ['Serien gewonnen', t.serienGewonnen + '/' + t.serien],
              ['Verdienst', t.gehalt.toFixed(1) + ' Mio']])}
 
         ${rekordeHtml(res)}
 
-        <h2 class="mt-l" style="margin-top:38px">${nat.flag} Nationalmannschaft ${esc(nat.n)}</h2>
+        <h2 class="mt-l" style="margin-top:38px">Was deine Laufbahn geprägt hat</h2>
+        ${UI.wendepunkte(res)}
+
+        <h2 class="mt-l" style="margin-top:38px">Länderspiele</h2>
         <div class="card">${UI.natTabelle(res)}</div>
 
         <div class="row mt-l">
@@ -707,6 +1045,10 @@ function CareerGame(root, cfg){
         <h2 class="mt-l" style="margin-top:38px">Karriere auf einen Blick</h2>
         <div class="bilanzraster">${bilanzRaster(res)}</div>
 
+        ${res.jahrgangStand ? `<h2 class="mt-l" style="margin-top:38px">Dein Jahrgang zum Schluss</h2>
+        ${UI.jahrgangTabelle(res.jahrgangStand, res.isG, { alle:true, gross:true })}
+        ${UI.jahrgangVerlauf(res)}` : ''}
+
         <h2 class="mt-l" style="margin-top:38px">Verlauf</h2>
         <div id="timeline">${res.seasons.map(s => UI.seasonCard(s, res.isG)).join('')}</div>
 
@@ -717,12 +1059,17 @@ function CareerGame(root, cfg){
     UI.alleZahlenHoch(root);
     if (res.legacy >= 1300) UI.konfetti(120);
 
+    let teilenLaeuft = false;
     root.querySelector('#share').onclick = () => {
+      if (teilenLaeuft) return;
+      teilenLaeuft = true;
+      setTimeout(() => { teilenLaeuft = false; }, 900);
       const txt = UI.shareText(res);
       if (navigator.share) navigator.share({ text: txt }).catch(() => UI.copy(txt, 'Karriere kopiert'));
       else UI.copy(txt, 'Karriere in die Zwischenablage kopiert');
     };
-    root.querySelector('#karte').onclick = () => UI.karriereKarte(res);
+    const karteKnopf = root.querySelector('#karte');
+    karteKnopf.onclick = () => UI.karriereKarte(res, karteKnopf);
     root.querySelector('#again').onclick = () => neustart(true);
   }
 

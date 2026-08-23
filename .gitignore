@@ -1,0 +1,13 @@
+# Betriebssystem
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Laufzeit / Werkzeuge
+__pycache__/
+*.pyc
+node_modules/
