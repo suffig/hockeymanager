@@ -82,7 +82,7 @@ const EREIGNISSE = (() => {
          + 'Am Ende ist es keine Frage, sondern eine Ansage mit Fragezeichen.',
       bedingung: st => st.age >= 20 && st.klubJahre >= 1,
       optionen:[
-        { t:'Zusagen und lernen', chance:60, hinweis:'Breite statt Spezialisierung',
+        { t:'Zusagen und lernen', folgt:'trainerpakt', chance:60, hinweis:'Breite statt Spezialisierung',
           gut:{ attr:{ uebersicht:3, defensive:3 }, ruf:3, text:'Die neue Rolle macht dich vielseitig – Trainer mögen das.' },
           schlecht:{ form:-0.06, text:'Du findest dich nie richtig zurecht und verlierst Eiszeit.' } },
         { t:'Höflich ablehnen', chance:65, hinweis:'Bleib bei dem, was du kannst',
@@ -184,7 +184,7 @@ const EREIGNISSE = (() => {
          + 'durch die Kabine und bleiben irgendwann bei dir hängen.',
       bedingung: (st, s) => s && s.playoffs && st.age >= 24,
       optionen:[
-        { t:'Aufstehen und sprechen', chance:55, hinweis:'Große Bühne, großes Risiko',
+        { t:'Aufstehen und sprechen', folgt:'wortfuehrer', chance:55, hinweis:'Große Bühne, großes Risiko',
           gut:{ moral:10, ruf:6, trait:{ playoff:5 }, attr:{ nerven:3 },
                 text:'Was du sagst, wird Jahre später noch in Interviews zitiert.' },
           schlecht:{ moral:-5, text:'Die Worte kommen nicht an. Man sieht es an den Gesichtern.' } },
@@ -208,7 +208,7 @@ const EREIGNISSE = (() => {
         { t:'Ihm alles beibringen, was du weißt', chance:60, hinweis:'Großzügig – und riskant',
           gut:{ moral:9, ruf:5, attr:{ uebersicht:2 }, text:'Ihr werdet die beste Reihe der Liga. Er nennt dich später seinen Lehrmeister.' },
           schlecht:{ form:-0.06, text:'Er überholt dich schneller, als dir lieb ist.' } },
-        { t:'Im Training kompromisslos gegenhalten', chance:55, hinweis:'Platzhirsch sein',
+        { t:'Im Training kompromisslos gegenhalten', folgt:'rivalitaet', chance:55, hinweis:'Platzhirsch sein',
           gut:{ form:0.07, attr:{ zweikampf:3 }, text:'Du gewinnst das Duell und spielst die beste Vorbereitung deiner Karriere.' },
           schlecht:{ moral:-6, risiko:4, text:'Ein überharter Zweikampf im Training – die Kabine ist gespalten.' } },
         { t:'Den Trainer um ein klärendes Gespräch bitten', chance:70, hinweis:'Sachlich bleiben',
@@ -275,7 +275,7 @@ const EREIGNISSE = (() => {
          + 'und du erinnerst dich genau, wer damals mit dir geredet hat – und wer nicht.',
       bedingung: st => st.age >= 28,
       optionen:[
-        { t:'Ihn unter die Fittiche nehmen', chance:80, hinweis:'Zahlt sich nicht sofort aus',
+        { t:'Ihn unter die Fittiche nehmen', folgt:'ziehvater', chance:80, hinweis:'Zahlt sich nicht sofort aus',
           gut:{ moral:8, ruf:4, text:'Er wird Stammspieler und erzählt in jedem Interview von dir.' },
           schlecht:{ text:'Er schafft es nicht. Trotzdem war es richtig.' } },
         { t:'Ihn erst einmal machen lassen', chance:65, hinweis:'Jeder muss da alleine durch',
@@ -291,7 +291,7 @@ const EREIGNISSE = (() => {
          + 'Jahren jemand, der durch die Mitte kommt.',
       bedingung: st => st.klubJahre >= 2 && st.age >= 26,
       optionen:[
-        { t:'Dich komplett umstellen', chance:55, hinweis:'Neu lernen mit dreißig',
+        { t:'Dich komplett umstellen', folgt:'trainerpakt', chance:55, hinweis:'Neu lernen mit dreißig',
           gut:{ attr:{ skating:3, pass:3 }, ruf:4, text:'Du wirst im neuen System besser als im alten.' },
           schlecht:{ form:-0.09, text:'Du findest dich nie zurecht und spielst deine schwächste Saison.' } },
         { t:'Bei deinem Spiel bleiben', chance:50, hinweis:'Wer erfolgreich ist, hat recht',
@@ -307,7 +307,7 @@ const EREIGNISSE = (() => {
          + 'man müsse jetzt eine Entscheidung treffen.',
       bedingung: (st, s) => s && !s.playoffs && st.age >= 25 && st.moral < 60,
       optionen:[
-        { t:'Für den Trainer eintreten', chance:60, hinweis:'Loyalität nach oben',
+        { t:'Für den Trainer eintreten', folgt:'trainerpakt', chance:60, hinweis:'Loyalität nach oben',
           gut:{ ruf:7, moral:6, text:'Die Wende kommt zwei Spiele später. Er weiß, wem er das verdankt.' },
           schlecht:{ moral:-7, text:'Die Kabine sieht dich ab jetzt als verlängerten Arm der Bank.' } },
         { t:'Für einen Wechsel plädieren', chance:45, hinweis:'Riskant, aber ehrlich',
@@ -442,7 +442,7 @@ const EREIGNISSE = (() => {
          + 'gezogen, und plötzlich geht es nicht mehr um Musik.',
       bedingung: st => st.age >= 24,
       optionen:[
-        { t:'Eine Regel durchsetzen', chance:65, hinweis:'Jemand muss es entscheiden',
+        { t:'Eine Regel durchsetzen', folgt:'wortfuehrer', chance:65, hinweis:'Jemand muss es entscheiden',
           gut:{ moral:7, ruf:3, text:'Zwei Lieder pro Person, Reihenfolge nach Punkten. Alle akzeptieren es.' },
           schlecht:{ moral:-5, text:'Jetzt sind beide Lager gegen dich.' } },
         { t:'Rausgehen und Kaffee holen', chance:70, hinweis:'Nicht dein Problem',
@@ -577,7 +577,7 @@ const EREIGNISSE = (() => {
          + 'schaut man beim Frühstück, wer noch mitmacht.',
       bedingung: (st, s) => s && s.playoffs && st.age >= 21,
       optionen:[
-        { t:'Mitmachen bis zum Schluss', chance:75, hinweis:'Gemeinschaft vor Eitelkeit',
+        { t:'Mitmachen bis zum Schluss', folgt:'weggefaehrte', chance:75, hinweis:'Gemeinschaft vor Eitelkeit',
           gut:{ moral:8, text:'Das Mannschaftsfoto danach hängt heute noch im Klubmuseum.' },
           schlecht:{ text:'Ihr scheidet aus. Der Bart bleibt trotzdem drei Tage.' } },
         { t:'Nicht mitmachen', chance:60, hinweis:'Dein Gesicht, deine Regeln',
@@ -747,7 +747,7 @@ const EREIGNISSE = (() => {
     /* ==========================================================
        Strang 1: Der Rivale aus dem eigenen Jahrgang
        ========================================================== */
-    { id:'riv_start', kat:'presse', szene:'presse', tag:'Der Vergleich',
+    { id:'riv_start', gewicht:3, kat:'presse', szene:'presse', tag:'Der Vergleich',
       titel:'Ein Journalist stellt dich neben {rivale}',
       text:'Die Doppelseite trägt eure beiden Fotos nebeneinander, dazu zwei Statistikspalten '
          + 'und die Frage, wer von euch am Ende weiter kommt. Ihr wurdet im selben Jahr gezogen, '
@@ -794,7 +794,7 @@ const EREIGNISSE = (() => {
     /* ==========================================================
        Strang 2: Der Trainer
        ========================================================== */
-    { id:'tr_konflikt', kat:'trainer', szene:'buero', tag:'Aussprache',
+    { id:'tr_konflikt', gewicht:3, kat:'trainer', szene:'buero', tag:'Aussprache',
       titel:'{trainer} stellt dein Spielverständnis öffentlich infrage',
       text:'In der Pressekonferenz nach der Niederlage gegen {gegner} fiel ein Satz über '
          + '„Spieler, die glauben, das System gelte nicht für sie". Alle wissen, wer gemeint war. '
@@ -837,7 +837,7 @@ const EREIGNISSE = (() => {
     /* ==========================================================
        Strang 3: Der Weggefährte
        ========================================================== */
-    { id:'mit_freund', kat:'kabine', szene:'kabine', tag:'Der Weggefährte',
+    { id:'mit_freund', gewicht:3, kat:'kabine', szene:'kabine', tag:'Der Weggefährte',
       titel:'{mitspieler} wird auf der Bank durchgereicht',
       text:'Ihr sitzt seit deinem ersten Tag bei {klub} nebeneinander, teilt Zimmer auf '
          + 'Auswärtsfahrten und einen ziemlich schlechten Musikgeschmack. Seit sechs Wochen '
@@ -1103,7 +1103,7 @@ const EREIGNISSE = (() => {
     /* ==========================================================
        Mehr Tiefe im Karriereverlauf
        ========================================================== */
-    { id:'st_mentor', kat:'kabine', szene:'kabine', tag:'Der Nachrücker',
+    { id:'st_mentor', gewicht:3, kat:'kabine', szene:'kabine', tag:'Der Nachrücker',
       titel:'Ein Achtzehnjähriger bekommt deinen Platz im Training zugeteilt',
       text:'Er spielt deine Position, hat deine Nummer als Kind getragen und fragt nach jedem '
          + 'Training, ob du ihm etwas zeigst. Er ist gut. Er ist schnell gut geworden.',
@@ -1331,7 +1331,7 @@ const EREIGNISSE = (() => {
           schlecht:{ moral:-7, text:'Der Schuss geht an dir vorbei und rein. Ausgleich in der letzten Minute.' } }
       ] },
 
-    { id:'d_partner', kat:'kabine', szene:'kabine', tag:'Der Partner', nurPos:['D'],
+    { id:'d_partner', gewicht:3, kat:'kabine', szene:'kabine', tag:'Der Partner', nurPos:['D'],
       titel:'{mitspieler} soll nicht mehr neben dir verteidigen',
       text:'Ihr habt zwei Jahre lang jede Schicht zusammen gespielt und braucht keine Blicke mehr, '
          + 'um zu wissen, wer wohin geht. {trainer} will die Paare neu mischen '
