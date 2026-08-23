@@ -1518,6 +1518,55 @@ const EREIGNISSE = (() => {
           schlecht:{ ruf:-6, moral:-8,
                 text:'Der Klub lehnt ab und weiß jetzt, dass du käuflich bist. Die Klausel bleibt, das Vertrauen nicht.' } }
       ] }
+  ,
+
+    /* ==========================================================
+       Der Zweikampf ums Tor
+       ========================================================== */
+    { id:'g_duell', kat:'kabine', szene:'kabine', tag:'Zwei für ein Tor',
+      nurPos:['G'], gewicht:3, mehrfach:true,
+      titel:'{torwartrivale} trainiert seit Wochen wie ein Besessener',
+      text:'Ihr teilt euch eine Kabinenecke, einen Torwarttrainer und genau einen Platz, '
+         + 'den nur einer haben kann. Er kommt morgens vor dir und geht abends nach dir. '
+         + 'Beim Frühstück sitzt ihr trotzdem an einem Tisch.',
+      bedingung: st => st.age >= 20,
+      optionen:[
+        { t:'Mitziehen und noch früher da sein', chance:62, hinweis:'Wer zuerst aufgibt, sitzt',
+          gut:{ attr:{ reflexe:4, konstanz:3 }, form:0.06,
+                text:'Ihr treibt euch gegenseitig. Am Saisonende habt ihr beide die besten Zahlen eurer Laufbahn.' },
+          schlecht:{ risiko:7, moral:-5,
+                text:'Du überziehst und stehst mit müden Beinen im Tor, während er frisch wirkt.' } },
+        { t:'Ihm zeigen, was du gelernt hast', chance:70, hinweis:'Großzügig – und riskant',
+          folgt:'weggefaehrte',
+          gut:{ moral:10, ruf:5,
+                text:'Er wird besser, ihr werdet Freunde, und der Trainerstab merkt, wer hier führt.' },
+          schlecht:{ moral:-6, text:'Er nimmt alles mit und dir am Ende den Platz.' } },
+        { t:'Auf dein Spiel vertrauen', chance:74, hinweis:'Kein Wettrüsten mitmachen',
+          gut:{ attr:{ nerven:4 }, form:0.04,
+                text:'Du bleibst bei deinem Rhythmus. Als es eng wird, steht der Ruhigere im Tor.' },
+          schlecht:{ moral:-5, text:'Während du bei dir bleibst, zieht er an dir vorbei.' } }
+      ] },
+
+    { id:'g_zurueck', kat:'trainer', szene:'buero', tag:'Zurück ins Tor',
+      nurPos:['G'], gewicht:4, mehrfach:true,
+      titel:'Nach Wochen auf der Bank sollst du wieder spielen',
+      text:'{torwartrivale} hat drei schwache Spiele hintereinander gemacht, und {trainer} '
+         + 'sagt dir am Dienstag, dass du am Freitag im Tor stehst. Er sagt nicht, '
+         + 'ob es bei diesem einen Spiel bleibt.',
+      /* Reine Ersatzsaisons sind mit 4 Prozent zu selten fuer eine
+         Bedingung - ein geteiltes Tor bedeutet ebenfalls Wochen auf der Bank. */
+      bedingung: (st, se) => se && st.age >= 21
+                          && (se.rolle === 'Ersatztorhüter' || se.rolle === 'Geteiltes Tor'),
+      optionen:[
+        { t:'Das Tor mit einem Shutout zurückholen', chance:44, hinweis:'Ein Spiel, eine Aussage',
+          gut:{ ruf:11, moral:12, attr:{ konstanz:4 },
+                text:'Vierunddreißig Schüsse, kein Gegentor. Die Frage nach der Nummer eins stellt niemand mehr.' },
+          schlecht:{ moral:-8, text:'Zwei frühe Gegentore, und am Sonntag steht wieder er im Tor.' } },
+        { t:'Einfach solide halten', chance:76, hinweis:'Keine Fehler, kein Aufsehen',
+          gut:{ attr:{ stellung:3, konstanz:3 }, moral:6,
+                text:'Unspektakulär und fehlerfrei. Aus einem Spiel werden vier, aus vier eine Rückrunde.' },
+          schlecht:{ text:'Ordentlich, aber nicht genug, um jemanden umzustimmen.' } }
+      ] }
   ];
 
   /* ==========================================================

@@ -335,6 +335,7 @@ const PUCKERO = (() => {
       zielBilanz: { erfuellt: 0, verfehlt: 0 },
       trainer: null,          // Name des aktuellen Trainers
       mitspieler: null,       // engster Weggefaehrte im Team
+      torwartrivale: null,    // der zweite Mann im Tor, nur fuer Torhueter
       freigeschaltet: [],     // durch Entscheidungen geoeffnete Stränge
       strangNamen: {},        // wer zu welchem Strang gehoert (Kontinuitaet)
       formzustand: 0,         // mehrjaehriger Lauf: -1 Krise ... +1 Hoehenflug
@@ -1126,6 +1127,7 @@ const PUCKERO = (() => {
           ? st.ehemalige[st.ehemalige.length - 1] : 'deinem alten Klub',
         trainer: st.trainer || 'der Trainer',
         mitspieler: st.mitspieler || 'ein Mitspieler',
+        torwartrivale: (st.torwartrivale || {}).name || 'der zweite Torhüter',
         rivale: st.rivale ? st.rivale.name : 'ein Spieler deines Jahrgangs',
         alter: st.age,
         jahre: st.klubJahre
@@ -1376,7 +1378,20 @@ const PUCKERO = (() => {
 
       if (isG){
         const rg = (st.rolle && st.rolle.w) || {};
-        const anteil = clamp(0.34 + kante * 0.46 + (rg.anteil || 0) * 1.6, 0.14, 0.96);
+        /* Frueher haing der Einsatzanteil allein an der eigenen Form -
+           entsprechend war man in 91 Prozent der Saisons Stammtorhueter.
+           Jetzt entscheidet der Abstand zum zweiten Mann. */
+        const tr = st.torwartrivale;
+        const duell = tr ? clamp(tr.abstand, -0.7, 0.7) * 0.50 : 0;
+        const anteil = clamp(0.50 + duell + kante * 0.08 + (rg.anteil || 0) * 1.6,
+                             0.12, 0.96);
+        if (tr){
+          season.torwartduell = { name: tr.name, abstand: tr.abstand, alter: tr.alter };
+          /* Er entwickelt sich weiter: jung holt auf, alt faellt zurueck. */
+          tr.alter++;
+          tr.abstand = round1(clamp(tr.abstand + (tr.alter < 28 ? -0.07 : 0.06)
+                                    + (r() - 0.5) * 0.20, -0.9, 0.9));
+        }
         const gp = Math.max(6, Math.min(fullGp - missed, Math.round((fullGp - missed) * anteil)));
         season.gp = gp;
         season.sv = clamp(0.885 + kante * 0.045 + (r() - 0.5) * 0.007, 0.868, 0.948);
@@ -1392,7 +1407,17 @@ const PUCKERO = (() => {
         season.toi = Math.round(58 + r() * 3);
         season.rolle = anteil >= 0.62 ? 'Stammtorhüter'
                      : anteil >= 0.42 ? 'Geteiltes Tor' : 'Ersatztorhüter';
-        if (anteil < 0.42) season.events.push({ t: 'Meist nur Ersatz – wenig Eiszeit', c: '' });
+        const tw = st.torwartrivale;
+        if (tw){
+          if (anteil >= 0.72)
+            season.events.push({ t: tw.name + ' kam kaum zum Zug – das Tor gehört dir', c: 'good' });
+          else if (anteil < 0.42)
+            season.events.push({ t: tw.name + ' hat dir das Tor abgenommen', c: 'bad' });
+          else
+            season.events.push({ t: 'Das Tor geteilt mit ' + tw.name, c: '' });
+        } else if (anteil < 0.42){
+          season.events.push({ t: 'Meist nur Ersatz – wenig Eiszeit', c: '' });
+        }
       } else {
         const rw = (st.rolle && st.rolle.w) || {};
         const gp = Math.max(8, fullGp - missed);
@@ -1964,6 +1989,30 @@ const PUCKERO = (() => {
       let versuch = 0;
       while (m === player.name && versuch++ < 5) m = pick(rr, D.FIRST) + ' ' + pick(rr, D.LAST);
       st.mitspieler = m;
+
+      /* Fuer Torhueter zaehlt vor allem einer: der andere Mann im Tor.
+         Seine Staerke haengt am Klub - ein Spitzenteam haelt sich keinen
+         schwachen Ersatz. */
+      if (isG && st.club){
+        let g = pick(rr, D.FIRST) + ' ' + pick(rr, D.LAST);
+        let v2 = 0;
+        while ((g === player.name || g === m) && v2++ < 5)
+          g = pick(rr, D.FIRST) + ' ' + pick(rr, D.LAST);
+        const schnitt = lgAvgStr(st.club.lg);
+        /* Der Rivale wird nicht unabhaengig gewuerfelt, sondern relativ zu
+           dir: sonst ueberragt ein guter Torhueter jeden zufaelligen
+           Ersatzmann und der Zweikampf faende nie statt. 'abstand' ist dein
+           Vorsprung - bei starken Klubs faellt er kleiner aus, weil sie sich
+           keinen schwachen zweiten Mann halten. */
+        st.torwartrivale = {
+          name: g,
+          abstand: round1(clamp((rr() - 0.46) * 1.5
+                                - (st.club.str - schnitt) * 0.035, -0.85, 0.85)),
+          alter: ri(rr, 21, 34)
+        };
+      } else if (!isG) {
+        st.torwartrivale = null;
+      }
     }
 
     /* ---- Angebot annehmen ---- */
@@ -2350,6 +2399,7 @@ const PUCKERO = (() => {
         rolle: st.rolle,
         trainer: st.trainer,
         mitspieler: st.mitspieler,
+        torwartrivale: st.torwartrivale,
         freigeschaltet: st.freigeschaltet,
         strangNamen: st.strangNamen,
         zusatzjahre: st.zusatzjahre,
