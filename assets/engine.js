@@ -2457,7 +2457,26 @@ const PUCKERO = (() => {
         titles: result.trophies.reduce((s, x) => s + x.x, 0),
         p: result.isG ? result.totals.wins : result.totals.p,
         isG: result.isG,
-        seed: result.player.seed
+        seed: result.player.seed,
+
+        /* Was die Laufbahn ausgemacht hat. Bewusst knapp - im
+           Browserspeicher liegen bis zu sechzig Karrieren. */
+        jgPlatz: (() => {
+          const e = (result.jahrgangStand || []).find(x => x.eigen);
+          return e ? e.platz : null;
+        })(),
+        jgVon: (result.jahrgangStand || []).length || null,
+        straenge: (result.freigeschaltet || []).slice(),
+        natKapitaen: !!result.natKapitaen,
+        klubs: (result.ehemalige || []).length + 1,
+        wahlen: (result.verlauf || []).length,
+        gelungen: (result.verlauf || []).filter(v => v.gelungen).length,
+        wendepunkt: (() => {
+          const gut = (result.verlauf || []).filter(v => v.gelungen);
+          if (!gut.length) return null;
+          const b = gut.slice().sort((x, y) => x.chance - y.chance)[0];
+          return { wahl: b.wahl, chance: b.chance, alter: b.alter };
+        })()
       });
       localStorage.setItem(KEY, JSON.stringify(list.slice(0, 60)));
     } catch(e){ /* Speicher nicht verfügbar */ }

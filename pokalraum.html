@@ -71,6 +71,45 @@ function zeichne(){
     return;
   }
   const besteLegacy = Math.max(...alle.map(k => k.legacy));
+  /* Zusatzangaben. Karrieren, die vor dieser Erweiterung gespeichert
+     wurden, kennen die Felder nicht - dann faellt der Block weg. */
+  const STRANG_KURZ = {
+    rivalitaet:'Rivalität', trainerpakt:'Trainer', weggefaehrte:'Weggefährte',
+    wechsler:'Wechsel', treue:'Treue', wortfuehrer:'Wortführer', ziehvater:'Ziehvater'
+  };
+
+  function zusatz(k){
+    const hatNeues = k.wahlen !== undefined || k.jgPlatz != null
+                  || (k.straenge && k.straenge.length);
+    if (!hatNeues) return '';
+    const teile = [];
+    if (k.jgPlatz != null && k.jgVon)
+      teile.push(`<span>Jahrgang <b>${k.jgPlatz}.</b> von ${k.jgVon}</span>`);
+    if (k.klubs) teile.push(`<span>Stationen <b>${k.klubs}</b></span>`);
+    if (k.wahlen) teile.push(`<span>Entscheidungen <b>${k.gelungen}</b>/${k.wahlen}</span>`);
+    if (k.natKapitaen) teile.push('<span class="gold">Kapitän der Nationalmannschaft</span>');
+
+    const str = (k.straenge || []).filter(x => STRANG_KURZ[x]);
+    const wp = k.wendepunkt;
+
+    return `
+      <div class="statline" style="border-top:1px solid var(--line-soft)">
+        ${teile.join('')}
+      </div>
+      ${str.length ? `<div class="row mt" style="gap:6px;flex-wrap:wrap">
+        ${str.map(x => `<span class="pill">${STRANG_KURZ[x]}</span>`).join('')}
+      </div>` : ''}
+      ${wp ? `<div class="story" style="margin-top:10px">
+        <b>Wendepunkt:</b> ${esc(wp.wahl)}
+        <span class="small"> · ${wp.chance}% Chance, mit ${wp.alter} Jahren</span>
+      </div>` : ''}`;
+  }
+
+  function esc(t){
+    return String(t == null ? '' : t)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
   const titelSumme = alle.reduce((s, k) => s + k.titles, 0);
   const saisons = alle.reduce((s, k) => s + k.seasons, 0);
   const kacheln = [
@@ -107,6 +146,7 @@ function zeichne(){
         <span>${k.isG ? 'Siege' : 'Punkte'} <b>${k.p}</b></span>
         <span>Gespielt am <b>${datum}</b></span>
       </div>
+      ${zusatz(k)}
       <div class="row mt" style="gap:8px">
         <a class="btn btn-ghost btn-sm" href="index.html?seed=${encodeURIComponent(k.seed)}#spielen">Nachspielen</a>
         <button class="btn btn-ghost btn-sm" data-seed="${encodeURIComponent(k.seed)}">Seed kopieren</button>
