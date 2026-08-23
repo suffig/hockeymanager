@@ -1429,10 +1429,17 @@ const PUCKERO = (() => {
 
       /* Teamerfolg */
       const einfluss = clamp((ovr - 80) * (isG ? 0.38 : 0.34), -7, 14);
-      const moralBonus = (st.moral - 60) * 0.10;
-      const teamPower = club.str + einfluss + moralBonus + (r() - 0.5) * 15;
+      /* Der Nullpunkt liegt auf dem gemessenen Mittel (rund 86), nicht bei 60:
+         sonst bekaeme fast jeder dauerhaft einen Bonus statt eines Ausschlags.
+         Dafuer wiegt der Ausschlag jetzt deutlich schwerer - eine kaputte
+         Kabine kostet spuerbar, eine intakte traegt. */
+      const moralBonus = clamp((st.moral - 70) * 0.20, -9, 5);
+      /* Wer das C traegt, hebt die Mannschaft - nicht nur die Vitrine. */
+      const kapitaensBonus = st.kapitaenSeit === club.n ? 2.2 : 0;
+      const teamPower = club.str + einfluss + moralBonus + kapitaensBonus
+                      + (r() - 0.5) * 15;
       season.moral = Math.round(st.moral);
-      st.tabelle = baueTabelle(club.lg, club.n, einfluss + moralBonus);
+      st.tabelle = baueTabelle(club.lg, club.n, einfluss + moralBonus + kapitaensBonus);
       season.tabelle = st.tabelle.slice(0, 6);
       season.platz = (st.tabelle.find(t => t.eigen) || {}).platz || null;
       const ligaSchnitt = lgAvgStr(club.lg);
@@ -1813,7 +1820,16 @@ const PUCKERO = (() => {
     /* ---- Läuft der Vertrag weiter oder kommen Angebote? ---- */
     function vertragspruefung(season){
       const naechsterOvr = overall(player, devAttrs(player.attrs, formFactor(st.age, player.traits, (player.wirkung || {}).lernkurve, st.scheitel)));
-      const bewertung = Math.max(naechsterOvr, st.ruf * 0.5 + naechsterOvr * 0.5);
+      /* Der Stand im eigenen Jahrgang schlaegt auf den Marktwert durch:
+         Wer seine Klasse anfuehrt, wird anders gehandelt als das Schlusslicht. */
+      const jgWert = (() => {
+        const d = st.jahrgangDelta;
+        if (!d || !d.von) return 0;
+        const anteil = (d.von - d.platz) / (d.von - 1);   // 1 = Spitze, 0 = letzter
+        return round1((anteil - 0.5) * 4);
+      })();
+      const bewertung = Math.max(naechsterOvr,
+                                 st.ruf * 0.5 + naechsterOvr * 0.5) + jgWert;
       if (st.age >= 25 && bewertung < VERTRAG_MIN){ ende('vertraglos'); return; }
 
       /* Hoert der Spieler freiwillig auf? */
@@ -2098,7 +2114,16 @@ const PUCKERO = (() => {
       /* Danach normal weiter mit der Vertragsfrage */
       const naechsterOvr = overall(player, devAttrs(player.attrs,
         formFactor(st.age, player.traits, (player.wirkung || {}).lernkurve, st.scheitel)));
-      const bewertung = Math.max(naechsterOvr, st.ruf * 0.5 + naechsterOvr * 0.5);
+      /* Der Stand im eigenen Jahrgang schlaegt auf den Marktwert durch:
+         Wer seine Klasse anfuehrt, wird anders gehandelt als das Schlusslicht. */
+      const jgWert = (() => {
+        const d = st.jahrgangDelta;
+        if (!d || !d.von) return 0;
+        const anteil = (d.von - d.platz) / (d.von - 1);   // 1 = Spitze, 0 = letzter
+        return round1((anteil - 0.5) * 4);
+      })();
+      const bewertung = Math.max(naechsterOvr,
+                                 st.ruf * 0.5 + naechsterOvr * 0.5) + jgWert;
       if (bewertung < VERTRAG_MIN){ ende('vertraglos'); return true; }
       vertragsangebote(bewertung, letzte);
       return true;
