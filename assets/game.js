@@ -42,7 +42,10 @@ function CareerGame(root, cfg){
     /* Waehrend gespielt wird, tritt das Beiwerk der Seite zurueck.
        Auf dem Handy lagen sonst Hero, Kacheln und FAQ mit rund
        7000 Pixeln um das Spielfeld herum. */
-    const imSpiel = S.phase === 'draft' || S.phase === 'karriere';
+    /* Auch Identitaet und Moduswahl gehoeren zum Spielen - dort stand
+       sonst weiter die ganze Landingpage darum herum (gemessen 8302 px). */
+    const imSpiel = S.phase === 'ident' || S.phase === 'start'
+                 || S.phase === 'draft' || S.phase === 'karriere';
     document.documentElement.toggleAttribute('data-spiel', imSpiel);
     if (S.phase === 'ident')    return renderIdent();
     if (S.phase === 'draft')    return renderDraft();
@@ -353,16 +356,28 @@ function CareerGame(root, cfg){
         <span class="pill gold">${Object.values(st.trophies).reduce((a,x)=>a+x.x,0)} Trophäen</span>
       </div>
       ${mobil()
-        ? `<div class="panel-body karriere mobil">
+        ? `<div class="panel-body karriere mobil app">
              ${streifen(st, letzte, isG)}
-             <main class="k-spalte k-mitte">${mitte(lauf, st, letzte, isG)}</main>
-             <details class="m-klapp"><summary>Spielerkarte und Werte</summary>
-               <div class="m-inhalt">${spielerkarte(st, letzte, isG)}</div></details>
-             <details class="m-klapp"><summary>Jahrgang</summary>
-               <div class="m-inhalt">${UI.jahrgangTabelle(st.jahrgangStand, isG,
-                 { delta: st.jahrgangDelta })}</div></details>
-             <details class="m-klapp"><summary>Karriereverlauf</summary>
-               <div class="m-inhalt">${altersraster(st, isG)}</div></details>
+             <div class="app-inhalt">
+               <section class="app-tab" data-tab="spielen">
+                 <main class="k-mitte">${mitte(lauf, st, letzte, isG, true)}</main>
+               </section>
+               <section class="app-tab" data-tab="verlauf">
+                 ${st.seasons.length
+                   ? st.seasons.slice().reverse()
+                       .map(x => UI.seasonCard(x, isG, blind(), false, true)).join('')
+                   : '<p class="small">Noch keine Saison gespielt.</p>'}
+               </section>
+               <section class="app-tab" data-tab="jahrgang">
+                 ${UI.jahrgangTabelle(st.jahrgangStand, isG, { delta: st.jahrgangDelta })
+                   || '<p class="small">Der Jahrgang steht erst nach dem Draft fest.</p>'}
+                 ${altersraster(st, isG)}
+               </section>
+               <section class="app-tab" data-tab="profil">
+                 ${spielerkarte(st, letzte, isG)}
+               </section>
+             </div>
+             ${appNav()}
            </div>`
         : `<div class="panel-body karriere">
              <aside class="k-spalte k-links">${spielerkarte(st, letzte, isG)}</aside>
@@ -372,6 +387,17 @@ function CareerGame(root, cfg){
            </div>`}`;
 
     bindeKarriere(lauf, st);
+
+    if (mobil()){
+      root.querySelectorAll('[data-apptab]').forEach(el =>
+        el.onclick = () => tabZeigen(el.dataset.apptab));
+      tabZeigen(appTab);
+      /* Eine frische Folge einblenden - aber nur einmal je Entscheidung. */
+      if (st.letzteFolge && st.letzteFolge !== zuletztGezeigt){
+        zuletztGezeigt = st.letzteFolge;
+        folgeZeigen(st.letzteFolge);
+      }
+    }
     zumZug();
   }
 
@@ -418,6 +444,77 @@ function CareerGame(root, cfg){
      zuerst, alles Nachschlagbare eingeklappt. */
   const mobil = () => window.matchMedia('(max-width: 760px)').matches;
 
+  /* ----------------------------------------------------------------
+     Untere Leiste. Alles Nachschlagbare verlaesst den Spielbereich,
+     damit "Spielen" auf einen Bildschirm passt und nichts wegscrollt.
+     ---------------------------------------------------------------- */
+  const APP_TABS = [
+    { k:'spielen',  n:'Spielen',  ik:'puck' },
+    { k:'verlauf',  n:'Verlauf',  ik:'kalender' },
+    { k:'jahrgang', n:'Jahrgang', ik:'flamme' },
+    { k:'profil',   n:'Profil',   ik:'gruppe' }
+  ];
+  let appTab = 'spielen';
+
+  function appNav(){
+    return `<nav class="app-nav">
+      ${APP_TABS.map(t => `
+        <button class="app-nav-knopf ${t.k === appTab ? 'an' : ''}" data-apptab="${t.k}">
+          ${UI.ikone(t.ik, 19)}<span>${t.n}</span>
+        </button>`).join('')}
+    </nav>`;
+  }
+
+  function tabZeigen(k){
+    appTab = k;
+    root.querySelectorAll('.app-tab').forEach(el =>
+      el.classList.toggle('an', el.dataset.tab === k));
+    root.querySelectorAll('[data-apptab]').forEach(el =>
+      el.classList.toggle('an', el.dataset.apptab === k));
+    const inhalt = root.querySelector('.app-inhalt');
+    if (inhalt) inhalt.scrollTop = 0;
+  }
+
+  /* ----------------------------------------------------------------
+     Die Folge einer Entscheidung als Einblendung. Frueher stand sie
+     im Fluss und scrollte beim Sprung zur naechsten Entscheidung aus
+     dem Bild - gemessen war sie danach nicht mehr sichtbar.
+     ---------------------------------------------------------------- */
+  let folgeOffen = null;
+
+  function folgeZeigen(folge){
+    if (!folge || !mobil()) return;
+    folgeSchliessen();
+    const w = document.createElement('div');
+    w.className = 'folge-schicht';
+    w.innerHTML = `
+      <div class="folge-blatt ${folge.gelungen ? 'gut' : 'schlecht'}">
+        <div class="fb-kopf">
+          <span class="fb-marke">${UI.ikone(folge.gelungen ? 'haken' : 'kreuz', 15)}
+            ${folge.gelungen ? 'Gelungen' : 'Misslungen'}</span>
+          ${folge.chance !== undefined
+            ? `<span class="fb-chance">${folge.chance}% Chance</span>` : ''}
+        </div>
+        ${folge.wahl ? `<div class="fb-wahl">${esc(folge.wahl)}</div>` : ''}
+        ${folge.text ? `<p class="fb-text">${esc(folge.text)}</p>` : ''}
+        ${(folge.wirkungen || []).length ? `<div class="fb-wirkungen">
+          ${folge.wirkungen.map(x => `<span class="fk ${x.gut ? 'plus' : 'minus'}">${esc(x.t)}</span>`).join('')}
+        </div>` : ''}
+        <button class="btn btn-primary fb-weiter">Weiter</button>
+      </div>`;
+    document.body.appendChild(w);
+    folgeOffen = w;
+    const zu = () => folgeSchliessen();
+    w.addEventListener('click', zu);
+    requestAnimationFrame(() => w.classList.add('an'));
+  }
+
+  function folgeSchliessen(){
+    if (!folgeOffen) return;
+    folgeOffen.remove();
+    folgeOffen = null;
+  }
+
   /* Kopfstreifen statt voller Spielerkarte - bleibt beim Scrollen stehen */
   function streifen(st, letzte, isG){
     const p = S.player, nat = PUCKERO.nation(p.nation);
@@ -448,37 +545,16 @@ function CareerGame(root, cfg){
      Ohne das lag der Entscheidungsknopf auf dem Handy mehrere
      Bildschirme unterhalb des sichtbaren Bereichs. */
   let ersterAufbau = true;
+  let zuletztGezeigt = null;   // welche Folge schon eingeblendet wurde
+  /* Frueher wurde nach jeder Entscheidung zur Handlung gescrollt, weil
+     die Seite mehrere Bildschirme hoch war. Im App-Aufbau ist der
+     Spielbereich auf Bildschirmhoehe begrenzt - es gibt nichts mehr zu
+     springen, nur der Bereich selbst scrollt. */
   function zumZug(){
-    if (!mobil()){ ersterAufbau = false; return; }
-    /* Zwei Bilder warten: direkt nach dem Setzen von innerHTML stehen die
-       Hoehen noch nicht fest, und der Sprung landete daneben. */
-    requestAnimationFrame(() => requestAnimationFrame(springen));
-  }
-
-  function springen(){
-    /* Zur Handlung springen, nicht nur an den Anfang der Spalte: sonst
-       verdeckt eine lange Saisonkarte den Entscheidungsknopf. */
-    const tat = root.querySelector(
-      '.wahlzeile, [data-training], [data-angebot], [data-rolle], ' +
-      '[data-kapitaen], [data-jugend], [data-wechsel], #weiter, #bilanz');
-    const ziel = tat || root.querySelector('.k-mitte');
-    if (!ziel) return;
-
-    const kopf = (document.querySelector('header.site') || {}).offsetHeight || 0;
-    const streifen = (root.querySelector('.m-streifen') || {}).offsetHeight || 0;
-    const oben = kopf + streifen + 8;
-    const r = ziel.getBoundingClientRect();
-    const sicht = window.innerHeight;
-
-    // Schon gut sichtbar? Dann nicht unnoetig herumspringen.
-    if (r.top >= oben && r.bottom <= sicht){ ersterAufbau = false; return; }
-
-    // Die Handlung auf etwa 55% der Hoehe setzen - darueber bleibt Platz
-    // fuer Folge und Saisonzahlen, darunter fuer die restlichen Optionen.
-    const wunsch = tat ? Math.max(oben, sicht * 0.55 - r.height) : oben;
-    const y = r.top + window.scrollY - wunsch;
-    window.scrollTo({ top: Math.max(0, y), behavior: ersterAufbau ? 'auto' : 'smooth' });
     ersterAufbau = false;
+    if (!mobil()) return;
+    const inhalt = root.querySelector('.app-inhalt');
+    if (inhalt && appTab === 'spielen') inhalt.scrollTop = 0;
   }
 
   /* Linke Spalte: Spielerkarte, Aktionen, Ligatabelle */
@@ -572,8 +648,10 @@ function CareerGame(root, cfg){
   /* Mittlere Spalte: was gerade ansteht.
      Die Folge der letzten Entscheidung steht immer obenauf – sie darf
      nicht von Training oder Angeboten verdeckt werden. */
-  function mitte(lauf, st, letzte, isG){
-    const kopf = folgeHtml(st.letzteFolge);
+  function mitte(lauf, st, letzte, isG, alsApp){
+    /* Im App-Aufbau wandert die Folge in die Einblendung, sonst stuende
+       sie doppelt da. */
+    const kopf = alsApp ? '' : folgeHtml(st.letzteFolge);
 
     /* Reihenfolge: erst die Folge der Entscheidung, dann die Zahlen der
        gerade gespielten Saison, danach der naechste Schritt. Vorher sprangen
@@ -626,7 +704,10 @@ function CareerGame(root, cfg){
       <div class="folge ${folge.gelungen ? 'gut' : 'schlecht'} anim">
         <div class="folge-kopf">
           <span>${folge.gelungen ? '✓ Gelungen' : '✕ Misslungen'}</span>
-          <span class="wurf">Wurf ${folge.wurf} gegen ${folge.chance}%</span>
+          ${folge.wurf !== undefined
+            ? `<span class="wurf">Wurf ${folge.wurf} gegen ${folge.chance}%</span>`
+            : (folge.chance !== undefined
+                ? `<span class="wurf">${folge.chance}% Chance</span>` : '')}
         </div>
         <div class="small" style="margin-bottom:6px">${esc(folge.tag || '')} · ${esc(folge.wahl)}</div>
         <p style="margin:0 0 10px">${esc(folge.text)}</p>

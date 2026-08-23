@@ -158,9 +158,21 @@ const UI = (() => {
     if (h) h.outerHTML = header(active);
     if (f) f.outerHTML = footer();
     themaBinden();
+    kopfhoeheSetzen();
   }
 
   /* ---------- Themenumschaltung ---------- */
+  /* Die Kopfleiste bleibt beim Scrollen stehen. Ihre Hoehe geht in die
+     Rechnung des mobilen App-Rahmens ein - wird sie nicht gesetzt,
+     greift ein Ersatzwert und die Seite ragt um wenige Pixel ueber. */
+  function kopfhoeheSetzen(){
+    const kopf = document.querySelector('header.site');
+    document.documentElement.style.setProperty('--kopfhoehe',
+      ((kopf && kopf.offsetHeight) || 56) + 'px');
+  }
+  if (typeof window !== 'undefined')
+    window.addEventListener('resize', () => kopfhoeheSetzen());
+
   const THEMA_KEY = 'eiszeit.thema';
   /* 'klassisch' ist der Grundzustand ohne Attribut, alle weiteren
      Themen setzen data-thema auf <html>. */

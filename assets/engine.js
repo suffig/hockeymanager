@@ -489,10 +489,11 @@ const PUCKERO = (() => {
       const so = st.sommer;
       if (!so) return null;
       const o = so.optionen[clamp(index, 0, so.optionen.length - 1)];
-      const gelungen = r() * 100 < o.chance;
+      const wurf = r() * 100;
+      const gelungen = wurf < o.chance;
       const e = gelungen ? o.gut : o.schlecht;
 
-      const folge = { gelungen, text: e.text || '', chance: o.chance,
+      const folge = { gelungen, wurf: Math.round(wurf), text: e.text || '', chance: o.chance,
                       wahl: o.t, titel: so.titel, tag: so.tag, wirkungen: [] };
       const merke = (t, gut) => folge.wirkungen.push({ t, gut });
 
@@ -601,11 +602,12 @@ const PUCKERO = (() => {
       const f = st.nominierung;
       if (!f) return null;
       const o = f.optionen[clamp(index, 0, f.optionen.length - 1)];
-      const gelungen = r() * 100 < o.chance;
+      const wurf = r() * 100;
+      const gelungen = wurf < o.chance;
       const e = gelungen ? o.gut : o.schlecht;
       const ctx = ereignisKontext();
 
-      const folge = { gelungen, text: einsetzen(e.text || '', ctx), chance: o.chance,
+      const folge = { gelungen, wurf: Math.round(wurf), text: einsetzen(e.text || '', ctx), chance: o.chance,
                       wahl: o.t, titel: f.titel, tag: f.tag, wirkungen: [] };
       const merke = (t, gut) => folge.wirkungen.push({ t, gut });
 
@@ -818,11 +820,12 @@ const PUCKERO = (() => {
       const w = st.wechselfrist;
       if (!w) return null;
       const o = w.optionen[clamp(index, 0, w.optionen.length - 1)];
-      const gelungen = r() * 100 < o.chance;
+      const wurf = r() * 100;
+      const gelungen = wurf < o.chance;
       const e = gelungen ? o.gut : o.schlecht;
       const ctx = ereignisKontext();
 
-      const folge = { gelungen, text: einsetzen(e.text || '', ctx), chance: o.chance,
+      const folge = { gelungen, wurf: Math.round(wurf), text: einsetzen(e.text || '', ctx), chance: o.chance,
                       wahl: o.t, titel: w.titel, tag: w.tag, wirkungen: [] };
       const merke = (t, gut) => folge.wirkungen.push({ t, gut });
       const attrName = k => {
@@ -2071,7 +2074,7 @@ const PUCKERO = (() => {
         stand: { klub: a.club.n, jahre: a.jahre, gehalt: a.gehalt },
         optionen: [
           { t: 'Mehr Geld verlangen', ikone: 'stern',
-            chance: clamp(46 + (st.ruf - 80) * 1.1, 25, 82),
+            chance: Math.round(clamp(46 + (st.ruf - 80) * 1.1, 25, 82)),
             hinweis: 'Rund ein Fünftel mehr pro Saison',
             wirkung: 'geld',
             gut: { text: 'Sie gehen mit. Am Ende steht eine Zahl, die sich sehen lassen kann.' },
@@ -2079,7 +2082,7 @@ const PUCKERO = (() => {
               text: 'Man bleibt beim ersten Angebot. Unterschrieben hast du trotzdem.' } },
 
           { t: lang ? 'Kürzer binden' : 'Länger binden', ikone: 'uhr',
-            chance: clamp(58 + (st.ruf - 80) * 0.6, 32, 84),
+            chance: Math.round(clamp(58 + (st.ruf - 80) * 0.6, 32, 84)),
             hinweis: lang ? 'Ein Jahr weniger – früher wieder frei'
                           : 'Ein Jahr mehr – Sicherheit statt Beweglichkeit',
             wirkung: lang ? 'kuerzer' : 'laenger',
@@ -2087,7 +2090,7 @@ const PUCKERO = (() => {
             schlecht: { text: 'Die Laufzeit bleibt, wie sie war.' } },
 
           { t: 'Eine Ausstiegsklausel verlangen', ikone: 'flug',
-            chance: clamp(34 + (st.ruf - 80) * 1.4, 15, 74),
+            chance: Math.round(clamp(34 + (st.ruf - 80) * 1.4, 15, 74)),
             hinweis: 'Macht einen Wechsel an der Frist deutlich leichter',
             wirkung: 'klausel',
             gut: { text: 'Die Klausel steht. Solltest du gehen wollen, hält dich niemand.' },
@@ -2108,10 +2111,11 @@ const PUCKERO = (() => {
       const v = st.verhandlung;
       if (!v) return null;
       const o = v.optionen[clamp(index, 0, v.optionen.length - 1)];
-      const gelungen = r() * 100 < o.chance;
+      const wurf = r() * 100;
+      const gelungen = wurf < o.chance;
       const e = gelungen ? o.gut : o.schlecht;
 
-      const folge = { gelungen, text: e.text || '', chance: o.chance,
+      const folge = { gelungen, wurf: Math.round(wurf), text: e.text || '', chance: o.chance,
                       wahl: o.t, titel: v.titel, tag: v.tag, wirkungen: [] };
       const merke = (t, gut) => folge.wirkungen.push({ t, gut });
 

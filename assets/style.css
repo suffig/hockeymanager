@@ -1872,3 +1872,132 @@ footer.site a:hover{color:var(--text)}
 /* Hinweis, wenn etwas nicht geklappt hat */
 .warn{color:var(--red)}
 .small.warn{color:var(--red)}
+
+/* ==========================================================
+   Mobiler App-Aufbau
+   Fester Rahmen statt langer Seite: oben der Streifen, unten die
+   Leiste, dazwischen genau ein Bereich. Die Seite selbst scrollt
+   nicht mehr - nur der Inhalt des aktiven Bereichs.
+   ========================================================== */
+@media (max-width:760px){
+
+  /* Waehrend gespielt wird, uebernimmt das Spiel den Bildschirm */
+  :root[data-spiel] body{overflow:hidden}
+  :root[data-spiel] section#spielen{padding:0}
+  :root[data-spiel] section#spielen > .wrap{padding-left:0;padding-right:0}
+  /* Auch oben und unten randlos - sonst ragt die Seite um die zwei
+     Rahmenpixel ueber den Bildschirm. */
+  :root[data-spiel] .panel{border-radius:0;border:0;margin:0}
+  :root[data-spiel] .panel-head{display:none}
+
+  .karriere.mobil.app{
+    display:flex;flex-direction:column;gap:0;
+    /* 100dvh folgt der ein- und ausfahrenden Browserleiste */
+    height:calc(100dvh - var(--kopfhoehe,56px));
+    overflow:hidden;
+  }
+  .karriere.mobil.app .m-streifen{
+    position:static;border-radius:0;border-left:0;border-right:0;
+    flex:0 0 auto;box-shadow:none;
+    border-bottom:1px solid var(--line);
+  }
+
+  .app-inhalt{
+    flex:1 1 auto;min-height:0;
+    overflow-y:auto;-webkit-overflow-scrolling:touch;
+    padding:10px 12px calc(12px + env(safe-area-inset-bottom));
+    overscroll-behavior:contain;
+  }
+  .app-tab{display:none}
+  .app-tab.an{display:block;animation:tabRein .22s ease}
+  @keyframes tabRein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+  /* Untere Leiste */
+  .app-nav{
+    flex:0 0 auto;
+    display:grid;grid-template-columns:repeat(4,1fr);
+    border-top:1px solid var(--line);
+    background:color-mix(in srgb,var(--ice-900) 94%,transparent);
+    backdrop-filter:blur(12px);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .app-nav-knopf{
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+    padding:9px 4px 8px;background:none;border:0;cursor:pointer;
+    color:var(--dim);font-size:10.5px;font-weight:600;
+    font-family:inherit;letter-spacing:.02em;
+  }
+  .app-nav-knopf span{line-height:1}
+  .app-nav-knopf.an{color:var(--accent)}
+  .app-nav-knopf.an::before{
+    content:'';position:absolute;margin-top:-9px;width:26px;height:2px;
+    border-radius:0 0 3px 3px;background:var(--accent);
+  }
+
+  /* Im App-Aufbau braucht der Spielbereich keine eigenen Raender mehr */
+  .app .k-mitte > .card,
+  .app .k-mitte > .wechselfrist,
+  .app .k-mitte > .ereignis{margin-top:0}
+  .app .season{margin-bottom:10px}
+}
+
+/* ---- Folge einer Entscheidung: Einblendung ---- */
+.folge-schicht{
+  position:fixed;inset:0;z-index:200;
+  display:flex;align-items:flex-end;justify-content:center;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(3px);
+  opacity:0;transition:opacity .2s ease;
+  padding:16px;
+}
+.folge-schicht.an{opacity:1}
+.folge-blatt{
+  width:100%;max-width:440px;
+  background:var(--ice-800);border:1px solid var(--line);
+  border-radius:var(--radius);padding:16px;
+  box-shadow:0 24px 60px -20px rgba(0,0,0,.8);
+  transform:translateY(14px);transition:transform .24s cubic-bezier(.2,.9,.3,1);
+}
+.folge-schicht.an .folge-blatt{transform:none}
+.folge-blatt.gut     {box-shadow:inset 0 3px 0 var(--green), 0 24px 60px -20px rgba(0,0,0,.8)}
+.folge-blatt.schlecht{box-shadow:inset 0 3px 0 var(--red),   0 24px 60px -20px rgba(0,0,0,.8)}
+.fb-kopf{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px}
+.fb-marke{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:800;
+}
+.folge-blatt.gut      .fb-marke{color:var(--green)}
+.folge-blatt.schlecht .fb-marke{color:var(--red)}
+.fb-chance{font-size:11.5px;color:var(--dim)}
+.fb-wahl{font-size:15px;font-weight:700;margin-bottom:6px;line-height:1.3}
+.fb-text{color:var(--muted);font-size:13.5px;margin:0 0 12px;line-height:1.5}
+.fb-wirkungen{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.fb-weiter{width:100%}
+@media (min-width:761px){ .folge-schicht{align-items:center} }
+@media (prefers-reduced-motion:reduce){
+  .folge-schicht,.folge-blatt{transition:none}
+  .app-tab.an{animation:none}
+}
+
+/* Waehrend des Spiels bleibt auch die Trennlinie zwischen den
+   Abschnitten weg - sonst scrollt die Seite um wenige Pixel. */
+@media (max-width:760px){
+  :root[data-spiel] hr.divider{display:none}
+  :root[data-spiel] section#spielen > .wrap{margin:0}
+}
+
+/* Identitaet, Moduswahl und Draft bekommen denselben festen Rahmen wie
+   die Karriere - nur ohne untere Leiste, weil es dort nichts zu
+   wechseln gibt. Gescrollt wird im Inhalt, nie in der Seite. */
+@media (max-width:760px){
+  :root[data-spiel] .panel-body:not(.app){
+    height:calc(100dvh - var(--kopfhoehe,56px));
+    overflow-y:auto;-webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+    padding:12px 12px calc(16px + env(safe-area-inset-bottom));
+  }
+  /* Die Wertespalte des Drafts steht auf dem Handy oben, nicht daneben */
+  :root[data-spiel] .panel-body:not(.app) > .row{flex-direction:column}
+  :root[data-spiel] .panel-body:not(.app) .card[style*="274px"]{
+    width:100% !important;flex:none !important;
+  }
+}
