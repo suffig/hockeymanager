@@ -20,8 +20,8 @@
    ========================================================== */
 
 const KONTO_CONFIG = {
-  url:     '',   // z. B. 'https://abcdefghijkl.supabase.co'
-  anonKey: ''    // der lange anon-public-Schlüssel
+  url:     'https://fkruxbvkxjayprhqchhy.supabase.co',   // z. B. 'https://abcdefghijkl.supabase.co'
+  anonKey: 'sb_publishable_AGv2iYmBVGbKDq_lFXTPrA_GbKfjOFk'    // der lange anon-public-Schlüssel
 };
 
 if (typeof window !== 'undefined') window.KONTO_CONFIG = KONTO_CONFIG;
