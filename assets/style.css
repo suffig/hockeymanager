@@ -1868,3 +1868,7 @@ footer.site a:hover{color:var(--text)}
 /* Sommerpause */
 .wf-kopf.lage-sommer .wf-lage{color:var(--accent-2)}
 .wf-kopf.lage-sommer{box-shadow:inset 0 3px 0 var(--accent-2)}
+
+/* Hinweis, wenn etwas nicht geklappt hat */
+.warn{color:var(--red)}
+.small.warn{color:var(--red)}

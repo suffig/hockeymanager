@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Konto – anmelden und Karrieren sichern | Eiszeit</title>
+<meta name="description" content="Mit einem Eiszeit-Konto liegen deine Karrieren nicht nur im Browser, sondern gerätübergreifend gesichert. Neue Profile werden von Hand freigegeben.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script>
+/* Gespeichertes Thema sofort anwenden, damit nichts aufblitzt */
+try{var t=localStorage.getItem('eiszeit.thema')||localStorage.getItem('puckero.thema');
+    if(t==='verspielt'||t==='retro')document.documentElement.setAttribute('data-thema',t);}catch(e){}
+</script>
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='12' fill='%230b1220' stroke='%2338d1ff' stroke-width='3'/></svg>">
+</head>
+<body data-nav="Konto">
+<div id="hdr"></div>
+
+<section class="block tight">
+  <div class="wrap narrow">
+    <span class="eyebrow">Nur mit Freigabe</span>
+    <h1 style="font-size:clamp(30px,4.5vw,46px)">Konto</h1>
+    <p class="lead">Spielen geht ohne Anmeldung, wie bisher – gespeichert wird dann lokal
+      in deinem Browser. Mit einem Konto liegen deine Karrieren gerätübergreifend
+      gesichert. Neue Profile werden von Hand freigegeben.</p>
+
+    <div id="bereich" class="mt-l"></div>
+  </div>
+</section>
+
+<div id="ftr"></div>
+
+<script src="assets/data.js"></script>
+<script src="assets/draft.js"></script>
+<script src="assets/engine.js"></script>
+<script src="assets/wappen.js"></script>
+<script src="assets/ui.js"></script>
+<script src="assets/konto-config.js"></script>
+<script src="assets/konto.js"></script>
+<script>
+const bereich = document.getElementById('bereich');
+const esc = t => String(t == null ? '' : t)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+/* ---------- Ansichten ---------- */
+
+function nichtEingerichtet(){
+  return `
+    <div class="card">
+      <h3>Konten sind noch nicht eingerichtet</h3>
+      <p class="small">In <code>assets/konto-config.js</code> fehlen die beiden
+        Supabase-Werte. Solange sie leer sind, läuft Eiszeit ohne Konten:
+        Spielen und lokales Speichern funktionieren unverändert.</p>
+      <p class="small mb0">Die Schritte dazu stehen in <code>db/README.md</code>.</p>
+    </div>`;
+}
+
+function formulare(){
+  return `
+    <div class="grid g2">
+      <div class="card">
+        <h3>Anmelden</h3>
+        <label class="feld"><span>E-Mail</span>
+          <input type="email" id="a-mail" autocomplete="email"></label>
+        <label class="feld"><span>Passwort</span>
+          <input type="password" id="a-pw" autocomplete="current-password"></label>
+        <button class="btn btn-primary mt" id="a-los">Anmelden</button>
+        <button class="btn btn-ghost btn-sm mt" id="a-vergessen">Passwort vergessen</button>
+      </div>
+      <div class="card">
+        <h3>Neues Profil</h3>
+        <label class="feld"><span>Anzeigename</span>
+          <input type="text" id="r-name" maxlength="32" autocomplete="nickname"></label>
+        <label class="feld"><span>E-Mail</span>
+          <input type="email" id="r-mail" autocomplete="email"></label>
+        <label class="feld"><span>Passwort</span>
+          <input type="password" id="r-pw" autocomplete="new-password"></label>
+        <button class="btn btn-primary mt" id="r-los">Profil anlegen</button>
+        <p class="small mt mb0">Danach wartet dein Profil auf Freigabe. Bis dahin
+          kannst du spielen, aber noch nichts in der Datenbank ablegen.</p>
+      </div>
+    </div>
+    <div id="meldung" class="mt-l"></div>`;
+}
+
+function angemeldet(z){
+  const p = z.profil || {};
+  const lage = z.status === 'frei'
+    ? { t:'Freigegeben', k:'gut', d:'Deine Karrieren werden gesichert.' }
+    : z.status === 'gesperrt'
+    ? { t:'Gesperrt', k:'schlecht', d:'Dieses Profil wurde gesperrt. Gespielt werden kann weiterhin, gespeichert wird lokal.' }
+    : { t:'Wartet auf Freigabe', k:'', d:'Spielen geht schon – gespeichert wird bis zur Freigabe lokal in deinem Browser.' };
+
+  return `
+    <div class="card">
+      <div class="row between" style="align-items:flex-start;gap:14px;flex-wrap:wrap">
+        <div>
+          <h3 style="margin-bottom:2px">${esc(p.benutzername || 'Profil')}</h3>
+          <p class="small mb0">${esc(z.email || '')}</p>
+        </div>
+        <span class="ziel-haken ${lage.k}" style="font-size:13px;font-weight:700">${lage.t}</span>
+      </div>
+      <p class="small">${lage.d}</p>
+
+      <label class="feld mt"><span>Anzeigename ändern</span>
+        <input type="text" id="n-name" maxlength="32" value="${esc(p.benutzername || '')}"></label>
+      <div class="row mt">
+        <button class="btn btn-ghost btn-sm" id="n-los">Namen speichern</button>
+        <button class="btn btn-ghost btn-sm" id="abmelden">Abmelden</button>
+        ${z.admin ? '<a class="btn btn-primary btn-sm" href="admin.html">Adminbereich</a>' : ''}
+      </div>
+      <div id="meldung" class="mt"></div>
+    </div>`;
+}
+
+/* ---------- Zeichnen und Binden ---------- */
+
+function sagen(text, gut){
+  const m = document.getElementById('meldung');
+  if (m) m.innerHTML = `<p class="small ${gut ? '' : 'warn'}" style="margin:0">${esc(text)}</p>`;
+}
+
+/* Fehlermeldungen von Supabase sind englisch und technisch. */
+function verstaendlich(fehler){
+  const t = String((fehler && fehler.message) || fehler || '');
+  if (/Invalid login/i.test(t))        return 'E-Mail oder Passwort stimmt nicht.';
+  if (/already registered/i.test(t))   return 'Zu dieser E-Mail gibt es schon ein Profil.';
+  if (/Password should be/i.test(t))   return 'Das Passwort ist zu kurz – mindestens sechs Zeichen.';
+  if (/valid email/i.test(t))          return 'Diese E-Mail-Adresse sieht nicht richtig aus.';
+  if (/rate limit|too many/i.test(t))  return 'Zu viele Versuche. Warte einen Moment.';
+  if (/nicht-eingerichtet/.test(t))    return 'Konten sind auf dieser Seite noch nicht eingerichtet.';
+  if (/Failed to fetch|NetworkError/i.test(t))
+    return 'Keine Verbindung zur Datenbank. Ohne Netz kannst du weiterspielen, gespeichert wird lokal.';
+  return t || 'Etwas ist schiefgegangen.';
+}
+
+function zeichne(z){
+  if (!z.eingerichtet){ bereich.innerHTML = nichtEingerichtet(); return; }
+  bereich.innerHTML = z.angemeldet ? angemeldet(z) : formulare();
+  binde(z);
+}
+
+function binde(z){
+  const $ = id => document.getElementById(id);
+
+  if (!z.angemeldet){
+    $('a-los').onclick = async () => {
+      try { await KONTO.anmelden($('a-mail').value.trim(), $('a-pw').value); }
+      catch(e){ sagen(verstaendlich(e)); }
+    };
+    $('r-los').onclick = async () => {
+      const name = $('r-name').value.trim();
+      if (name.length < 3) return sagen('Der Anzeigename braucht mindestens drei Zeichen.');
+      try {
+        await KONTO.registrieren($('r-mail').value.trim(), $('r-pw').value, name);
+        sagen('Profil angelegt. Es wartet jetzt auf Freigabe.', true);
+      } catch(e){ sagen(verstaendlich(e)); }
+    };
+    $('a-vergessen').onclick = async () => {
+      const mail = $('a-mail').value.trim();
+      if (!mail) return sagen('Trag zuerst deine E-Mail ein.');
+      try {
+        await KONTO.passwortZuruecksetzen(mail);
+        sagen('Wenn es zu dieser Adresse ein Profil gibt, ist eine Mail unterwegs.', true);
+      } catch(e){ sagen(verstaendlich(e)); }
+    };
+    return;
+  }
+
+  $('abmelden').onclick = () => KONTO.abmelden();
+  $('n-los').onclick = async () => {
+    const neu = $('n-name').value.trim();
+    if (neu.length < 3) return sagen('Mindestens drei Zeichen.');
+    try { await KONTO.benutzernameAendern(neu); sagen('Name gespeichert.', true); }
+    catch(e){ sagen(/duplicate|unique/i.test(String(e.message))
+      ? 'Diesen Namen hat schon jemand.' : verstaendlich(e)); }
+  };
+}
+
+KONTO.beiAenderung(zeichne);
+KONTO.starten();
+</script>
+</body>
+</html>

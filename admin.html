@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Adminbereich | Eiszeit</title>
+<meta name="robots" content="noindex,nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+<script>
+try{var t=localStorage.getItem('eiszeit.thema')||localStorage.getItem('puckero.thema');
+    if(t==='verspielt'||t==='retro')document.documentElement.setAttribute('data-thema',t);}catch(e){}
+</script>
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='12' fill='%230b1220' stroke='%2338d1ff' stroke-width='3'/></svg>">
+</head>
+<body data-nav="">
+<div id="hdr"></div>
+
+<section class="block tight">
+  <div class="wrap">
+    <span class="eyebrow">Verwaltung</span>
+    <h1 style="font-size:clamp(30px,4.5vw,46px)">Adminbereich</h1>
+    <p class="lead" id="unterzeile">Profile freigeben, sperren und einsehen.</p>
+
+    <div id="bereich" class="mt-l"></div>
+  </div>
+</section>
+
+<div id="ftr"></div>
+
+<script src="assets/data.js"></script>
+<script src="assets/draft.js"></script>
+<script src="assets/engine.js"></script>
+<script src="assets/wappen.js"></script>
+<script src="assets/ui.js"></script>
+<script src="assets/konto-config.js"></script>
+<script src="assets/konto.js"></script>
+<script>
+const bereich = document.getElementById('bereich');
+const esc = t => String(t == null ? '' : t)
+  .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+const STATUS_TEXT = { wartet:'Wartet', frei:'Freigegeben', gesperrt:'Gesperrt' };
+
+function datum(s){
+  if (!s) return '–';
+  try { return new Date(s).toLocaleDateString('de-DE',
+    { day:'2-digit', month:'2-digit', year:'numeric' }); }
+  catch(e){ return '–'; }
+}
+
+/* ---------- Ansichten ---------- */
+
+function keinZugang(z){
+  if (!z.eingerichtet) return `
+    <div class="card"><h3>Konten sind noch nicht eingerichtet</h3>
+      <p class="small mb0">In <code>assets/konto-config.js</code> fehlen die
+        Supabase-Werte. Die Schritte stehen in <code>db/README.md</code>.</p></div>`;
+  if (!z.angemeldet) return `
+    <div class="card"><h3>Nicht angemeldet</h3>
+      <p class="small">Der Adminbereich verlangt ein angemeldetes Profil mit Adminrecht.</p>
+      <a class="btn btn-primary btn-sm" href="konto.html">Zum Konto</a></div>`;
+  return `
+    <div class="card"><h3>Kein Adminrecht</h3>
+      <p class="small mb0">Dieses Profil darf den Adminbereich nicht benutzen.
+        Das ist keine reine Anzeigesperre – die Datenbank gibt hier ohne
+        Adminrecht schlicht nichts heraus.</p></div>`;
+}
+
+function tabelle(liste){
+  if (!liste.length) return '<p class="small">Nichts in dieser Gruppe.</p>';
+  return `<div class="vitrine" style="grid-template-columns:1fr">
+    ${liste.map(p => `
+      <div class="card" style="padding:12px 14px">
+        <div class="row between" style="gap:12px;flex-wrap:wrap;align-items:flex-start">
+          <div style="min-width:0">
+            <b style="font-size:15px">${esc(p.benutzername)}</b>
+            <div class="small">Angelegt ${datum(p.erstellt_am)}
+              ${p.status === 'frei' ? '· freigegeben ' + datum(p.freigegeben_am) : ''}
+              ${p.ist_admin ? '· <span class="gold">Admin</span>' : ''}</div>
+            ${p.notiz ? `<div class="small" style="color:var(--red)">${esc(p.notiz)}</div>` : ''}
+          </div>
+          <div class="row" style="gap:6px">
+            ${p.status !== 'frei'
+              ? `<button class="btn btn-primary btn-sm" data-frei="${esc(p.id)}">Freigeben</button>` : ''}
+            ${p.status !== 'gesperrt'
+              ? `<button class="btn btn-ghost btn-sm" data-sperr="${esc(p.id)}">Sperren</button>` : ''}
+          </div>
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+function ansicht(gruppen){
+  return `
+    <div class="grid g3">
+      ${[['wartet','Wartend'],['frei','Freigegeben'],['gesperrt','Gesperrt']]
+        .map(([k,n]) => `<div class="card center">
+          <div style="font-family:var(--display);font-size:40px;line-height:1;color:var(--accent)">${gruppen[k].length}</div>
+          <div class="small" style="letter-spacing:.1em;text-transform:uppercase">${n}</div>
+        </div>`).join('')}
+    </div>
+
+    <h2 class="mt-l">Wartet auf Freigabe</h2>
+    ${tabelle(gruppen.wartet)}
+
+    <h2 class="mt-l">Freigegeben</h2>
+    ${tabelle(gruppen.frei)}
+
+    <h2 class="mt-l">Gesperrt</h2>
+    ${tabelle(gruppen.gesperrt)}
+
+    <div id="meldung" class="mt"></div>`;
+}
+
+function sagen(text, gut){
+  const m = document.getElementById('meldung');
+  if (m) m.innerHTML = `<p class="small ${gut ? '' : 'warn'}" style="margin:0">${esc(text)}</p>`;
+}
+
+/* ---------- Laden und Binden ---------- */
+
+async function laden(){
+  let alle = [];
+  try { alle = await KONTO.profileLaden(); }
+  catch(e){
+    bereich.innerHTML = `<div class="card"><h3>Konnte nicht geladen werden</h3>
+      <p class="small mb0">${esc(e.message || String(e))}</p></div>`;
+    return;
+  }
+  const gruppen = { wartet:[], frei:[], gesperrt:[] };
+  alle.forEach(p => (gruppen[p.status] || gruppen.wartet).push(p));
+  bereich.innerHTML = ansicht(gruppen);
+
+  bereich.querySelectorAll('[data-frei]').forEach(b => b.onclick = async () => {
+    b.disabled = true;
+    try { await KONTO.freigeben(b.dataset.frei); await laden(); sagen('Freigegeben.', true); }
+    catch(e){ b.disabled = false; sagen(e.message || String(e)); }
+  });
+  bereich.querySelectorAll('[data-sperr]').forEach(b => b.onclick = async () => {
+    const grund = prompt('Grund für die Sperre (darf leer bleiben):') || null;
+    b.disabled = true;
+    try { await KONTO.sperren(b.dataset.sperr, grund); await laden(); sagen('Gesperrt.', true); }
+    catch(e){ b.disabled = false; sagen(e.message || String(e)); }
+  });
+}
+
+KONTO.beiAenderung(z => {
+  if (!z.admin){ bereich.innerHTML = keinZugang(z); return; }
+  document.getElementById('unterzeile').textContent =
+    'Angemeldet als ' + (z.profil ? z.profil.benutzername : '');
+  laden();
+});
+KONTO.starten();
+</script>
+</body>
+</html>

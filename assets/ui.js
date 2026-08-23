@@ -82,6 +82,7 @@ const UI = (() => {
     { href:'herausforderungen.html', n:'Ziele' },
     { href:'guides.html',          n:'Guides' },
     { href:'pokalraum.html',       n:'Pokalraum' },
+    { href:'konto.html',           n:'Konto' },
     { href:'index.html#faq',       n:'FAQ' }
   ];
 
