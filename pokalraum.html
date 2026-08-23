@@ -42,7 +42,8 @@ try{var t=localStorage.getItem('eiszeit.thema')||localStorage.getItem('puckero.t
       </div>
     </div>
 
-    <div id="liste" class="mt"></div>
+    <div id="quellen" class="mt-l"></div>
+<div id="liste" class="mt"></div>
   </div>
 </section>
 
@@ -53,9 +54,77 @@ try{var t=localStorage.getItem('eiszeit.thema')||localStorage.getItem('puckero.t
 <script src="assets/engine.js"></script>
 <script src="assets/wappen.js"></script>
 <script src="assets/ui.js"></script>
+<script src="assets/konto-config.js"></script>
+<script src="assets/konto.js"></script>
 <script>
+/* Karrieren koennen aus zwei Quellen kommen: dem Browserspeicher und
+   der Datenbank. Doppelte werden an Seed und Name erkannt - dieselbe
+   Laufbahn kann in beiden liegen, wenn sie nach der Anmeldung
+   gespeichert wurde. */
+let ausDb = [];
+
+function quellenZusammen(){
+  const lokal = PUCKERO.loadCareers();
+  const gesehen = new Set();
+  const raus = [];
+  ausDb.concat(lokal).forEach(k => {
+    const schluessel = k.seed + '|' + k.name + '|' + k.legacy;
+    if (gesehen.has(schluessel)) return;
+    gesehen.add(schluessel);
+    raus.push(k);
+  });
+  return raus.sort((a, b) => (b.t || 0) - (a.t || 0));
+}
+
+/* Hinweiszeile ueber der Liste: woher die Karrieren stammen und ob
+   noch etwas zu uebertragen ist. */
+async function quellenHinweis(){
+  const ziel = document.getElementById('quellen');
+  if (!ziel) return;
+  const z = (typeof KONTO !== 'undefined') ? KONTO.zustand() : { eingerichtet:false };
+
+  if (!z.eingerichtet){ ziel.innerHTML = ''; return; }
+  if (!z.angemeldet){
+    ziel.innerHTML = `<div class="card"><p class="small mb0">
+      Diese Karrieren liegen nur in diesem Browser.
+      <a href="konto.html">Mit einem Konto</a> werden sie gerätübergreifend gesichert.</p></div>`;
+    return;
+  }
+  if (!z.frei){
+    ziel.innerHTML = `<div class="card"><p class="small mb0">
+      Dein Profil wartet noch auf Freigabe – bis dahin wird weiterhin nur
+      lokal gespeichert.</p></div>`;
+    return;
+  }
+
+  const lokal = PUCKERO.loadCareers();
+  const offen = await KONTO.nichtUebertragen(lokal);
+  ziel.innerHTML = `<div class="card">
+    <p class="small ${offen.length ? '' : 'mb0'}">
+      Angemeldet als <b>${(z.profil && z.profil.benutzername) || ''}</b> –
+      neue Karrieren werden gesichert.</p>
+    ${offen.length ? `<p class="small">Es liegen noch
+      <b>${offen.length}</b> Karrieren nur in diesem Browser.</p>
+      <button class="btn btn-primary btn-sm" id="uebernehmen">In mein Konto übernehmen</button>
+      <span class="small" id="uebernahme"></span>` : ''}
+  </div>`;
+
+  const knopf = document.getElementById('uebernehmen');
+  if (knopf) knopf.onclick = async () => {
+    knopf.disabled = true;
+    const hinweis = document.getElementById('uebernahme');
+    hinweis.textContent = ' Wird übertragen …';
+    const e = await KONTO.uebertragen(lokal);
+    if (e.fehler){ hinweis.textContent = ' Fehlgeschlagen: ' + e.fehler; knopf.disabled = false; return; }
+    hinweis.textContent = ' ' + e.uebertragen + ' übernommen.';
+    ausDb = await KONTO.karrierenLaden();
+    zeichne();
+    quellenHinweis();
+  };
+}
+
 function zeichne(){
-  const alle = PUCKERO.loadCareers();
+  const alle = quellenZusammen();
   const sortKey = document.getElementById('sortierung').value;
 
   /* Übersicht */
@@ -168,6 +237,22 @@ document.getElementById('leeren').onclick = () => {
   }
 };
 zeichne();
+
+/* Nach dem Zeichnen die Datenbank dazuholen. Ohne Konto passiert nichts,
+   und wenn die Verbindung klemmt, bleibt der lokale Stand stehen. */
+if (typeof KONTO !== 'undefined'){
+  KONTO.beiAenderung(async z => {
+    if (z.angemeldet){
+      ausDb = await KONTO.karrierenLaden();
+      zeichne();
+    } else if (ausDb.length){
+      ausDb = [];
+      zeichne();
+    }
+    quellenHinweis();
+  });
+  KONTO.starten();
+}
 </script>
 </body>
 </html>

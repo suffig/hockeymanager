@@ -147,9 +147,9 @@ comment on view public.bestenliste is
 --  noch nicht geben. Deshalb einmalig von Hand - nach der eigenen
 --  Registrierung hier die eigene E-Mail eintragen und ausfuehren.
 --
---  update public.profile
---     set ist_admin = true,
---         status = 'frei',
---         freigegeben_am = now()
---   where id = (select id from auth.users where email = 'DEINE@MAIL.DE');
+  update public.profile
+    set ist_admin = true,
+        status = 'frei',
+         freigegeben_am = now()
+   where id = (select id from auth.users where email = 'philip-melchert@live.de');
 -- ---------------------------------------------------------------------

@@ -2484,6 +2484,8 @@ const PUCKERO = (() => {
     if (neue.length){
       neue.forEach(id => stand[id] = { t: Date.now(), name: res.player.name });
       try { localStorage.setItem(HKEY, JSON.stringify(stand)); } catch(e){}
+      if (typeof KONTO !== 'undefined' && KONTO.zustand().frei)
+        KONTO.zieleSpeichern(neue);
     }
     return neue;
   }
@@ -2508,6 +2510,7 @@ const PUCKERO = (() => {
         p: result.isG ? result.totals.wins : result.totals.p,
         isG: result.isG,
         seed: result.player.seed,
+        modus: result.player.mode || null,
 
         /* Was die Laufbahn ausgemacht hat. Bewusst knapp - im
            Browserspeicher liegen bis zu sechzig Karrieren. */
@@ -2529,6 +2532,11 @@ const PUCKERO = (() => {
         })()
       });
       localStorage.setItem(KEY, JSON.stringify(list.slice(0, 60)));
+      /* Zusaetzlich in die Datenbank, wenn ein freigegebenes Profil
+         angemeldet ist. Bewusst ohne await: der lokale Speicher hat
+         schon zugeschlagen, und ohne Netz soll nichts haengen. */
+      if (typeof KONTO !== 'undefined' && KONTO.zustand().frei)
+        KONTO.karriereSpeichern(list[0]);
     } catch(e){ /* Speicher nicht verfügbar */ }
     return werteHerausforderungen(result);
   }

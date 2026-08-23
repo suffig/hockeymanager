@@ -171,24 +171,107 @@ const KONTO = (() => {
     if (error) throw error;
   }
 
-  /* ---------- Karrieren ---------- */
+  /* ---------- Karrieren ----------
+     Der lokale Speicher und die Datenbank benutzen unterschiedliche
+     Feldnamen: lokal kurz und englisch gewachsen, in der Datenbank
+     deutsch und ausgeschrieben. Diese beiden Funktionen sind die
+     einzige Stelle, an der das uebersetzt wird. */
+
+  function nachDb(k){
+    return {
+      name: k.name, pos: k.pos, nation: k.nation, nummer: k.num,
+      ist_torhueter: !!k.isG, seed: k.seed, modus: k.modus || null,
+      hoehepunkt: k.peak, legendenwert: k.legacy, rang: k.rank,
+      saisons: k.seasons, trophaeen: k.titles, punkte: k.p,
+      jg_platz: k.jgPlatz != null ? k.jgPlatz : null,
+      jg_von: k.jgVon != null ? k.jgVon : null,
+      straenge: k.straenge || [],
+      nat_kapitaen: !!k.natKapitaen,
+      stationen: k.klubs != null ? k.klubs : null,
+      wahlen: k.wahlen != null ? k.wahlen : null,
+      gelungen: k.gelungen != null ? k.gelungen : null,
+      wendepunkt: k.wendepunkt || null,
+      gespielt_am: new Date(k.t || Date.now()).toISOString()
+    };
+  }
+
+  function nachLokal(z){
+    return {
+      t: new Date(z.gespielt_am).getTime(),
+      name: z.name, pos: z.pos, nation: z.nation, num: z.nummer,
+      peak: z.hoehepunkt, legacy: z.legendenwert, rank: z.rang,
+      seasons: z.saisons, titles: z.trophaeen, p: z.punkte,
+      isG: !!z.ist_torhueter, seed: z.seed, modus: z.modus,
+      jgPlatz: z.jg_platz, jgVon: z.jg_von,
+      straenge: z.straenge || [], natKapitaen: !!z.nat_kapitaen,
+      klubs: z.stationen, wahlen: z.wahlen, gelungen: z.gelungen,
+      wendepunkt: z.wendepunkt,
+      ausDb: true, dbId: z.id
+    };
+  }
 
   async function karriereSpeichern(satz){
     if (!zustand().frei) return false;      // ohne Freigabe nur lokal
-    const c = await ladeClient();
-    const { error } = await c.from('karriere').insert(Object.assign(
-      { profil_id: sitzung.user.id }, satz));
-    if (error) return false;
-    return true;
+    try {
+      const c = await ladeClient();
+      const { error } = await c.from('karriere').insert(Object.assign(
+        { profil_id: sitzung.user.id }, nachDb(satz)));
+      return !error;
+    } catch(e){ return false; }             // ohne Netz bleibt es lokal
   }
 
   async function karrierenLaden(){
     if (!zustand().angemeldet) return [];
+    try {
+      const c = await ladeClient();
+      const { data, error } = await c.from('karriere')
+        .select('*').order('gespielt_am', { ascending: false }).limit(200);
+      if (error) return [];
+      return (data || []).map(nachLokal);
+    } catch(e){ return []; }
+  }
+
+  /* Was lokal liegt, aber noch nicht in der Datenbank. Erkannt am
+     Seed samt Zeitpunkt - derselbe Seed kann mehrfach gespielt werden. */
+  async function nichtUebertragen(lokal){
+    if (!zustand().frei) return [];
+    const drin = await karrierenLaden();
+    const bekannt = new Set(drin.map(k => k.seed + '|' + k.name));
+    return (lokal || []).filter(k => !bekannt.has(k.seed + '|' + k.name));
+  }
+
+  async function uebertragen(lokal){
+    const offen = await nichtUebertragen(lokal);
+    if (!offen.length) return { uebertragen: 0, offen: 0 };
     const c = await ladeClient();
-    const { data, error } = await c.from('karriere')
-      .select('*').order('gespielt_am', { ascending: false }).limit(200);
-    if (error) return [];
-    return data || [];
+    const zeilen = offen.map(k => Object.assign({ profil_id: sitzung.user.id }, nachDb(k)));
+    const { error } = await c.from('karriere').insert(zeilen);
+    if (error) return { uebertragen: 0, offen: offen.length, fehler: error.message };
+    return { uebertragen: zeilen.length, offen: 0 };
+  }
+
+  /* ---------- Erreichte Ziele ---------- */
+
+  async function zieleLaden(){
+    if (!zustand().angemeldet) return [];
+    try {
+      const c = await ladeClient();
+      const { data, error } = await c.from('ziel_erreicht').select('ziel_id, erreicht_am');
+      if (error) return [];
+      return data || [];
+    } catch(e){ return []; }
+  }
+
+  async function zieleSpeichern(ids){
+    if (!zustand().frei || !ids || !ids.length) return false;
+    try {
+      const c = await ladeClient();
+      const zeilen = ids.map(id => ({ profil_id: sitzung.user.id, ziel_id: id }));
+      // Doppelte still uebergehen: das Ziel gilt ohnehin nur einmal
+      const { error } = await c.from('ziel_erreicht')
+        .upsert(zeilen, { onConflict: 'profil_id,ziel_id', ignoreDuplicates: true });
+      return !error;
+    } catch(e){ return false; }
   }
 
   async function bestenliste(grenze){
@@ -203,7 +286,8 @@ const KONTO = (() => {
     konfiguriert, starten, zustand, beiAenderung,
     registrieren, anmelden, abmelden, passwortZuruecksetzen, benutzernameAendern,
     profileLaden, freigeben, sperren,
-    karriereSpeichern, karrierenLaden, bestenliste
+    karriereSpeichern, karrierenLaden, nichtUebertragen, uebertragen,
+    zieleLaden, zieleSpeichern, bestenliste
   };
 })();
 
