@@ -200,7 +200,7 @@ const UI = (() => {
   }
 
   /* ---------- Saisonkarte ---------- */
-  function seasonCard(s, isG, blind, neu){
+  function seasonCard(s, isG, blind, neu, kompakt){
     const kl = ['season'];
     if (neu) kl.push('neu');
     if (s.title) kl.push('titel');
@@ -261,6 +261,7 @@ const UI = (() => {
       </div>
       ${zeremonie(s)}
       <div class="statgitter">${line}</div>
+      ${kompakt ? '<details class="season-mehr"><summary>Details der Saison</summary>' : ''}
       ${s.ziele ? zielKarte(s.ziele, { klein:true }) : ''}
       ${serienBaum(s)}
       ${s.faktoren ? `<div class="faktoren">
@@ -276,6 +277,7 @@ const UI = (() => {
       ${evs ? '<div class="events">' + evs + '</div>' : ''}
       ${nat}
       ${s.story ? '<div class="story">' + s.story + '</div>' : ''}
+      ${kompakt ? '</details>' : ''}
     </div>`;
   }
 

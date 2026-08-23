@@ -1706,3 +1706,105 @@ footer.site a:hover{color:var(--text)}
 .jgv-bild{padding:12px 14px;overflow-x:auto}
 .jgv-bild svg{min-width:520px;display:block}
 .jgv-fuss{padding:9px 16px;border-top:1px solid var(--line-soft);color:var(--dim)}
+
+/* ==========================================================
+   Mobile Fassung des Karrierebildschirms
+   Ziel: spielen ohne zu scrollen. Die Handlung steht oben,
+   alles Nachschlagbare liegt eingeklappt darunter.
+   ========================================================== */
+@media (max-width:760px){
+  .karriere.mobil{display:flex;flex-direction:column;gap:10px}
+  .karriere.mobil .k-spalte{width:100%}
+
+  /* Kopfstreifen bleibt stehen, ersetzt die grosse Spielerkarte */
+  .m-streifen{
+    position:sticky;top:56px;z-index:30;
+    background:var(--ice-850);border:1px solid var(--line);
+    border-radius:12px;padding:8px 11px;
+    display:flex;flex-direction:column;gap:7px;
+    box-shadow:0 6px 18px -10px rgba(0,0,0,.7);
+  }
+  .ms-kopf{display:flex;align-items:center;gap:10px;min-width:0}
+  .ms-ovr{
+    flex:0 0 auto;font-family:var(--display);font-size:22px;line-height:1;
+    padding:5px 9px;border-radius:9px;background:var(--ice-700);color:var(--text);
+  }
+  .ms-ovr.gold{color:var(--gold)}
+  .ms-name{display:flex;flex-direction:column;min-width:0;line-height:1.25}
+  .ms-name b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ms-name span{font-size:10.5px;color:var(--dim);white-space:nowrap;
+                overflow:hidden;text-overflow:ellipsis}
+  .ms-zahlen{display:flex;gap:6px;flex-wrap:wrap}
+  .ms-zahl{
+    display:inline-flex;align-items:center;gap:4px;font-size:11px;
+    padding:2px 8px;border-radius:999px;border:1px solid var(--line-soft);
+    color:var(--dim);
+  }
+  .ms-zahl b{color:var(--text);font-weight:700;font-size:12px}
+
+  /* Eingeklappte Bereiche */
+  .m-klapp{
+    border:1px solid var(--line);border-radius:12px;
+    background:var(--ice-800);overflow:hidden;
+  }
+  .m-klapp > summary{
+    cursor:pointer;padding:11px 14px;font-size:12.5px;font-weight:650;
+    color:var(--accent);list-style:none;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .m-klapp > summary::-webkit-details-marker{display:none}
+  .m-klapp > summary::after{content:'▾';color:var(--dim);font-size:11px}
+  .m-klapp[open] > summary::after{content:'▴'}
+  .m-klapp .m-inhalt{padding:0 10px 10px}
+  .m-klapp .jahrgang,.m-klapp .spielerkarte,.m-klapp .altersraster{margin-top:0}
+
+  /* Alles im Handlungsbereich enger setzen */
+  .k-mitte .ereignis-text{padding:13px}
+  .k-mitte .ereignis-text h2,.wf-text h2{font-size:18px}
+  .k-mitte .ereignis-text p,.wf-text p{font-size:13.5px}
+  .k-mitte .ereignis-bild{max-height:112px;overflow:hidden}
+  .wahlzeile{padding:10px 12px;gap:9px}
+  .wz-text b{font-size:13px}
+  .wz-ikone{width:28px;height:28px;border-radius:8px}
+  .season-head{padding:9px 11px;gap:5px}
+  .season-head .pill{font-size:10px;padding:2px 7px}
+  .statgitter{grid-template-columns:repeat(4,1fr);gap:4px;padding:9px 10px}
+  .stk{padding:6px 3px 5px}
+  .stk b{font-size:14px}
+  .stk-n{font-size:8px}
+  .zielkarte{margin-top:10px}
+  .ziel-zeile{padding:8px 11px}
+  .ziel-text b{font-size:12.5px}
+  .folge{padding:11px 13px}
+
+  /* Die Zurueckschau frueherer Saisons bleibt zu und stoert nicht */
+  .k-mitte > details{margin-top:10px}
+}
+
+/* Sehr schmale Geraete: Kacheln noch enger */
+@media (max-width:400px){
+  .statgitter{grid-template-columns:repeat(3,1fr)}
+  .ms-zahlen .ms-zahl:nth-child(n+5){display:none}
+}
+
+/* Waehrend des Spiels tritt auf schmalen Bildschirmen alles zurueck,
+   was nicht zum Spiel gehoert - sonst scrollt man durch Werbetext. */
+@media (max-width:760px){
+  :root[data-spiel] .hero,
+  :root[data-spiel] section.block:not(#spielen),
+  :root[data-spiel] footer.site{display:none}
+  :root[data-spiel] section#spielen{padding-top:8px;padding-bottom:8px}
+  :root[data-spiel] section#spielen > .wrap > h2,
+  :root[data-spiel] section#spielen > .wrap > .lead{display:none}
+}
+
+/* Detailteil der Saisonkarte auf dem Handy einklappbar */
+.season-mehr{border-top:1px solid var(--line-soft)}
+.season-mehr > summary{
+  cursor:pointer;padding:9px 14px;font-size:11.5px;font-weight:650;
+  color:var(--accent);list-style:none;
+  display:flex;justify-content:space-between;align-items:center;
+}
+.season-mehr > summary::-webkit-details-marker{display:none}
+.season-mehr > summary::after{content:'▾';color:var(--dim);font-size:11px}
+.season-mehr[open] > summary::after{content:'▴'}

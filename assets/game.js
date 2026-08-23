@@ -41,6 +41,11 @@ function CareerGame(root, cfg){
 
   /* ---------------- Rendern ---------------- */
   function render(){
+    /* Waehrend gespielt wird, tritt das Beiwerk der Seite zurueck.
+       Auf dem Handy lagen sonst Hero, Kacheln und FAQ mit rund
+       7000 Pixeln um das Spielfeld herum. */
+    const imSpiel = S.phase === 'draft' || S.phase === 'karriere';
+    document.documentElement.toggleAttribute('data-spiel', imSpiel);
     if (S.phase === 'ident')    return renderIdent();
     if (S.phase === 'draft')    return renderDraft();
     if (S.phase === 'start')    return renderStart();
@@ -350,13 +355,27 @@ function CareerGame(root, cfg){
         ${letzte ? `<span class="pill">Saison ${st.seasons.length}</span>` : ''}
         <span class="pill gold">${Object.values(st.trophies).reduce((a,x)=>a+x.x,0)} Trophäen</span>
       </div>
-      <div class="panel-body karriere">
-        <aside class="k-spalte k-links">${spielerkarte(st, letzte, isG)}</aside>
-        <main class="k-spalte k-mitte">${mitte(lauf, st, letzte, isG)}</main>
-        <aside class="k-spalte k-rechts">${UI.jahrgangTabelle(st.jahrgangStand, isG, { delta: st.jahrgangDelta })}${altersraster(st, isG)}</aside>
-      </div>`;
+      ${mobil()
+        ? `<div class="panel-body karriere mobil">
+             ${streifen(st, letzte, isG)}
+             <main class="k-spalte k-mitte">${mitte(lauf, st, letzte, isG)}</main>
+             <details class="m-klapp"><summary>Spielerkarte und Werte</summary>
+               <div class="m-inhalt">${spielerkarte(st, letzte, isG)}</div></details>
+             <details class="m-klapp"><summary>Jahrgang</summary>
+               <div class="m-inhalt">${UI.jahrgangTabelle(st.jahrgangStand, isG,
+                 { delta: st.jahrgangDelta })}</div></details>
+             <details class="m-klapp"><summary>Karriereverlauf</summary>
+               <div class="m-inhalt">${altersraster(st, isG)}</div></details>
+           </div>`
+        : `<div class="panel-body karriere">
+             <aside class="k-spalte k-links">${spielerkarte(st, letzte, isG)}</aside>
+             <main class="k-spalte k-mitte">${mitte(lauf, st, letzte, isG)}</main>
+             <aside class="k-spalte k-rechts">${UI.jahrgangTabelle(st.jahrgangStand, isG,
+               { delta: st.jahrgangDelta })}${altersraster(st, isG)}</aside>
+           </div>`}`;
 
     bindeKarriere(lauf, st);
+    zumZug();
   }
 
   /* Die Menschen um den Spieler herum – sie tauchen in Ereignissen namentlich auf */
@@ -384,6 +403,73 @@ function CareerGame(root, cfg){
         ${straenge.length ? `<div class="sk-straenge">${straenge
           .map(k => `<span class="sk-strang">${STRANG_NAMEN[k]}</span>`).join('')}</div>` : ''}
       </div>`;
+  }
+
+  /* Schmale Bildschirme bekommen einen eigenen Aufbau: die Handlung
+     zuerst, alles Nachschlagbare eingeklappt. */
+  const mobil = () => window.matchMedia('(max-width: 760px)').matches;
+
+  /* Kopfstreifen statt voller Spielerkarte - bleibt beim Scrollen stehen */
+  function streifen(st, letzte, isG){
+    const p = S.player, nat = PUCKERO.nation(p.nation);
+    const ovr = letzte ? letzte.ovr : PUCKERO.overall(p);
+    const l = st.lauf;
+    const zahl = (ik, wert, titel) => `<span class="ms-zahl" title="${titel}">
+      ${UI.ikone(ik, 13)}<b>${wert}</b></span>`;
+    return `
+      <div class="m-streifen">
+        <div class="ms-kopf">
+          <span class="ms-ovr ${ovr >= 90 ? 'gold' : ''}">${blind() ? '?' : ovr}</span>
+          <span class="ms-name">
+            <b>${esc(p.name)}</b>
+            <span>${nat.flag} #${p.num} ${p.pos}${st.club ? ' · ' + esc(st.club.n) : ''}</span>
+          </span>
+        </div>
+        <div class="ms-zahlen">
+          ${zahl('uhr', letzte ? letzte.age : 16, 'Alter')}
+          ${zahl('herz', Math.round(st.moral), 'Moral')}
+          ${isG ? zahl('haken', l.wins, 'Siege') : zahl('tor', l.g, 'Tore')}
+          ${isG ? zahl('schild', l.so, 'Shutouts') : zahl('stern', l.p, 'Punkte')}
+          ${zahl('pokal', Object.values(st.trophies).reduce((a, x) => a + x.x, 0), 'Trophäen')}
+        </div>
+      </div>`;
+  }
+
+  /* Nach jedem Schritt an die Stelle springen, an der es weitergeht.
+     Ohne das lag der Entscheidungsknopf auf dem Handy mehrere
+     Bildschirme unterhalb des sichtbaren Bereichs. */
+  let ersterAufbau = true;
+  function zumZug(){
+    if (!mobil()){ ersterAufbau = false; return; }
+    /* Zwei Bilder warten: direkt nach dem Setzen von innerHTML stehen die
+       Hoehen noch nicht fest, und der Sprung landete daneben. */
+    requestAnimationFrame(() => requestAnimationFrame(springen));
+  }
+
+  function springen(){
+    /* Zur Handlung springen, nicht nur an den Anfang der Spalte: sonst
+       verdeckt eine lange Saisonkarte den Entscheidungsknopf. */
+    const tat = root.querySelector(
+      '.wahlzeile, [data-training], [data-angebot], [data-rolle], ' +
+      '[data-kapitaen], [data-jugend], [data-wechsel], #weiter, #bilanz');
+    const ziel = tat || root.querySelector('.k-mitte');
+    if (!ziel) return;
+
+    const kopf = (document.querySelector('header.site') || {}).offsetHeight || 0;
+    const streifen = (root.querySelector('.m-streifen') || {}).offsetHeight || 0;
+    const oben = kopf + streifen + 8;
+    const r = ziel.getBoundingClientRect();
+    const sicht = window.innerHeight;
+
+    // Schon gut sichtbar? Dann nicht unnoetig herumspringen.
+    if (r.top >= oben && r.bottom <= sicht){ ersterAufbau = false; return; }
+
+    // Die Handlung auf etwa 55% der Hoehe setzen - darueber bleibt Platz
+    // fuer Folge und Saisonzahlen, darunter fuer die restlichen Optionen.
+    const wunsch = tat ? Math.max(oben, sicht * 0.55 - r.height) : oben;
+    const y = r.top + window.scrollY - wunsch;
+    window.scrollTo({ top: Math.max(0, y), behavior: ersterAufbau ? 'auto' : 'smooth' });
+    ersterAufbau = false;
   }
 
   /* Linke Spalte: Spielerkarte, Aktionen, Ligatabelle */
@@ -479,7 +565,7 @@ function CareerGame(root, cfg){
     /* Reihenfolge: erst die Folge der Entscheidung, dann die Zahlen der
        gerade gespielten Saison, danach der naechste Schritt. Vorher sprangen
        Training und Vertragsfragen heraus, ohne dass man das Ergebnis sah. */
-    const bilanz = letzte ? UI.seasonCard(letzte, isG, blind(), true) : '';
+    const bilanz = letzte ? UI.seasonCard(letzte, isG, blind(), true, mobil()) : '';
 
     if (st.jugend)        return kopf + jugendHtml(st.jugend);
     if (st.ereignis)      return kopf + ereignisHtml(st.ereignis);
@@ -498,7 +584,7 @@ function CareerGame(root, cfg){
       </div>`;
 
     return kopf + `
-      ${letzte ? UI.seasonCard(letzte, isG, blind(), true) : `
+      ${letzte ? UI.seasonCard(letzte, isG, blind(), true, mobil()) : `
         <div class="card center pad-lg">
           <h3>Bereit für die erste Saison</h3>
           <p class="small mb0">Der Vertrag steht. Jetzt zählt nur noch, was auf dem Eis passiert.</p>
