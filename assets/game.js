@@ -487,26 +487,48 @@ function CareerGame(root, cfg){
     folgeSchliessen();
     const w = document.createElement('div');
     w.className = 'folge-schicht';
+    /* Ein knapper Treffer soll sich anders anfuehlen als ein sicherer.
+       Bei 25 Prozent gewonnen ist ein anderer Moment als bei 85. */
+    const knapp = folge.gelungen && folge.chance !== undefined && folge.chance <= 35;
+    const pech  = !folge.gelungen && folge.chance !== undefined && folge.chance >= 70;
+
     w.innerHTML = `
-      <div class="folge-blatt ${folge.gelungen ? 'gut' : 'schlecht'}">
+      <div class="folge-blatt ${folge.gelungen ? 'gut' : 'schlecht'} ${knapp ? 'knapp' : ''}">
         <div class="fb-kopf">
-          <span class="fb-marke">${UI.ikone(folge.gelungen ? 'haken' : 'kreuz', 15)}
-            ${folge.gelungen ? 'Gelungen' : 'Misslungen'}</span>
+          <span class="fb-marke">
+            <span class="fb-ik">${UI.ikone(folge.gelungen ? 'haken' : 'kreuz', 16)}</span>
+            ${knapp ? 'Gegen die Chance' : pech ? 'Trotz der Chance'
+                    : folge.gelungen ? 'Gelungen' : 'Misslungen'}</span>
           ${folge.chance !== undefined
-            ? `<span class="fb-chance">${folge.chance}% Chance</span>` : ''}
+            ? `<span class="fb-chance">${folge.chance}%</span>` : ''}
         </div>
+
+        ${folge.chance !== undefined ? `
+          <div class="fb-wurf" title="Der Wurf musste unter ${folge.chance} liegen">
+            <span class="fb-bahn"><i style="width:${folge.chance}%"></i></span>
+            ${folge.wurf !== undefined
+              ? `<span class="fb-nadel" style="left:${Math.min(98, folge.wurf)}%"></span>` : ''}
+          </div>` : ''}
+
         ${folge.wahl ? `<div class="fb-wahl">${esc(folge.wahl)}</div>` : ''}
         ${folge.text ? `<p class="fb-text">${esc(folge.text)}</p>` : ''}
         ${(folge.wirkungen || []).length ? `<div class="fb-wirkungen">
-          ${folge.wirkungen.map(x => `<span class="fk ${x.gut ? 'plus' : 'minus'}">${esc(x.t)}</span>`).join('')}
+          ${folge.wirkungen.map((x, i) =>
+            `<span class="fk ${x.gut ? 'plus' : 'minus'}" style="animation-delay:${0.26 + i * 0.07}s">${esc(x.t)}</span>`).join('')}
         </div>` : ''}
         <button class="btn btn-primary fb-weiter">Weiter</button>
       </div>`;
     document.body.appendChild(w);
     folgeOffen = w;
-    const zu = () => folgeSchliessen();
-    w.addEventListener('click', zu);
-    requestAnimationFrame(() => w.classList.add('an'));
+    w.addEventListener('click', () => folgeSchliessen());
+    requestAnimationFrame(() => {
+      w.classList.add('an');
+      /* Die Nadel faehrt erst nach dem Aufblenden an ihre Stelle -
+         so sieht man, wo der Wurf gelandet ist. */
+      const nadel = w.querySelector('.fb-nadel');
+      if (nadel) setTimeout(() => nadel.classList.add('an'), 90);
+      if (knapp && typeof UI.konfetti === 'function') setTimeout(() => UI.konfetti(28), 260);
+    });
   }
 
   function folgeSchliessen(){

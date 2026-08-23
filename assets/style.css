@@ -2001,3 +2001,103 @@ footer.site a:hover{color:var(--text)}
     width:100% !important;flex:none !important;
   }
 }
+
+/* Kompakte Uebersicht: fuenf Kernwerte in einer Reihe */
+@media (max-width:760px){
+  .season-mehr .statgitter.weitere{
+    grid-template-columns:repeat(3,1fr);
+    border-top:0;padding-top:0;
+  }
+}
+
+/* Die Kernwerte stehen in einer Reihe - fuenf Kacheln, eine Zeile.
+   Die Detailzahlen duerfen weiter umbrechen. */
+@media (max-width:760px){
+  .season:not(.season-detail) > .statgitter{
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    gap:3px;
+  }
+  .season > .statgitter .stk{padding:6px 2px 5px}
+  .season > .statgitter .stk b{font-size:13.5px}
+  .season > .statgitter .stk-n{font-size:7.5px;letter-spacing:.03em}
+}
+@media (max-width:400px){
+  .season-mehr .statgitter.weitere{grid-template-columns:repeat(3,1fr)}
+}
+
+/* ==========================================================
+   Ausgang einer Entscheidung: kleine Inszenierung
+   Das Blatt faehrt hoch, die Marke setzt sich wie ein Stempel,
+   der Wurf faehrt an seine Stelle, die Wirkungen folgen nacheinander.
+   ========================================================== */
+.folge-blatt{
+  animation:fbHoch .34s cubic-bezier(.16,.9,.3,1.06) both;
+}
+@keyframes fbHoch{
+  from{opacity:0;transform:translateY(26px) scale(.97)}
+  to  {opacity:1;transform:none}
+}
+
+/* Die Marke setzt sich mit einem kurzen Aufschlag */
+.fb-marke .fb-ik{
+  display:inline-flex;
+  animation:fbStempel .42s cubic-bezier(.2,1.5,.4,1) .1s both;
+}
+@keyframes fbStempel{
+  0%  {transform:scale(2.4) rotate(-14deg);opacity:0}
+  55% {transform:scale(.86) rotate(3deg);opacity:1}
+  100%{transform:none;opacity:1}
+}
+
+/* Der Wurf: die Bahn zeigt die Chance, die Nadel den Wurf */
+.fb-wurf{
+  position:relative;height:10px;margin:0 0 13px;
+  animation:fbEin .3s ease .12s both;
+}
+.fb-bahn{
+  position:absolute;inset:0;border-radius:99px;
+  background:var(--ice-700);overflow:hidden;display:block;
+}
+.fb-bahn i{
+  display:block;height:100%;border-radius:99px;
+  background:linear-gradient(90deg,
+    color-mix(in srgb,var(--green) 70%,transparent), var(--green));
+  transform-origin:left;
+  animation:fbBahn .5s cubic-bezier(.2,.9,.3,1) .12s both;
+}
+@keyframes fbBahn{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.fb-nadel{
+  position:absolute;top:-4px;width:3px;height:18px;border-radius:2px;
+  background:var(--text);box-shadow:0 0 0 2px var(--ice-800);
+  left:0;opacity:0;transition:left .55s cubic-bezier(.2,.9,.25,1.05),opacity .2s;
+}
+.fb-nadel.an{opacity:1}
+@keyframes fbEin{from{opacity:0}to{opacity:1}}
+
+/* Text und Wahl blenden gestaffelt nach */
+.fb-wahl{animation:fbEin .3s ease .18s both}
+.fb-text{animation:fbEin .3s ease .24s both}
+.fb-wirkungen .fk{animation:fbChip .34s cubic-bezier(.2,1.3,.4,1) both}
+@keyframes fbChip{
+  from{opacity:0;transform:translateY(7px) scale(.9)}
+  to  {opacity:1;transform:none}
+}
+.fb-weiter{animation:fbEin .3s ease .42s both}
+
+/* Ein Treffer gegen die Wahrscheinlichkeit bekommt mehr Gewicht */
+.folge-blatt.knapp{
+  box-shadow:inset 0 3px 0 var(--gold), 0 0 0 1px color-mix(in srgb,var(--gold) 45%,transparent),
+             0 26px 70px -18px rgba(0,0,0,.85);
+  animation:fbHoch .34s cubic-bezier(.16,.9,.3,1.06) both, fbGlanz 1.5s ease .3s;
+}
+.folge-blatt.knapp .fb-marke{color:var(--gold)}
+@keyframes fbGlanz{
+  0%,100%{filter:none}
+  35%    {filter:brightness(1.13)}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .folge-blatt,.folge-blatt.knapp,.fb-marke .fb-ik,.fb-wurf,.fb-bahn i,
+  .fb-wahl,.fb-text,.fb-wirkungen .fk,.fb-weiter{animation:none}
+  .fb-nadel{transition:none}
+}

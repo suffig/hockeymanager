@@ -244,28 +244,37 @@ const UI = (() => {
         <span class="stk-n">${kurz}</span>
       </div>`;
 
-    const line = isG
+    /* Die Uebersicht zeigt nur, was man beim Durchblaettern wirklich
+       braucht. Alles Weitere steht hinter "Details der Saison" - die
+       Zahlen sind dieselben, nur nicht mehr alle auf einmal. */
+    const kern = isG
       ? kachel('kalender', s.gp, 'Spiele')
         + kachel('waage', s.wins + '-' + (s.losses || 0) + '-' + (s.otl || 0),
-                 'Bilanz', 'Siege - Niederlagen - Verlängerung')
+                 'Bilanz', 'Siege – Niederlagen – Verlängerung')
         + kachel('schild', (s.sv * 100).toFixed(1) + '%', 'Fangquote')
-        + kachel('tor', s.gaa.toFixed(2), 'Gegentore', 'Gegentorschnitt pro Spiel')
         + kachel('haken', s.so, 'Shutouts', 'Spiele ohne Gegentor', s.so > 0 ? 'gut' : '')
-        + kachel('auge', s.saves || 0, 'Paraden')
       : kachel('kalender', s.gp, 'Spiele')
         + kachel('tor', s.g, 'Tore')
         + kachel('gruppe', s.a, 'Vorlagen')
-        + kachel('stern', s.p, 'Punkte', 'Scorerpunkte', 'stark')
         + kachel(s.plus >= 0 ? 'hoch' : 'runter',
                  (s.plus > 0 ? '+' : '') + s.plus, '+/-', 'Plus-Minus-Bilanz',
                  s.plus > 0 ? 'gut' : s.plus < 0 ? 'schlecht' : '')
+        + kachel('uhr', (s.toi || 0), 'Eiszeit', 'Eiszeit pro Spiel in Minuten');
+
+    const weitere = isG
+      ? kachel('tor', s.gaa.toFixed(2), 'Gegentore', 'Gegentorschnitt pro Spiel')
+        + kachel('auge', s.saves || 0, 'Paraden')
+        + kachel('ziel', s.shotsAgainst || 0, 'Schüsse', 'Schüsse aufs eigene Tor')
+      : kachel('stern', s.p, 'Punkte', 'Scorerpunkte', 'stark')
         + kachel('blitz', s.ppg || 0, 'Überzahl', 'Tore in Überzahl')
         + kachel('krone', s.gwg || 0, 'Siegtore', 'Spielentscheidende Tore')
         + kachel('ziel', (s.shots || 0) + ' · ' + (s.shotPct || 0) + '%', 'Schüsse',
                  'Schüsse und Trefferquote')
-        + kachel('uhr', (s.toi || 0), 'Eiszeit', 'Eiszeit pro Spiel in Minuten')
         + (s.bully ? kachel('puck', s.bully + '%', 'Bully', 'Gewonnene Bullys') : '')
         + kachel('kreuz', s.pim || 0, 'Strafen', 'Strafminuten');
+
+    /* Ohne Klappe stehen weiterhin alle Zahlen nebeneinander. */
+    const line = kompakt ? kern : kern + weitere;
 
     const evs = s.events.map(e => `<div class="ev ${e.c}">${e.t}</div>`).join('');
     const nat = s.nat ? `<div class="story" style="border-left-color:var(--gold);background:rgba(255,200,97,.08)">
@@ -289,7 +298,8 @@ const UI = (() => {
       </div>
       ${zeremonie(s)}
       <div class="statgitter">${line}</div>
-      ${kompakt ? '<details class="season-mehr"><summary>Details der Saison</summary>' : ''}
+      ${kompakt ? '<details class="season-mehr"><summary>Details der Saison</summary>'
+                  + '<div class="statgitter weitere">' + weitere + '</div>' : ''}
       ${s.ziele ? zielKarte(s.ziele, { klein:true }) : ''}
       ${serienBaum(s)}
       ${s.faktoren ? `<div class="faktoren">
