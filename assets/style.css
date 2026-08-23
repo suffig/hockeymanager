@@ -1864,3 +1864,7 @@ footer.site a:hover{color:var(--text)}
   border:1px solid color-mix(in srgb,var(--green) 45%,transparent);
 }
 .sk-rolle.klausel{display:flex;align-items:center;gap:7px;color:var(--accent);font-weight:650}
+
+/* Sommerpause */
+.wf-kopf.lage-sommer .wf-lage{color:var(--accent-2)}
+.wf-kopf.lage-sommer{box-shadow:inset 0 3px 0 var(--accent-2)}

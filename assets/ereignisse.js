@@ -1433,6 +1433,91 @@ const EREIGNISSE = (() => {
                 text:'Die beste Saison deines Lebens, mit achtundzwanzig. Plötzlich reden alle wieder von dir.' },
           schlecht:{ risiko:9, moral:-9, text:'Du überziehst in jeder Hinsicht und zahlst dafür.' } }
       ] }
+  ,
+
+    /* ==========================================================
+       Momente beim Turnier der Nationalmannschaft
+       ========================================================== */
+    { id:'t_halbfinale', kat:'spiel', szene:'eis', tag:'Halbfinale', gewicht:3, mehrfach:true,
+      titel:'Verlängerung im Halbfinale – und {trainer} ist nicht dein Trainer',
+      text:'Beim Turnier steht ein anderer hinter der Bande, einer, der dich kaum kennt. '
+         + 'Drei gegen drei, zweite Verlängerung, und er sucht mit den Augen die Reihe, '
+         + 'die er aufs Eis schickt. Du stehst auf und stellst dich an die Tür.',
+      bedingung: (st, se) => se && se.nat && st.age >= 21,
+      optionen:[
+        { t:'Dich selbst ins Spiel bringen', chance:54, hinweis:'Ungefragt, aber deutlich',
+          gut:{ ruf:10, moral:9, attr:{ nerven:4 },
+                text:'Neunzig Sekunden später fällt das Tor, und deine Hand war am Schläger.' },
+          schlecht:{ ruf:-6, text:'Er schickt andere. Von der Bank aus siehst du das Gegentor kommen.' } },
+        { t:'Warten, bis er dich ruft', chance:70, hinweis:'Die Hierarchie achten',
+          gut:{ moral:6, attr:{ konstanz:3 },
+                text:'Er ruft. Genau in dem Moment, in dem es zählt – und du bist bereit.' },
+          schlecht:{ moral:-5, text:'Der Ruf kommt nie. Zuschauen ist die längste Art zu verlieren.' } }
+      ] },
+
+    { id:'t_kabine', kat:'kabine', szene:'kabine', tag:'Turnierkabine', gewicht:3,
+      titel:'Zwei Wochen Kabine mit Spielern, die du sonst checkst',
+      text:'Neben dir sitzt einer, gegen den du seit Jahren um jeden Zentimeter kämpfst. '
+         + 'Jetzt teilt ihr Trikotfarbe und Zimmergang. Beim ersten Abendessen '
+         + 'setzt sich niemand neben ihn.',
+      bedingung: (st, se) => se && se.nat && st.age >= 22,
+      optionen:[
+        { t:'Dich neben ihn setzen', chance:76, hinweis:'Zwei Wochen sind zu kurz für Fehden',
+          folgt:'weggefaehrte',
+          gut:{ moral:9, ruf:5,
+                text:'Am Ende des Turniers habt ihr eine Nummer getauscht. Die Ligaspiele bleiben trotzdem hart.' },
+          schlecht:{ moral:-4, text:'Es bleibt bei Höflichkeiten. Manche Gräben sind zu tief.' } },
+        { t:'Die Distanz halten', chance:62, hinweis:'Im Herbst spielt ihr wieder gegeneinander',
+          gut:{ attr:{ zweikampf:3 },
+                text:'Klare Verhältnisse. Beide wissen, woran sie sind, und das reicht für zwei Wochen.' },
+          schlecht:{ moral:-6, text:'Die Mannschaft spürt die Kälte. Im Viertelfinale fehlt genau das eine Prozent.' } }
+      ] },
+
+    { id:'t_medaille', kat:'presse', szene:'presse', tag:'Nach dem Turnier', gewicht:3.5,
+      titel:'Eine Medaille um den Hals und ein Mikrofon vor dem Gesicht',
+      text:'Die Halle leert sich, das Eis ist zerschnitten, und jemand hält dir ein Mikrofon hin. '
+         + 'Du hast seit vierzehn Tagen kaum geschlafen und im Kopf noch das Spiel, '
+         + 'nicht die Worte.',
+      bedingung: (st, se) => se && se.nat
+                          && /Gold|Silber|Bronze/.test(String(se.nat.platz)),
+      optionen:[
+        { t:'Über die Mannschaft reden, nicht über dich', chance:82, hinweis:'Das erwartet man – zu Recht',
+          gut:{ ruf:8, moral:7,
+                text:'Du nennst vier Namen und deinen nicht. Der Ausschnitt läuft wochenlang.' },
+          schlecht:{ text:'Es wird zusammengeschnitten, bis nur noch eine Floskel übrig ist.' } },
+        { t:'Sagen, dass es nicht gereicht hat', chance:48, hinweis:'Ehrlich, aber undankbar',
+          gut:{ ruf:11, attr:{ nerven:3 },
+                text:'Ein Satz gegen die Feierlaune, der hängen bleibt. Im nächsten Jahr holt ihr mehr.' },
+          schlecht:{ ruf:-8, moral:-5,
+                text:'Man wirft dir vor, den Erfolg kleinzureden. Zuhause versteht das niemand.' } }
+      ] },
+
+    /* ==========================================================
+       Die Ausstiegsklausel wird gezogen
+       ========================================================== */
+    { id:'kl_anruf', kat:'trainer', szene:'buero', tag:'Die Klausel', gewicht:5, mehrfach:true,
+      titel:'Jemand hat deine Ausstiegsklausel gelesen',
+      text:'Sie steht in deinem Vertrag, weil du damals danach gefragt hast. '
+         + 'Jetzt liegt ein Klub am Telefon, der bereit ist, sie zu bezahlen – '
+         + 'und {klub} kann nichts dagegen tun. Nur du kannst.',
+      bedingung: st => st.klausel && st.klubJahre >= 1 && st.age >= 22,
+      optionen:[
+        { t:'Die Klausel ziehen lassen', chance:66, hinweis:'Du hast sie dir dafür geholt',
+          folgt:'wechsler',
+          gut:{ ruf:8, moral:7,
+                text:'Zwei Telefonate, eine Unterschrift. Was damals eine Zeile war, ist heute dein Weg.' },
+          schlecht:{ moral:-7, text:'Beim Gesundheitscheck fällt etwas auf. Der Wechsel platzt, das Verhältnis ist hin.' } },
+        { t:'Ablehnen und bleiben', chance:74, hinweis:'Die Klausel bleibt für später',
+          folgt:'treue',
+          gut:{ moral:10, ruf:6,
+                text:'Du sagst ab, obwohl du gehen könntest. Genau das rechnet man dir hier hoch an.' },
+          schlecht:{ moral:-5, text:'Das Angebot kommt nicht wieder, und der Klub hakt es sofort ab.' } },
+        { t:'Sie gegen einen besseren Vertrag eintauschen', chance:44, hinweis:'Riskant – dein Faustpfand',
+          gut:{ ruf:6, moral:8,
+                text:'Du gibst die Klausel auf und bekommst dafür einen Vertrag, der sich gewaschen hat.' },
+          schlecht:{ ruf:-6, moral:-8,
+                text:'Der Klub lehnt ab und weiß jetzt, dass du käuflich bist. Die Klausel bleibt, das Vertrauen nicht.' } }
+      ] }
   ];
 
   /* ==========================================================

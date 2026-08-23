@@ -322,6 +322,7 @@ const PUCKERO = (() => {
       verhandlung: null,      // offene Vertragsverhandlung
       klausel: false,         // Ausstiegsklausel im laufenden Vertrag
       gehaltFaktor: 1,        // ausgehandelter Aufschlag auf das Grundgehalt
+      sommer: null,           // offene Entscheidung fuer die Sommerpause
       kapitaensfrage: null,   // offenes Angebot fuer das C
       kapitaenGefragt: false,
       rivale: null,           // staerkster Spieler desselben Jahrgangs
@@ -426,6 +427,110 @@ const PUCKERO = (() => {
     }
 
     /* ---- Karriereereignisse ---- */
+    /* ---------------------------------------------------------------
+       Die Sommerpause. Bisher lief sie automatisch durch. Jetzt ist sie
+       eine Wahl - aber nur, wenn wirklich etwas auf dem Spiel steht,
+       damit sie nicht jedes Jahr einen Klick kostet.
+       --------------------------------------------------------------- */
+    function macheSommer(){
+      const verschleiss = st.verletzungsjahre || 0;
+      const lohnt = st.age >= 26 || verschleiss >= 2;
+      if (!lohnt || r() > 0.5) return null;
+
+      const muede = verschleiss >= 2;
+      const optionen = [
+        { t: 'Durchtrainieren', ikone: 'flamme', chance: 72,
+          hinweis: 'Härter als der Rest der Liga',
+          wirkung: 'hart',
+          gut: { text: 'Zwölf Wochen ohne einen freien Tag. Im September merkt man es sofort.' },
+          schlecht: { risiko: 8, moral: -4,
+            text: 'Du überziehst. Der Rücken meldet sich schon vor dem ersten Spiel.' } },
+
+        { t: 'Wirklich abschalten', ikone: 'herz', chance: 80,
+          hinweis: 'Sechs Wochen kein Eis',
+          wirkung: 'ruhe',
+          gut: { form: 0.08, moral: 8,
+            text: 'Zum ersten Mal seit Jahren fehlt dir das Eis wieder – und das ist ein gutes Zeichen.' },
+          schlecht: { text: 'Die Pause tut gut, mehr aber auch nicht.' } },
+
+        { t: 'Auftritte und Werbung annehmen', ikone: 'auge', chance: 66,
+          hinweis: 'Dein Name wird größer, deine Beine nicht',
+          wirkung: 'presse',
+          gut: { ruf: 10, text: 'Drei Wochen Termine. Danach kennen dich Leute, die kein Eishockey schauen.' },
+          schlecht: { form: -0.05, moral: -4,
+            text: 'Zu viele Termine, zu wenig Ruhe. Du startest platt in die Vorbereitung.' } }
+      ];
+
+      if (muede){
+        optionen.push({
+          t: 'Den Eingriff machen lassen', ikone: 'pflaster', chance: 62,
+          hinweis: 'Kostet den Start der Saison, räumt aber auf',
+          wirkung: 'operation',
+          gut: { text: 'Der Sommer ist weg, die Schmerzen auch. Du fühlst dich Jahre jünger.' },
+          schlecht: { risiko: 6, moral: -6,
+            text: 'Die Heilung zieht sich. Du kommst zu spät und zu vorsichtig zurück.' }
+        });
+      }
+
+      return {
+        art: 'sommer', ikone: 'uhr', tag: 'Sommerpause',
+        titel: muede ? 'Ein Sommer, in dem der Körper mitredet'
+                     : 'Zwölf Wochen ohne Pflichtspiel',
+        text: muede
+          ? 'Die letzten Jahre stecken dir in den Gelenken. Der Mannschaftsarzt sagt, '
+            + 'es gäbe einen Eingriff, der vieles aufräumt – und dich den Saisonstart kostet.'
+          : 'Kein Spiel, kein Trainer, keine Vorgabe. Was du in diesen Wochen tust, '
+            + 'sieht niemand – merken wird man es trotzdem.',
+        stand: { alter: st.age, verschleiss },
+        optionen
+      };
+    }
+
+    function entscheideSommer(index){
+      const so = st.sommer;
+      if (!so) return null;
+      const o = so.optionen[clamp(index, 0, so.optionen.length - 1)];
+      const gelungen = r() * 100 < o.chance;
+      const e = gelungen ? o.gut : o.schlecht;
+
+      const folge = { gelungen, text: e.text || '', chance: o.chance,
+                      wahl: o.t, titel: so.titel, tag: so.tag, wirkungen: [] };
+      const merke = (t, gut) => folge.wirkungen.push({ t, gut });
+
+      if (gelungen){
+        if (o.wirkung === 'hart'){
+          st.sommerBonus = 3;                    // staerkeres Training in diesem Jahr
+          merke('Training wirkt stärker', true);
+        }
+        if (o.wirkung === 'ruhe'){
+          st.verletzungsjahre = Math.max(0, (st.verletzungsjahre || 0) - 1);
+          merke('Verschleiß abgebaut', true);
+        }
+        if (o.wirkung === 'operation'){
+          st.verletzungsjahre = 0;
+          st.risikoBonus = Math.max(0, st.risikoBonus - 0.05);
+          merke('Verschleiß bereinigt', true);
+        }
+      }
+      if (e.ruf){    st.ruf = clamp(st.ruf + e.ruf, 20, 99);
+                     merke('+' + e.ruf + ' Ansehen', true); }
+      if (e.moral){  st.moral = clamp(st.moral + e.moral, 10, 100);
+                     merke(e.moral + ' Moral', false); }
+      if (e.form){   st.formBonus += e.form;
+                     merke((e.form > 0 ? '+' : '') + Math.round(e.form * 100) + '% Form', e.form > 0); }
+      if (e.risiko){ st.risikoBonus += e.risiko / 100;
+                     merke('+' + e.risiko + ' Verletzungsrisiko', false); }
+      if (!folge.wirkungen.length) merke('Ein Sommer wie jeder andere', gelungen);
+
+      st.verlauf.push({
+        jahr: st.year, alter: st.age, art: 'sommer',
+        tag: so.tag, titel: so.titel, wahl: o.t, gelungen, chance: o.chance, wagnis: false
+      });
+      st.letzteFolge = folge;
+      st.sommer = null;
+      return folge;
+    }
+
     /* ---------------------------------------------------------------
        Die Nationalmannschaft: Bisher lief sie voellig ohne dein Zutun.
        Jetzt fragt der Verband vor der Saison, ob du im Fruehjahr zur
@@ -1172,7 +1277,8 @@ const PUCKERO = (() => {
     function playSeason(){
       if (st.fertig || st.angebote || st.training || st.ereignis || st.jugend
           || st.rollenwahl || st.kapitaensfrage || st.ruecktrittsfrage
-          || st.wechselfrist || st.nominierung || st.verhandlung) return null;
+          || st.wechselfrist || st.nominierung || st.verhandlung
+          || st.sommer) return null;
 
       // Vor der Saison kann ein Karriereereignis dazwischenkommen
       if (!st.ereignisGeprueft){
@@ -1678,8 +1784,10 @@ const PUCKERO = (() => {
       /* Sommerpause: erst Training, danach die Vertragsfrage */
       st.age++; st.year++;
       if (st.age > maxAge){ ende('ruhestand', 'mit ' + (st.age - 1)); return season; }
+      st.sommer = macheSommer();
       st.training = trainingsOptionen(player, st.age, player.seed + ':train:' + st.age,
-                                      (player.wirkung || {}).training || 0);
+                                      ((player.wirkung || {}).training || 0) + (st.sommerBonus || 0));
+      st.sommerBonus = 0;
       return season;
     }
 
@@ -2069,6 +2177,7 @@ const PUCKERO = (() => {
         if (st.wechselfrist) entscheideWechselfrist(0);
         if (st.nominierung) entscheideNominierung(0);
         if (st.verhandlung) entscheideVerhandlung(3);
+        if (st.sommer) entscheideSommer(1);
         if (st.kapitaensfrage) entscheideKapitaen(true);
         if (st.ruecktrittsfrage) entscheideRuecktritt(autoWeiter());
         playSeason();
@@ -2242,6 +2351,7 @@ const PUCKERO = (() => {
       get wechselfrist(){ return st.wechselfrist; },
       get nominierung(){ return st.nominierung; },
       get verhandlung(){ return st.verhandlung; },
+      get sommer(){ return st.sommer; },
       /* Die Vorgaben fuer die naechste Saison – sichtbar, bevor gespielt wird */
       get kommendeZiele(){
         if (st.fertig || !st.club) return null;
@@ -2255,6 +2365,7 @@ const PUCKERO = (() => {
       maxAge,
       playSeason, choose, autoChoose, chooseTraining, autoTraining,
       entscheideWechselfrist, entscheideNominierung, entscheideVerhandlung,
+      entscheideSommer,
       waehleJugend, chooseEreignis, waehleRolle, autoRolle, entscheideKapitaen,
       entscheideRuecktritt, autoWeiter,
       runToEnd, result

@@ -588,6 +588,7 @@ function CareerGame(root, cfg){
     if (lauf.wechselfrist) return kopf + wechselfristHtml(lauf.wechselfrist);
     if (lauf.nominierung)  return kopf + bilanz + nominierungHtml(lauf.nominierung);
     if (lauf.verhandlung)  return kopf + verhandlungHtml(lauf.verhandlung);
+    if (lauf.sommer)       return kopf + bilanz + sommerHtml(lauf.sommer);
     if (st.ruecktrittsfrage) return kopf + bilanz + ruecktrittHtml(st.ruecktrittsfrage, st);
     if (st.kapitaensfrage)return kopf + bilanz + kapitaenHtml(st.kapitaensfrage);
     if (st.angebote)      return kopf + bilanz + angeboteHtml(st.angebote, st.angebotsGrund);
@@ -953,6 +954,40 @@ function CareerGame(root, cfg){
       </div>`;
   }
 
+  /* Die Sommerpause. Gleiche Bauform wie die anderen Entscheidungen,
+     damit auf dem Handy nichts neu gelernt werden muss. */
+  function sommerHtml(so){
+    return `
+      <div class="wechselfrist sommerpause anim">
+        <div class="wf-kopf lage-sommer">
+          <span class="wf-uhr">${UI.ikone('uhr', 18)} ${esc(so.tag)}</span>
+          <span class="wf-lage">${UI.ikone('kalender', 15)} ${so.stand.alter} Jahre</span>
+        </div>
+        <div class="wf-text">
+          <h2>${esc(so.titel)}</h2>
+          <p>${esc(so.text)}</p>
+          ${so.stand.verschleiss ? `<div class="wf-stand">
+            ${UI.kennzahl('pflaster', so.stand.verschleiss, 'Angesammelter Verschleiß aus schweren Verletzungen', 'schlecht')}
+          </div>` : ''}
+        </div>
+        <div class="ereignis-wahl">
+          ${so.optionen.map((o, i) => `
+            <button class="wahlzeile" data-sommer="${i}">
+              <span class="wz-ikone">${UI.ikone(o.ikone || 'uhr', 20)}</span>
+              <span class="wz-text">
+                <b>${esc(o.t)}</b>
+                <span class="small">${esc(o.hinweis || '')}</span>
+              </span>
+              <span class="wz-balken">
+                <i class="gut" style="width:${o.chance}%">${o.chance}%</i>
+                <i class="schlecht" style="width:${100 - o.chance}%">${100 - o.chance}%</i>
+              </span>
+              <span class="wz-pfeil">${UI.ikone('transfer', 16)}</span>
+            </button>`).join('')}
+        </div>
+      </div>`;
+  }
+
   function trainingHtml(optionen, alter){
     return `
       <div class="anim">
@@ -1015,6 +1050,10 @@ function CareerGame(root, cfg){
     });
     root.querySelectorAll('[data-verhandlung]').forEach(el => el.onclick = () => {
       lauf.entscheideVerhandlung(+el.dataset.verhandlung);
+      neu();
+    });
+    root.querySelectorAll('[data-sommer]').forEach(el => el.onclick = () => {
+      lauf.entscheideSommer(+el.dataset.sommer);
       neu();
     });
     root.querySelectorAll('[data-training]').forEach(el => el.onclick = () => {
