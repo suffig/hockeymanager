@@ -319,6 +319,9 @@ const PUCKERO = (() => {
       entryDraft: null,       // Ergebnis des Entry Drafts
       rolle: null,            // gewaehlte Rolle im aktuellen Vertrag
       rollenwahl: null,       // offene Rollenfrage
+      verhandlung: null,      // offene Vertragsverhandlung
+      klausel: false,         // Ausstiegsklausel im laufenden Vertrag
+      gehaltFaktor: 1,        // ausgehandelter Aufschlag auf das Grundgehalt
       kapitaensfrage: null,   // offenes Angebot fuer das C
       kapitaenGefragt: false,
       rivale: null,           // staerkster Spieler desselben Jahrgangs
@@ -620,7 +623,8 @@ const PUCKERO = (() => {
               + 'Die Frist läuft heute Abend um sechs ab.',
           stand: { klub: st.club.n, diff: Math.round(diff), ziel: ziel.n },
           optionen: [
-            { t: 'Den Wechsel durchsetzen', ikone: 'flug', chance: 62,
+            { t: 'Den Wechsel durchsetzen', ikone: 'flug',
+              chance: st.klausel ? 92 : 62,
               hinweis: 'Zu ' + ziel.n + ' – dort zählt nur der Titel',
               zielKlub: ziel, folgt: 'wechsler',
               gut: { moral: 6, ruf: 4,
@@ -1168,7 +1172,7 @@ const PUCKERO = (() => {
     function playSeason(){
       if (st.fertig || st.angebote || st.training || st.ereignis || st.jugend
           || st.rollenwahl || st.kapitaensfrage || st.ruecktrittsfrage
-          || st.wechselfrist || st.nominierung) return null;
+          || st.wechselfrist || st.nominierung || st.verhandlung) return null;
 
       // Vor der Saison kann ein Karriereereignis dazwischenkommen
       if (!st.ereignisGeprueft){
@@ -1596,7 +1600,8 @@ const PUCKERO = (() => {
       else if (r() < 0.35)                      season.story = pick(r, D.STORY.neutral);
       st.klubJahre++;
 
-      season.salary = round1(clamp((ovr - 58) * 0.5, 0.05, 15) * lg.salary + 0.05);
+      season.salary = round1((clamp((ovr - 58) * 0.5, 0.05, 15) * lg.salary + 0.05)
+                             * (st.gehaltFaktor || 1));
       season.marktwert = marktwert(ovr, st.age);
       st.formBonus *= 0.5;          // Nachwirkung klingt ab
       st.risikoBonus *= 0.5;
@@ -1870,9 +1875,99 @@ const PUCKERO = (() => {
           gehalt: Math.round(a.gehalt * (x.w.gehalt || 1) * 100) / 100
         }));
       }
+      st.klausel = false;              // neuer Vertrag, neue Bedingungen
+      st.gehaltFaktor = 1;
+      st.verhandlung = macheVerhandlung(a);
       st.angebote = null;
       st.angebotsGrund = null;
       return true;
+    }
+
+    /* ---------------------------------------------------------------
+       Am Tisch sitzt nicht nur der Klub. Eine Forderung ist drin -
+       welche, entscheidet, womit du die naechsten Jahre lebst.
+       --------------------------------------------------------------- */
+    function macheVerhandlung(a){
+      const stark = st.ruf >= 88;
+      const lang = a.jahre >= 3;
+      return {
+        art: 'verhandlung', ikone: 'stift', tag: 'Vertragsgespräch',
+        titel: 'Der Vertrag bei ' + a.club.n + ' liegt auf dem Tisch',
+        text: a.jahre + (a.jahre === 1 ? ' Jahr' : ' Jahre') + ', '
+            + a.gehalt.toFixed(1) + ' Mio pro Saison. '
+            + 'Dein Berater sagt, eine Forderung sei drin – aber nur eine. '
+            + (stark ? 'Deine Position ist stark.' : 'Viel Spielraum hast du nicht.'),
+        stand: { klub: a.club.n, jahre: a.jahre, gehalt: a.gehalt },
+        optionen: [
+          { t: 'Mehr Geld verlangen', ikone: 'stern',
+            chance: clamp(46 + (st.ruf - 80) * 1.1, 25, 82),
+            hinweis: 'Rund ein Fünftel mehr pro Saison',
+            wirkung: 'geld',
+            gut: { text: 'Sie gehen mit. Am Ende steht eine Zahl, die sich sehen lassen kann.' },
+            schlecht: { moral: -4,
+              text: 'Man bleibt beim ersten Angebot. Unterschrieben hast du trotzdem.' } },
+
+          { t: lang ? 'Kürzer binden' : 'Länger binden', ikone: 'uhr',
+            chance: clamp(58 + (st.ruf - 80) * 0.6, 32, 84),
+            hinweis: lang ? 'Ein Jahr weniger – früher wieder frei'
+                          : 'Ein Jahr mehr – Sicherheit statt Beweglichkeit',
+            wirkung: lang ? 'kuerzer' : 'laenger',
+            gut: { moral: 5, text: 'Die Laufzeit wird angepasst. Beide Seiten können damit leben.' },
+            schlecht: { text: 'Die Laufzeit bleibt, wie sie war.' } },
+
+          { t: 'Eine Ausstiegsklausel verlangen', ikone: 'flug',
+            chance: clamp(34 + (st.ruf - 80) * 1.4, 15, 74),
+            hinweis: 'Macht einen Wechsel an der Frist deutlich leichter',
+            wirkung: 'klausel',
+            gut: { text: 'Die Klausel steht. Solltest du gehen wollen, hält dich niemand.' },
+            schlecht: { moral: -3,
+              text: 'Davon will der Klub nichts wissen. Du bist gebunden wie jeder andere.' } },
+
+          { t: 'Unterschreiben wie angeboten', ikone: 'haken', chance: 100,
+            hinweis: 'Ohne Gefeilsche – das kommt an',
+            wirkung: 'nichts',
+            gut: { moral: 7, ruf: 3,
+              text: 'Kein Wort über Zahlen. In der Führungsetage spricht man noch Jahre darüber.' },
+            schlecht: { text: '' } }
+        ]
+      };
+    }
+
+    function entscheideVerhandlung(index){
+      const v = st.verhandlung;
+      if (!v) return null;
+      const o = v.optionen[clamp(index, 0, v.optionen.length - 1)];
+      const gelungen = r() * 100 < o.chance;
+      const e = gelungen ? o.gut : o.schlecht;
+
+      const folge = { gelungen, text: e.text || '', chance: o.chance,
+                      wahl: o.t, titel: v.titel, tag: v.tag, wirkungen: [] };
+      const merke = (t, gut) => folge.wirkungen.push({ t, gut });
+
+      if (gelungen){
+        if (o.wirkung === 'geld'){
+          st.gehaltFaktor = 1.2;
+          merke('+20% Gehalt für die Vertragsdauer', true);
+        }
+        if (o.wirkung === 'laenger'){ st.vertragJahre++; merke('+1 Vertragsjahr', true); }
+        if (o.wirkung === 'kuerzer' && st.vertragJahre > 1){
+          st.vertragJahre--; merke('-1 Vertragsjahr', true);
+        }
+        if (o.wirkung === 'klausel'){ st.klausel = true; merke('Ausstiegsklausel', true); }
+      }
+      if (e.moral){ st.moral = clamp(st.moral + e.moral, 10, 100);
+                    merke((e.moral > 0 ? '+' : '') + e.moral + ' Moral', e.moral > 0); }
+      if (e.ruf){   st.ruf = clamp(st.ruf + e.ruf, 20, 99);
+                    merke('+' + e.ruf + ' Ansehen', true); }
+      if (!folge.wirkungen.length) merke('Der Vertrag bleibt, wie er war', gelungen);
+
+      st.verlauf.push({
+        jahr: st.year, alter: st.age, art: 'verhandlung',
+        tag: v.tag, titel: v.titel, wahl: o.t, gelungen, chance: o.chance, wagnis: false
+      });
+      st.letzteFolge = folge;
+      st.verhandlung = null;
+      return folge;
     }
 
     /* ---- Weitermachen oder aufhoeren? ---- */
@@ -1973,6 +2068,7 @@ const PUCKERO = (() => {
         if (st.ereignis) chooseEreignis(0);
         if (st.wechselfrist) entscheideWechselfrist(0);
         if (st.nominierung) entscheideNominierung(0);
+        if (st.verhandlung) entscheideVerhandlung(3);
         if (st.kapitaensfrage) entscheideKapitaen(true);
         if (st.ruecktrittsfrage) entscheideRuecktritt(autoWeiter());
         playSeason();
@@ -2106,6 +2202,7 @@ const PUCKERO = (() => {
         ehemalige: st.ehemalige,
         natKapitaen: st.natKapitaen,
         natAbsagen: st.natAbsagen,
+        klausel: st.klausel,
         zielBilanz: st.zielBilanz,
         hauptklub: klubs.slice().sort((a, b) => b.saisons - a.saisons)[0] || null,
         entscheidungen: st.entscheidungen,
@@ -2144,6 +2241,7 @@ const PUCKERO = (() => {
       get ereignis(){ return st.ereignis; },
       get wechselfrist(){ return st.wechselfrist; },
       get nominierung(){ return st.nominierung; },
+      get verhandlung(){ return st.verhandlung; },
       /* Die Vorgaben fuer die naechste Saison – sichtbar, bevor gespielt wird */
       get kommendeZiele(){
         if (st.fertig || !st.club) return null;
@@ -2156,7 +2254,7 @@ const PUCKERO = (() => {
       get letzteSaison(){ return st.seasons[st.seasons.length - 1] || null; },
       maxAge,
       playSeason, choose, autoChoose, chooseTraining, autoTraining,
-      entscheideWechselfrist, entscheideNominierung,
+      entscheideWechselfrist, entscheideNominierung, entscheideVerhandlung,
       waehleJugend, chooseEreignis, waehleRolle, autoRolle, entscheideKapitaen,
       entscheideRuecktritt, autoWeiter,
       runToEnd, result

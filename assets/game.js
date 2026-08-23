@@ -525,6 +525,8 @@ function CareerGame(root, cfg){
           ${zeile('stift', 'Vertrag', st.vertragJahre > 0 ? st.vertragJahre + ' J.' : '–')}
           ${zeile('herz', 'Moral', Math.round(st.moral))}
         </div>
+        ${st.klausel ? `<div class="sk-rolle klausel">${UI.ikone('flug', 14)}
+          Ausstiegsklausel im Vertrag</div>` : ''}
         ${st.natKapitaen ? `<div class="sk-rolle nat">${UI.ikone('krone', 14)}
           Kapitän der Nationalmannschaft</div>` : ''}
         ${st.rolle ? `<div class="sk-rolle">${st.rolle.icon} ${esc(st.rolle.n)}</div>` : ''}
@@ -585,6 +587,7 @@ function CareerGame(root, cfg){
     if (st.ereignis)      return kopf + ereignisHtml(st.ereignis);
     if (lauf.wechselfrist) return kopf + wechselfristHtml(lauf.wechselfrist);
     if (lauf.nominierung)  return kopf + bilanz + nominierungHtml(lauf.nominierung);
+    if (lauf.verhandlung)  return kopf + verhandlungHtml(lauf.verhandlung);
     if (st.ruecktrittsfrage) return kopf + bilanz + ruecktrittHtml(st.ruecktrittsfrage, st);
     if (st.kapitaensfrage)return kopf + bilanz + kapitaenHtml(st.kapitaensfrage);
     if (st.angebote)      return kopf + bilanz + angeboteHtml(st.angebote, st.angebotsGrund);
@@ -913,6 +916,43 @@ function CareerGame(root, cfg){
       </div>`;
   }
 
+  /* Vertragsgespraech: vier Wege, einer davon ohne Forderung.
+     Bewusst knapp gehalten - eine Zeile Text je Option reicht. */
+  function verhandlungHtml(v){
+    return `
+      <div class="wechselfrist verhandlung anim">
+        <div class="wf-kopf lage-vertrag">
+          <span class="wf-uhr">${UI.ikone('stift', 18)} ${esc(v.tag)}</span>
+          <span class="wf-lage">${UI.ikone('kalender', 15)} ${v.stand.jahre}${v.stand.jahre === 1 ? ' Jahr' : ' Jahre'}</span>
+        </div>
+        <div class="wf-text">
+          <h2>${esc(v.titel)}</h2>
+          <p>${esc(v.text)}</p>
+          <div class="wf-stand">
+            ${UI.kennzahl('stern', v.stand.gehalt.toFixed(1) + ' Mio', 'Angebotenes Grundgehalt pro Saison')}
+            ${UI.kennzahl('kalender', v.stand.jahre, 'Laufzeit in Jahren')}
+          </div>
+        </div>
+        <div class="ereignis-wahl">
+          ${v.optionen.map((o, i) => `
+            <button class="wahlzeile ${o.chance >= 100 ? 'sicher' : ''}" data-verhandlung="${i}">
+              <span class="wz-ikone">${UI.ikone(o.ikone || 'stift', 20)}</span>
+              <span class="wz-text">
+                <b>${esc(o.t)}</b>
+                <span class="small">${esc(o.hinweis || '')}</span>
+              </span>
+              ${o.chance >= 100
+                ? '<span class="wz-sicher">sicher</span>'
+                : `<span class="wz-balken">
+                     <i class="gut" style="width:${o.chance}%">${o.chance}%</i>
+                     <i class="schlecht" style="width:${100 - o.chance}%">${100 - o.chance}%</i>
+                   </span>`}
+              <span class="wz-pfeil">${UI.ikone('haken', 16)}</span>
+            </button>`).join('')}
+        </div>
+      </div>`;
+  }
+
   function trainingHtml(optionen, alter){
     return `
       <div class="anim">
@@ -971,6 +1011,10 @@ function CareerGame(root, cfg){
     root.querySelectorAll('[data-nominierung]').forEach(el => el.onclick = () => {
       lauf.entscheideNominierung(+el.dataset.nominierung);
       lauf.playSeason();
+      neu();
+    });
+    root.querySelectorAll('[data-verhandlung]').forEach(el => el.onclick = () => {
+      lauf.entscheideVerhandlung(+el.dataset.verhandlung);
       neu();
     });
     root.querySelectorAll('[data-training]').forEach(el => el.onclick = () => {
