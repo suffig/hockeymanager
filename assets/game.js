@@ -1160,6 +1160,7 @@ function CareerGame(root, cfg){
 
         ${UI.zielKarte(v.ziele)}
         ${blind() ? '' : UI.einflussLeiste(v.einfluesse, true)}
+        ${UI.koerperBand(v.verschleiss, v.altlasten)}
         ${UI.lebenKarte(v.leben)}
 
         <div class="row mt-l">

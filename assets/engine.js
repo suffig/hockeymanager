@@ -528,6 +528,35 @@ const PUCKERO = (() => {
          Folgen, solange man dort spielt.
          ---------------------------------------------------------------- */
       klubKonto: {},
+      /* ----------------------------------------------------------------
+         Was der Koerper behaelt
+
+         Verschleiss sammelte sich an und wirkte nur auf zwei Dinge:
+         ob im Sommer eine Frage kommt und wie wahrscheinlich der
+         Ruecktritt wird. Auf das Verletzungsrisiko selbst wirkte er
+         nicht - ein verschlissener Koerper brach also nicht leichter
+         als ein frischer. Gemessen sah es zwar so aus (bei den Aelteren
+         21 gegen 38 Prozent), aber das war Selektion: wer wenig robust
+         ist, verletzt sich oefter und sammelt dabei Verschleiss.
+
+         Dazu kommt, was in echten Laufbahnen das Muster ist: es ist
+         selten eine neue Verletzung. Es ist dasselbe Knie.
+         ---------------------------------------------------------------- */
+      altlasten: {},          // Verletzung -> wie oft sie schon da war
+      /* ----------------------------------------------------------------
+         Der Jahrgang als Massstab
+
+         Er wurde beim Draft vollstaendig ausgespielt und danach
+         angezeigt - ein Vergleich, den man sich ansehen konnte, aber
+         keine Kraft. Dabei ist er das Naheliegendste, was einen
+         Spieler antreibt: nicht die Tabelle, sondern der eine, der
+         mit ihm gezogen wurde und gerade vorbeigezogen ist.
+
+         Seit die Moral wirklich auf die Ausbeute wirkt, laesst sich
+         das verbinden: der Platz im Jahrgang bewegt die Moral, und
+         die Moral bewegt das Spiel. Damit ist der Rivale kein
+         Schaubild mehr, sondern ein Teil der Rechnung.
+         ---------------------------------------------------------------- */
       wechselfrist: null,     // offene Entscheidung an der Transferfrist
       wechselGeprueft: false,
       ziele: null,            // Vorgaben des Klubs fuer die laufende Saison
@@ -1579,6 +1608,8 @@ const PUCKERO = (() => {
         rollenStand: st.rollenStand,
         klubJahre: st.klubJahre,
         klubRang: (st.klubKonto[st.club.n] || {}).rang || 'zugang',
+        verschleiss: st.verletzungsjahre || 0,
+        altlasten: Object.assign({}, st.altlasten),
         klubRangName: (KLUBRANG.find(x =>
           x.k === ((st.klubKonto[st.club.n] || {}).rang || 'zugang')) || {}).n,
         kapitaen: st.kapitaenSeit === st.club.n,
@@ -1664,17 +1695,32 @@ const PUCKERO = (() => {
          etwas anderes als in der zweiten Liga. */
       const skala = k => Math.pow((league(k) || {}).level || 20, 0.45);
       const ligaFaktor = clamp(skala(letzte.lg) / skala(club.lg), 0.5, 1.6);
-      const faktor = (st.age < 24 ? 1.14 : st.age > 32 ? 0.9 : 1.03) * ligaFaktor;
+      /* ----------------------------------------------------------------
+         Geld erzeugt Erwartung
+
+         Der ausgehandelte Aufschlag wurde an genau einer Stelle
+         gelesen: er stand in der Gehaltszeile der Saisonbilanz. Damit
+         war jede Verhandlung folgenlos - mehr Geld herauszuholen
+         kostete nichts und brachte nichts ausser einer groesseren
+         Zahl. In Wahrheit ist es andersherum: wer teuer ist, an dem
+         wird anders gemessen. */
+      const teuer = clamp(((st.gehaltFaktor || 1) - 1) * 0.30, 0, 0.12);
+      const faktor = (st.age < 24 ? 1.14 : st.age > 32 ? 0.9 : 1.03)
+                   * ligaFaktor * (1 + teuer);
 
       if (isG){
         const ziel = clamp(Math.round((letzte.wins || 10) * faktor), 6, 46);
         person = { art:'siege', wert: ziel, n: ziel + ' Siege', d:'Daran misst dich der Torwarttrainer.' };
       } else if (player.pos !== 'D' && st.seasons.length % 3 === 1){
         const tore = clamp(Math.round((letzte.g || 5) * faktor), 4, 60);
-        person = { art:'tore', wert: tore, n: tore + ' Tore', d:'Der Trainer will Abschlüsse sehen.' };
+        person = { art:'tore', wert: tore, n: tore + ' Tore',
+                   d: teuer > 0.03 ? 'Für das Gehalt erwartet man Abschlüsse.'
+                                   : 'Der Trainer will Abschlüsse sehen.' };
       } else {
         const ziel = clamp(Math.round((letzte.p || 12) * faktor), 8, 115);
-        person = { art:'punkte', wert: ziel, n: ziel + ' Scorerpunkte', d:'Deine Vorgabe für die Saison.' };
+        person = { art:'punkte', wert: ziel, n: ziel + ' Scorerpunkte',
+                   d: teuer > 0.03 ? 'Wer so verdient, muss liefern.'
+                                   : 'Deine Vorgabe für die Saison.' };
       }
       return { team, person,
                einsatz: { beide: { ruf: 5, moral: 8 },
@@ -2178,8 +2224,12 @@ const PUCKERO = (() => {
       /* Verletzungen */
       const robust = 1 + (player.traits.robust || 0) * 0.02;
       const rollenRisiko = (st.rolle && st.rolle.w && st.rolle.w.risiko) || 0;
+      /* Der Verschleiss traegt jetzt selbst bei, nicht nur ueber die
+         Anlage. Bewusst gedeckelt: sonst wird aus drei Verletzungen
+         eine Gewissheit fuer die vierte, und die Laufbahn kippt. */
+      const verschleissRisiko = Math.min(0.11, (st.verletzungsjahre || 0) * 0.016);
       const injRisk = clamp(0.19 + (st.age - 28) * 0.02 - (player.traits.robust || 0) * 0.011
-                            + st.risikoBonus + rollenRisiko, 0.04, 0.6);
+                            + st.risikoBonus + rollenRisiko + verschleissRisiko, 0.04, 0.6);
       let missed = 0;
       /* Was aus der Reha uebrig blieb: der Saisonstart fehlt. */
       if (st.startVerpasst){
@@ -2189,11 +2239,30 @@ const PUCKERO = (() => {
         st.startVerpasst = 0;
       }
       if (r() < injRisk){
-        const V = pick(r, D.VERLETZUNGEN);
-        missed = Math.round(clamp(ri(r, V.min, V.max) / robust, 2, 55));
-        if (V.schwere >= 1) st.verletzungsjahre = (st.verletzungsjahre || 0) + V.schwere;
-        season.verletzung = { n: V.n, spiele: missed, schwere: V.schwere };
-        season.events.push({ t: V.n + ' – ' + missed + ' Spiele verpasst', c: 'bad' });
+        /* Eine alte Verletzung ist wahrscheinlicher als eine neue -
+           und sie kostet mehr, weil dieselbe Stelle nicht zweimal
+           gleich gut heilt. */
+        const alteNamen = Object.keys(st.altlasten);
+        const rueckfallChance = Math.min(0.55, alteNamen.length * 0.22);
+        let V, rueckfall = false;
+        if (alteNamen.length && r() < rueckfallChance){
+          const name = pick(r, alteNamen);
+          V = D.VERLETZUNGEN.find(x => x.n === name) || pick(r, D.VERLETZUNGEN);
+          rueckfall = true;
+        } else {
+          V = pick(r, D.VERLETZUNGEN);
+        }
+        const wieOft = st.altlasten[V.n] || 0;
+        const zaeher = 1 + wieOft * 0.28;         // jedes Mal laenger
+        missed = Math.round(clamp(ri(r, V.min, V.max) * zaeher / robust, 2, 62));
+        if (V.schwere >= 1)
+          st.verletzungsjahre = (st.verletzungsjahre || 0) + V.schwere + (rueckfall ? 1 : 0);
+        st.altlasten[V.n] = wieOft + 1;
+        season.verletzung = { n: V.n, spiele: missed, schwere: V.schwere,
+                              rueckfall, malNr: wieOft + 1 };
+        season.events.push({
+          t: (rueckfall ? V.n + ' – schon wieder' : V.n)
+             + ' – ' + missed + ' Spiele verpasst', c: 'bad' });
       }
       const fullGp = lg.k === 'NHL' ? 82 : (istJugend(lg.k) ? 60 : 52);
 
@@ -2757,6 +2826,28 @@ const PUCKERO = (() => {
       st.moral = clamp(Math.round(st.moral + (st.grundstimmung - st.moral) * 0.25),
                        10, 100);
 
+      /* ---- Was der Koerper wieder hergibt ----
+         Ohne Gegenbewegung waere Verschleiss eine Einbahnstrasse und
+         jede lange Laufbahn endete zwangslaeufig als Wrack. Ein Jahr
+         ohne Verletzung holt ein Stueck zurueck - beim Jungen mehr
+         als beim Alten. */
+      if (!season.verletzung && (st.verletzungsjahre || 0) > 0){
+        const heilt = st.age <= 27 ? 0.9 : st.age <= 31 ? 0.55 : 0.3;
+        if (r() < heilt) st.verletzungsjahre--;
+      }
+
+      /* ---- Was er behaelt ----
+         Ein verschlissener Koerper verliert dort zuerst, wo es weh
+         tut: Antritt, Skating, Zweikampf. Nicht viel je Saison, aber
+         es summiert sich - und macht den Unterschied zwischen einem,
+         der mit 34 noch laeuft, und einem, der nur noch steht. */
+      if ((st.verletzungsjahre || 0) >= 3 && st.age >= 27){
+        const koerperlich = isG ? ['reflexe', 'stellung']
+                                : ['antritt', 'skating', 'zweikampf'];
+        const abbau = -Math.min(1.6, (st.verletzungsjahre - 2) * 0.35);
+        koerperlich.forEach(k => attrHeben(player, k, abbau));
+      }
+
       /* Die Vereinsbilanz fortschreiben - vor allem anderen, damit
          alles Folgende schon den neuen Rang sieht. */
       (() => {
@@ -2912,6 +3003,27 @@ const PUCKERO = (() => {
           season.events.push(je.art === 'vorbei'
             ? { t: 'Im Jahrgang an ' + wen + ' vorbeigezogen – jetzt Platz ' + je.platz, c: 'good' }
             : { t: wen + ' hat dich im Jahrgang überholt – zurück auf Platz ' + je.platz, c: 'bad' });
+
+          /* ------------------------------------------------------------
+             Und was es mit einem macht
+
+             Das Rennen wurde ausgewertet, angezeigt und danach fallen
+             gelassen: ueberholt zu werden kostete nichts. Dabei ist
+             der eine, der mit einem gezogen wurde, der naechstliegende
+             Massstab, den ein Spieler hat - naeher als jede Tabelle.
+
+             Seit die Moral wirklich auf die Ausbeute wirkt, laesst
+             sich das verbinden, ohne eine neue Groesse zu erfinden:
+             das Rennen bewegt die Moral, und die Moral bewegt das
+             Spiel. Die Spitze des Jahrgangs steht ausserdem in den
+             Zeitungen, nicht nur im eigenen Kopf.
+             ------------------------------------------------------------ */
+          const wieViele = Math.min(3, je.namen.length);
+          moralAendern(je.art === 'vorbei' ? 2 + wieViele * 2 : -(2 + wieViele * 2));
+          if (je.art === 'vorbei' && je.platz === 1){
+            st.ruf = clamp(st.ruf + 3, 20, 99);
+            season.events.push({ t: 'Bester deines Jahrgangs', c: 'good' });
+          }
         }
       }
 
@@ -2975,7 +3087,16 @@ const PUCKERO = (() => {
 
       /* Hoert der Spieler freiwillig auf? */
       const verschleiss = st.verletzungsjahre || 0;
-      const chance = ruecktrittsChance(st.age, naechsterOvr, player.traits.langlebig, verschleiss);
+      /* Aufhoeren ist eine Frage des Kontostands, nicht nur des
+         Koerpers. Wer dreissig Millionen liegen hat, kann mit
+         dreiunddreissig gehen; wer nach zwoelf Jahren in der zweiten
+         Liga bei zwei steht, spielt weiter, solange ihn jemand nimmt.
+         Der Massstab ist bewusst das, was fuenf Jahre Leben kosten
+         wuerden - keine absolute Zahl, sondern der Abstand dazu. */
+      const rueckhalt = clamp((st.leben.vermoegen - 8) / 30, -0.6, 1);
+      const chance = clamp(
+        ruecktrittsChance(st.age, naechsterOvr, player.traits.langlebig, verschleiss)
+        * (1 + rueckhalt * 0.35), 0, 0.95);
       if (r() < chance){
         /* Ab hier entscheidest du selbst – und wirst danach jedes Jahr neu gefragt. */
         st.ruecktrittsfrage = {
@@ -2984,6 +3105,10 @@ const PUCKERO = (() => {
           verschleiss,
           zusatzjahre: st.zusatzjahre,
           grund: verschleiss >= 3 && st.age < 33 ? 'verschleiss' : 'ruhestand',
+          /* Damit die Frage ehrlich ist: sie soll sagen, ob man es
+             sich leisten kann. */
+          vermoegen: st.leben.vermoegen,
+          abgesichert: st.leben.vermoegen >= 18,
           // Was ein weiteres Jahr kostet
           abbau: Math.round((3 + st.zusatzjahre * 1.6 + verschleiss * 0.8) * 10) / 10,
           risiko: Math.round((6 + st.zusatzjahre * 3 + verschleiss * 2))
@@ -3199,9 +3324,14 @@ const PUCKERO = (() => {
       if (bleibtMoeglich) nimm(aktuell, true);
 
       // 2. Zwei bis drei Angebote aus den erreichbaren Ligen
+      /* Wer nichts zurueckgelegt hat, schaut zuerst auf das Gehalt -
+         eine Liga, die besser zahlt, rueckt nach vorn. Wer abgesichert
+         ist, kann sich den Verein nach anderen Massstaeben aussuchen. */
+      const knapp = clamp((12 - st.leben.vermoegen) / 12, 0, 1) * (st.age >= 29 ? 1 : 0.4);
       const gewichtet = moeglicheLigen.map(l => ({
         l, s: l.prestige + (l.k === homeLg ? 24 + st.leben.heimweh * 0.35 : 0)
-              + (l.k === aktuell.lg ? 10 + st.leben.wurzeln * 0.12 : 0) + r() * 30
+              + (l.k === aktuell.lg ? 10 + st.leben.wurzeln * 0.12 : 0)
+              + knapp * l.salary * 26 + r() * 30
       })).sort((a, b) => b.s - a.s);
 
       for (const g of gewichtet){
@@ -3997,6 +4127,8 @@ const PUCKERO = (() => {
         leben: st.leben,
         grundstimmung: st.grundstimmung,
         klubKonto: st.klubKonto,
+        altlasten: st.altlasten,
+        verschleiss: st.verletzungsjahre || 0,
         zielBilanz: st.zielBilanz,
         hauptklub: klubs.slice().sort((a, b) => b.saisons - a.saisons)[0] || null,
         entscheidungen: st.entscheidungen,

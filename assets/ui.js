@@ -1205,6 +1205,32 @@ const UI = (() => {
     </details>`;
   }
 
+  /* ------------------------------------------------------------------
+     Was der Koerper mitgemacht hat
+
+     Verschleiss und alte Verletzungen wirken jetzt wirklich - auf das
+     Risiko, auf die koerperlichen Werte, auf das Karriereende. Also
+     muessen sie auch dastehen. Aber nicht als weitere Karte: als eine
+     Zeile, die nur erscheint, wenn es etwas zu sagen gibt.
+     ------------------------------------------------------------------ */
+  function koerperBand(verschleiss, altlasten){
+    const v = verschleiss || 0;
+    const alte = Object.entries(altlasten || {})
+      .filter(([, n]) => n >= 2)
+      .sort((a, b) => b[1] - a[1]);
+    if (v < 2 && !alte.length) return '';
+    const stufe = v >= 6 ? 'schwer' : v >= 3 ? 'mittel' : 'leicht';
+    const satz = v >= 6 ? 'Der Körper hat viel mitgemacht'
+               : v >= 3 ? 'Der Körper meldet sich'
+               : 'Etwas Verschleiß';
+    return `<div class="koerper ${stufe}">
+      ${ikone('pflaster', 14)}
+      <span class="ko-satz">${satz}</span>
+      ${alte.length ? `<span class="ko-alt">${esc(alte[0][0])}
+        <b>${alte[0][1]}×</b></span>` : ''}
+    </div>`;
+  }
+
   function natTabelle(res){
     const b = res.laenderBilanz || {};
     if (!b.turniere) return `<p class="small">Nie für die Nationalmannschaft nominiert –
@@ -1841,7 +1867,7 @@ const UI = (() => {
   const clampP = v => Math.max(0, Math.min(100, Math.round(v || 0)));
 
   return {
-    lebenKarte, turnierKarte, staerkeWandel, einflussLeiste,
+    lebenKarte, turnierKarte, staerkeWandel, einflussLeiste, koerperBand,
  header, footer, mount, themaSetzen, themaLesen, attrRows, ovrBadge, seasonCard, statsTable,
            wappenBild, pokalBild,
            trophyList, klubKarten, natKarte, ligaBilanz, shareText, rankLeiste, karriereKarte,
