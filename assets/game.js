@@ -392,6 +392,7 @@ function CareerGame(root, cfg){
       root.querySelectorAll('[data-apptab]').forEach(el =>
         el.onclick = () => tabZeigen(el.dataset.apptab));
       tabZeigen(appTab);
+      einpassen();
       /* Eine frische Folge einblenden - aber nur einmal je Entscheidung. */
       if (st.letzteFolge && st.letzteFolge !== zuletztGezeigt){
         zuletztGezeigt = st.letzteFolge;
@@ -481,6 +482,70 @@ function CareerGame(root, cfg){
      dem Bild - gemessen war sie danach nicht mehr sichtbar.
      ---------------------------------------------------------------- */
   let folgeOffen = null;
+
+  /* ----------------------------------------------------------------
+     Auf den Schirm passen
+
+     Ereignistexte sind unterschiedlich lang - der laengste braucht
+     zweihundertachtzig Pixel, der kuerzeste hundertzwanzig. Feste
+     Groessen passen deshalb mal und mal nicht: gemessen lief der
+     Ereignisbildschirm in drei von fuenfundzwanzig Faellen ueber, um
+     bis zu siebenundfuenfzig Pixel.
+
+     Jeden Text einzeln zu kuerzen erledigt immer nur den einen. Also
+     misst die Ansicht sich selbst und gibt in der Reihenfolge nach,
+     in der am wenigsten verloren geht: erst die Szene, die nichts
+     erzaehlt, was nicht auch im Text steht, dann der Text - und zwar
+     nur so weit, bis es passt, und nie unter achtzig Prozent.
+     ---------------------------------------------------------------- */
+  function einpassen(){
+    if (!mobil()) return;
+    const k = root.querySelector('.app-inhalt');
+    if (!k) return;
+    const passt = () => k.scrollHeight - k.clientHeight <= 2;
+    if (passt()) return;
+
+    /* Der Reihe nach nachgeben, beginnend bei dem, was am wenigsten
+       traegt. Jede Stufe wird gemessen, nicht geraten: sobald es
+       passt, hoert es auf. */
+    const stufen = [
+      /* Der erklaerende Vorspann. Er hilft beim ersten Mal und steht
+         danach im Weg. */
+      () => { const l = k.querySelector('.rollenwahl-kopf .lead, .jugendwahl-kopf .lead');
+              if (l) l.style.display = 'none'; },
+      /* Die Szene erzaehlt nichts, was nicht auch im Text steht. */
+      () => { const b = k.querySelector('.ereignis-bild');
+              if (b) b.style.maxHeight = '32px'; },
+      () => { const b = k.querySelector('.ereignis-bild');
+              if (b) b.style.display = 'none'; },
+      /* Beschreibungen in Listen - die Marken darunter tragen das
+         Wesentliche. */
+      () => k.querySelectorAll('.rk-text > .small, .jk-land').forEach(x => x.style.display = 'none'),
+      /* Der Kopfstreifen mit Wert, Moral und Verein. Waehrend einer
+         Entscheidung traegt er nichts bei, was nicht auch im
+         Profil-Tab steht - und er kostet zweiundachtzig Pixel. */
+      () => { const m = root.querySelector('.m-streifen');
+              if (m) m.style.display = 'none'; },
+      /* Der Saisonstreifen mit Spielen, Toren, Vorlagen. Er gehoert zur
+         letzten Saison, nicht zur anstehenden Entscheidung. */
+      () => { const b = root.querySelector('.bilanzstreifen');
+              if (b) b.style.display = 'none'; },
+      /* Zuletzt der Text selbst, in kleinen Schritten. */
+      () => setzeText(k, 0.92),
+      () => setzeText(k, 0.86),
+      () => setzeText(k, 0.80)
+    ];
+
+    for (const stufe of stufen){
+      stufe();
+      if (passt()) return;
+    }
+  }
+
+  function setzeText(k, faktor){
+    const t = k.querySelector('.ereignis-text, .wf-text');
+    if (t) t.style.setProperty('--txt', faktor);
+  }
 
   function folgeZeigen(folge){
     if (!folge || !mobil()) return;
@@ -858,7 +923,7 @@ function CareerGame(root, cfg){
             <span class="ereignis-tag" style="color:var(--gold)">⚡ Am Ende der Saison</span>
             ${f.zusatzjahre ? `<span class="pill">${f.zusatzjahre}. Zusatzjahr</span>` : ''}
           </div>
-          <h2 style="font-family:var(--font);font-size:23px;font-weight:750">
+          <h2 style="font-family:var(--font);font-size:calc(23px * var(--txt, 1));font-weight:750">
             ${f.zusatzjahre ? 'Noch ein Jahr?' : 'Ist es Zeit aufzuhören?'}</h2>
           <p style="color:var(--muted);margin:0 0 10px">
             Die Beine werden schwerer, die Wege länger. ${koerper}
@@ -899,7 +964,7 @@ function CareerGame(root, cfg){
             <span class="pill gold">Kapitänsamt</span>
             <span class="ereignis-tag">⚡ ${esc(frage.klub)}</span>
           </div>
-          <h2 style="font-family:var(--font);font-size:23px;font-weight:750">
+          <h2 style="font-family:var(--font);font-size:calc(23px * var(--txt, 1));font-weight:750">
             Der Trainer will dir das C geben</h2>
           <p style="color:var(--muted);margin:0">Er sagt, die Kabine höre ohnehin auf dich,
             und man wolle das jetzt auch auf dem Trikot sehen. Das Amt bringt Verantwortung
@@ -973,7 +1038,7 @@ function CareerGame(root, cfg){
             <span class="ereignis-tag">⚡ ${esc(e.tag)}</span>
           </div>
           ${herkunftHtml(e.herkunft)}
-          <h2 style="font-family:var(--font);font-size:23px;font-weight:750;letter-spacing:-.01em">
+          <h2 style="font-family:var(--font);font-size:calc(23px * var(--txt, 1));font-weight:750;letter-spacing:-.01em">
             ${esc(e.titel)}</h2>
           <p style="color:var(--muted);margin:0">${esc(e.text)}</p>
         </div>

@@ -2127,9 +2127,14 @@ footer.site a:hover{color:var(--text)}
    ========================================================== */
 @media (max-width:760px){
   .app .ereignis-bild{max-height:76px}
+  /* Relativ statt absolut: so genuegt ein Faktor am Elternteil, um den
+     ganzen Block einzupassen, wenn ein Text ausnahmsweise zu lang ist. */
+  .app .ereignis-text,.app .wf-text{--txt:1}
   .app .ereignis-text{padding:11px 13px 9px}
-  .app .ereignis-text h2,.app .wf-text h2{font-size:17px;line-height:1.25;margin-bottom:5px}
-  .app .ereignis-text p,.app .wf-text p{font-size:13px;line-height:1.45;margin:0}
+  .app .ereignis-text h2,.app .wf-text h2{
+    font-size:calc(17px * var(--txt));line-height:1.25;margin-bottom:5px}
+  .app .ereignis-text p,.app .wf-text p{
+    font-size:calc(13px * var(--txt));line-height:1.45;margin:0}
   .app .wf-text{padding:12px 13px 10px}
   .app .wf-kopf{padding:8px 13px;font-size:10.5px}
   .app .wf-stand{margin-top:9px;gap:6px}
@@ -2407,3 +2412,15 @@ footer.site a:hover{color:var(--text)}
   }
 }
 @media (max-width:760px){ .app .jugendkarte .jk-vertrag{display:none} }
+
+/* Der Ereignisbildschirm bei vier Optionen und langem Text.
+   Gemessen lief er in drei von fuenfundzwanzig Faellen ueber - um 21
+   bis 57 Pixel. Die Szene traegt hier am wenigsten Information und
+   gibt sie am leichtesten her; die Wahlzeilen ruecken enger, ohne dass
+   der Daumen sie verfehlt (44 Pixel Mindesthoehe bleiben). */
+@media (max-width:760px){
+  .app .ereignis-bild{max-height:58px}
+  .app .wahlzeile{padding:6px 11px;min-height:44px}
+  .app .wz-text b{font-size:13.5px;margin-bottom:1px}
+  .app .ereignis-text > p{line-height:1.42}
+}

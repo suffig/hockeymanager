@@ -111,9 +111,11 @@ const EREIGNISSE = (() => {
     /* ---------- Spielsituationen ---------- */
     { id:'spiel1', kat:'spiel', szene:'eis', tag:'Letzte Minute',
       titel:'Der Torhüter ist draußen, ihr liegt einen Treffer zurück',
+      /* Der laengste Ereignistext im Spiel - mit vier Optionen sprengte
+         er auf dem Telefon den Schirm. Eine Zeile kuerzer, dasselbe Bild. */
       text:'Sechs gegen fünf, achtundfünfzig Sekunden. Der Puck kommt an die blaue Linie, '
-         + 'und du hast ihn. Vor dir ein Wald aus Schienbeinschonern, links ein Mitspieler '
-         + 'in besserer Position, rechts eine Lücke, die vielleicht keine ist.',
+         + 'und du hast ihn. Links ein Mitspieler in besserer Position, rechts eine Lücke, '
+         + 'die vielleicht keine ist.',
       bedingung: st => st.age >= 20,
       optionen:[
         { t:'Selbst abziehen', chance:40, hinweis:'Ruhm oder Vorwurf',
