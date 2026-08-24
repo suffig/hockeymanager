@@ -20,9 +20,27 @@
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
   const JE_SEITE = 25;
-  const S = { seite: 0, gesamt: 0, pos: '', zeilen: [], laden: false };
+  const S = { seite: 0, gesamt: 0, pos: '', sortiert: 'legendenwert',
+              zeilen: [], laden: false, ich: null };
 
   const POS_NAMEN = { C:'Center', LW:'Linker Flügel', RW:'Rechter Flügel', D:'Verteidiger', G:'Torhüter' };
+
+  /* Wonach sortiert werden kann - und welche Zahl dann gross in der
+     Zeile steht. Die Weltplatzziffer bleibt daneben stehen, damit man
+     beim Blaettern nach Toren nicht vergisst, wo man insgesamt steht. */
+  const SORTEN = [
+    { k:'legendenwert', n:'Punkte',   kurz:'Legendenpunkte',
+      dativ:'Legendenpunkten' },
+    { k:'punkte',       n:'Scorer',   kurz:'Scorerpunkte, bei Torhütern Siege',
+      dativ:'Scorerpunkten' },
+    { k:'trophaeen',    n:'Trophäen', kurz:'gewonnene Trophäen',
+      dativ:'Trophäen' },
+    { k:'hoehepunkt',   n:'Bestwert', kurz:'höchster erreichter Gesamtwert',
+      dativ:'dem höchsten Gesamtwert' },
+    { k:'saisons',      n:'Saisons',  kurz:'gespielte Saisons',
+      dativ:'der Zahl der Saisons' }
+  ];
+  const sorte = () => SORTEN.find(x => x.k === S.sortiert) || SORTEN[0];
 
   /* ---------------------------------------------------------------
      Rangliste
@@ -31,25 +49,66 @@
   function filterHtml(){
     const knopf = (k, n) => `<button type="button" class="bl-filter ${S.pos === k ? 'an' : ''}"
       data-pos="${k}">${n}</button>`;
-    return `<div class="bl-filter-reihe">
-      ${knopf('', 'Alle')}${knopf('C', 'C')}${knopf('LW', 'LW')}${knopf('RW', 'RW')}
-      ${knopf('D', 'D')}${knopf('G', 'G')}
+    const sortKnopf = x => `<button type="button" class="bl-filter ${S.sortiert === x.k ? 'an' : ''}"
+      data-sortiert="${x.k}" title="${esc(x.kurz)}">${x.n}</button>`;
+    return `<div class="bl-steuer">
+      <div class="bl-filter-reihe">
+        ${knopf('', 'Alle')}${knopf('C', 'C')}${knopf('LW', 'LW')}${knopf('RW', 'RW')}
+        ${knopf('D', 'D')}${knopf('G', 'G')}
+      </div>
+      <div class="bl-filter-reihe bl-sortierung">
+        <span class="bl-sortlabel">Sortieren nach</span>
+        ${SORTEN.map(sortKnopf).join('')}
+      </div>
     </div>`;
   }
 
-  function zeileHtml(z){
-    const medaille = z.platz <= 3 ? ' bl-podest bl-p' + z.platz : '';
+  /* Die vordersten drei bekommen ein eigenes Bild - aber nur dort, wo
+     die Reihenfolge auch die weltweite ist: auf der ersten Seite, ohne
+     Filter, nach Legendenpunkten. Sonst waere das Podest gelogen. */
+  function podestHtml(){
+    if (S.seite !== 0 || S.pos || S.sortiert !== 'legendenwert') return '';
+    const drei = S.zeilen.slice(0, 3);
+    if (drei.length < 3) return '';
+    const stufe = (z, platz) => {
+      const nat = PUCKERO.nation(z.nation) || { flag:'' };
+      return `<button type="button" class="pod pod-${platz} ${istIch(z) ? 'pod-ich' : ''}"
+        data-karriere="${z.id}">
+        <span class="pod-platz">${platz}</span>
+        <span class="pod-name">${esc(z.name)}</span>
+        <span class="pod-klein">${nat.flag || ''} ${esc(z.pos)}</span>
+        <span class="pod-wert">${z.legendenwert}</span>
+        <span class="pod-rang">${esc(z.rang || '')}</span>
+      </button>`;
+    };
+    return `<div class="podest">
+      ${stufe(drei[1], 2)}${stufe(drei[0], 1)}${stufe(drei[2], 3)}
+    </div>`;
+  }
+
+  const istIch = z => !!(S.ich && z.benutzername === S.ich);
+
+  function zeileHtml(z, i){
+    const nachPunkten = S.sortiert === 'legendenwert';
+    const medaille = (nachPunkten && z.platz <= 3) ? ' bl-podest bl-p' + z.platz : '';
     const nat = PUCKERO.nation(z.nation) || { flag:'', n:z.nation };
-    return `<button type="button" class="bl-zeile${medaille}" data-karriere="${z.id}">
-      <span class="bl-platz">${z.platz}</span>
+    const gross = z[S.sortiert] != null ? z[S.sortiert] : z.legendenwert;
+    /* Beim Sortieren nach etwas anderem zaehlt die Zeile durch - die
+       Weltplatzziffer wandert daneben, sonst stuenden zwei Zahlen
+       ohne Bezug nebeneinander. */
+    const ziffer = nachPunkten ? z.platz : (S.seite * JE_SEITE + i + 1);
+    return `<button type="button" class="bl-zeile${medaille}${istIch(z) ? ' bl-ich' : ''}"
+      data-karriere="${z.id}">
+      <span class="bl-platz">${ziffer}</span>
       <span class="bl-wer">
-        <b>${esc(z.name)}</b>
+        <b>${esc(z.name)}${istIch(z) ? '<span class="bl-du">du</span>' : ''}</b>
         <span class="bl-klein">${nat.flag || ''} ${esc(z.pos)}
           · ${esc(z.benutzername || 'unbekannt')}</span>
       </span>
       <span class="bl-zahlen">
-        <b>${z.legendenwert}</b>
-        <span class="bl-klein">${esc(z.rang || '')}</span>
+        <b>${gross}</b>
+        <span class="bl-klein">${nachPunkten ? esc(z.rang || '')
+          : 'Platz ' + z.platz + ' weltweit'}</span>
       </span>
       <span class="bl-pfeil">›</span>
     </button>`;
@@ -65,9 +124,13 @@
       </div>`;
 
     const seiten = Math.max(1, Math.ceil(S.gesamt / JE_SEITE));
+    const podest = podestHtml();
+    const rest = podest ? S.zeilen.slice(3) : S.zeilen;
+    const versatz = podest ? 3 : 0;
     return `
       ${filterHtml()}
-      <div class="bl-liste">${S.zeilen.map(zeileHtml).join('')}</div>
+      ${podest}
+      <div class="bl-liste">${rest.map((z, i) => zeileHtml(z, i + versatz)).join('')}</div>
       ${seiten > 1 ? `<div class="bl-blaettern">
         <button class="btn btn-ghost btn-sm" id="bl-zurueck"
           ${S.seite === 0 ? 'disabled' : ''}>← Zurück</button>
@@ -82,7 +145,8 @@
     S.laden = true;
     bereich.innerHTML = '<div class="card center pad-lg"><p class="small mb0">Wird geladen …</p></div>';
     const erg = await KONTO.bestenliste({
-      von: S.seite * JE_SEITE, wieviele: JE_SEITE, pos: S.pos || undefined
+      von: S.seite * JE_SEITE, wieviele: JE_SEITE,
+      pos: S.pos || undefined, sortiert: S.sortiert
     });
     S.laden = false;
     if (erg.fehler){
@@ -94,8 +158,8 @@
     S.gesamt = erg.gesamt;
     unterzeile.textContent = S.gesamt
       ? S.gesamt + (S.gesamt === 1 ? ' Laufbahn' : ' Laufbahnen') +
-        ', nach Legendenpunkten sortiert. Tipp auf eine Position für die ganze Geschichte.'
-      : 'Nach Legendenpunkten sortiert.';
+        ', nach ' + sorte().dativ + ' sortiert. Tipp auf eine Position für die ganze Geschichte.'
+      : 'Noch nichts eingetragen.';
     bereich.innerHTML = listeHtml();
     binde();
   }
@@ -103,6 +167,9 @@
   function binde(){
     bereich.querySelectorAll('[data-pos]').forEach(b => b.onclick = () => {
       S.pos = b.dataset.pos; S.seite = 0; listeLaden();
+    });
+    bereich.querySelectorAll('[data-sortiert]').forEach(b => b.onclick = () => {
+      S.sortiert = b.dataset.sortiert; S.seite = 0; listeLaden();
     });
     bereich.querySelectorAll('[data-karriere]').forEach(b => b.onclick = () => {
       zeige(b.dataset.karriere);
@@ -225,6 +292,7 @@
           <b>Wendepunkt:</b> ${esc(k.wendepunkt.wahl)}
           <span class="small"> · ${k.wendepunkt.chance}% Chance, mit ${k.wendepunkt.alter} Jahren</span>
         </div>` : ''}
+        ${UI.laufbahnBogen(k.saisonwerte)}
         <h3 class="mt-l">Saison für Saison</h3>
         ${saisonTabelle(k)}
       </div>`;
@@ -304,6 +372,7 @@
   } else {
     KONTO.beiAenderung(z => {
       if (!z.angemeldet){ ohneKonto(); return; }
+      S.ich = (z.profil || {}).benutzername || null;
       ausAdresse();
     });
     KONTO.starten();

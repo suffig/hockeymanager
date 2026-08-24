@@ -16,7 +16,7 @@
      Speicher; sie aendern sich mit ihrem Dateinamen.
    ========================================================== */
 
-const VERSION = 'eiszeit-ce1f89b8';
+const VERSION = 'eiszeit-5953969b';
 const SCHALE = [
   './',
   './index.html',
@@ -27,17 +27,17 @@ const SCHALE = [
   './schnellkarriere.html',
   './taeglich.html',
   './konto.html',
-  './assets/style.css?v=ce1f89b8',
-  './assets/data.js?v=ce1f89b8',
-  './assets/draft.js?v=ce1f89b8',
-  './assets/engine.js?v=ce1f89b8',
-  './assets/ereignisse.js?v=ce1f89b8',
-  './assets/wappen.js?v=ce1f89b8',
-  './assets/ui.js?v=ce1f89b8',
-  './assets/game.js?v=ce1f89b8',
-  './assets/konto-config.js?v=ce1f89b8',
-  './assets/konto.js?v=ce1f89b8',
-  './assets/bestenliste.js?v=ce1f89b8',
+  './assets/style.css?v=5953969b',
+  './assets/data.js?v=5953969b',
+  './assets/draft.js?v=5953969b',
+  './assets/engine.js?v=5953969b',
+  './assets/ereignisse.js?v=5953969b',
+  './assets/wappen.js?v=5953969b',
+  './assets/ui.js?v=5953969b',
+  './assets/game.js?v=5953969b',
+  './assets/konto-config.js?v=5953969b',
+  './assets/konto.js?v=5953969b',
+  './assets/bestenliste.js?v=5953969b',
   './manifest.json',
   './assets/app/symbol-192.png',
   './assets/app/symbol-512.png'

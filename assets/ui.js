@@ -553,6 +553,76 @@ const UI = (() => {
     </div>`;
   }
 
+  /* ----------------------------------------------------------------
+     Der Bogen einer Laufbahn
+
+     Eine Tabelle sagt, was in einer Saison passiert ist. Sie sagt
+     nicht, wie die Laufbahn verlaufen ist - ob jemand frueh oben war
+     und lange gehalten hat, ob er spaet aufblühte oder ob es nach
+     einem Gipfel steil abwaerts ging. Genau das ist aber das, was
+     eine fremde Laufbahn interessant macht.
+
+     Deshalb eine Kurve des Gesamtwerts ueber die Jahre, mit den
+     Ligawechseln als Marken und den Titeljahren als Sternen.
+     ---------------------------------------------------------------- */
+  function laufbahnBogen(saisonwerte){
+    const w = (saisonwerte || []).filter(s => s.o);
+    if (w.length < 3) return '';
+
+    const B = 100, H = 40, rand = 3;
+    const werte = w.map(s => s.o);
+    const min = Math.max(30, Math.min(...werte) - 4);
+    const max = Math.min(99, Math.max(...werte) + 4);
+    const x = i => rand + i * (B - rand * 2) / (w.length - 1);
+    const y = v => H - rand - (v - min) / Math.max(1, max - min) * (H - rand * 2);
+
+    const linie = w.map((s, i) => x(i).toFixed(1) + ',' + y(s.o).toFixed(1)).join(' ');
+    const flaeche = `${rand},${H} ` + linie + ` ${x(w.length - 1).toFixed(1)},${H}`;
+
+    /* Wo die Liga wechselt, steht eine senkrechte Marke. */
+    const wechsel = w.map((s, i) => (i > 0 && s.l !== w[i - 1].l)
+      ? `<line x1="${x(i).toFixed(1)}" y1="${rand}" x2="${x(i).toFixed(1)}" y2="${H - rand}"
+           stroke="currentColor" stroke-width=".4" opacity=".28"
+           stroke-dasharray="1.4 1.4"/>` : '').join('');
+
+    const titel = w.map((s, i) => s.ti
+      ? `<circle cx="${x(i).toFixed(1)}" cy="${y(s.o).toFixed(1)}" r="1.5"
+           fill="var(--gold)"/>` : '').join('');
+
+    const gipfel = werte.indexOf(Math.max(...werte));
+
+    return `<div class="bogen mt">
+      <div class="bogen-kopf">
+        <span>${ikone('hoch', 13)} Der Bogen der Laufbahn</span>
+        <span class="bogen-legende">
+          <i class="bl-marke"></i> Ligawechsel
+          <i class="bl-titel"></i> Titel
+        </span>
+      </div>
+      <svg viewBox="0 0 ${B} ${H}" preserveAspectRatio="none" class="bogen-bild"
+           role="img" aria-label="Gesamtwert je Saison von ${w[0].j} bis ${w[w.length-1].j}">
+        <defs>
+          <linearGradient id="bogenfarbe" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="var(--accent)" stop-opacity=".38"/>
+            <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
+          </linearGradient>
+        </defs>
+        ${wechsel}
+        <polygon points="${flaeche}" fill="url(#bogenfarbe)"/>
+        <polyline points="${linie}" fill="none" stroke="var(--accent)"
+                  stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round"/>
+        ${titel}
+        <circle cx="${x(gipfel).toFixed(1)}" cy="${y(werte[gipfel]).toFixed(1)}" r="1.7"
+                fill="none" stroke="var(--text)" stroke-width=".6"/>
+      </svg>
+      <div class="bogen-fuss">
+        <span>${w[0].j} · ${w[0].a} Jahre</span>
+        <span>Höchstwert ${werte[gipfel]} mit ${w[gipfel].a}</span>
+        <span>${w[w.length - 1].j + 1} · ${w[w.length - 1].a} Jahre</span>
+      </div>
+    </div>`;
+  }
+
   /* Saisonvorgaben des Klubs – vorher als Auftrag, nachher als Abrechnung. */
   const ZIEL_ICON = { titel:'pokal', runden:'medaille', playoffs:'ziel', platz:'schild',
                       punkte:'hoch', tore:'tor', siege:'haken', spiele:'uhr' };
@@ -1537,7 +1607,7 @@ const UI = (() => {
            trophyList, klubKarten, natKarte, ligaBilanz, shareText, rankLeiste, karriereKarte,
            statBoxen, natTabelle, rivaleKarte, vermaechtnisKarte, zeremonie, formKurve,
            eisfeld, serienBaum, meilensteinJagd, jahrgangTabelle, zielKarte,
-           bilanzStreifen, rollenKarte, rollenWeg,
+           bilanzStreifen, rollenKarte, rollenWeg, laufbahnBogen,
            ikone, kennzahl, IKONEN, wendepunkte, jahrgangVerlauf, STRANG_INFO,
            konfetti, zahlHoch, alleZahlenHoch, toast, copy };
 })();

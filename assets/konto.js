@@ -291,12 +291,19 @@ const KONTO = (() => {
      fuenfzig Laufbahnen wuerde sonst fuenfzig Saisontabellen
      mitschleppen. Die kommen erst beim Klick auf eine Position. */
 
+  /* Nach was sortiert werden darf. Eine feste Liste statt eines
+     durchgereichten Spaltennamens - sonst waere die Sortierung eine
+     Tuer, durch die beliebige Ausdruecke in die Abfrage wandern. */
+  const SORTIERBAR = ['legendenwert', 'punkte', 'trophaeen', 'hoehepunkt', 'saisons'];
+
   async function bestenliste(opt){
     const o = opt || {};
     const c = await ladeClient();
     let f = c.from('bestenliste').select('*', { count: 'exact' });
     if (o.pos)    f = f.eq('pos', o.pos);
     if (o.nation) f = f.eq('nation', o.nation);
+    const nach = SORTIERBAR.includes(o.sortiert) ? o.sortiert : 'legendenwert';
+    f = f.order(nach, { ascending: false }).order('gespielt_am', { ascending: true });
     const von = o.von || 0;
     const { data, error, count } = await f.range(von, von + (o.wieviele || 25) - 1);
     if (error) return { zeilen: [], gesamt: 0, fehler: error.message };

@@ -2739,3 +2739,106 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
   .tabelle-rahmen table.stats{font-size:11.5px;min-width:400px}
   .tabelle-rahmen th,.tabelle-rahmen td{padding:5px 7px}
 }
+
+/* ---------- Podest der vordersten drei ---------- */
+.bl-steuer{display:flex;flex-direction:column;gap:9px;margin-bottom:14px}
+.bl-sortierung{align-items:center}
+.bl-sortlabel{
+  font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--dim);margin-right:2px;
+}
+
+.podest{
+  display:grid;grid-template-columns:1fr 1.16fr 1fr;
+  gap:8px;align-items:end;margin-bottom:14px;
+}
+.pod{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  padding:13px 8px 12px;cursor:pointer;text-align:center;
+  border-radius:var(--radius-sm);border:1px solid var(--line);
+  color:var(--text);font-family:var(--font);
+  background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012));
+  transition:transform .16s ease, border-color .16s ease, box-shadow .16s ease;
+}
+.pod:hover{transform:translateY(-3px)}
+.pod-platz{
+  font-family:var(--display);font-size:23px;line-height:1;color:var(--dim);
+}
+.pod-name{
+  font-size:12.5px;font-weight:700;line-height:1.2;margin-top:3px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;
+}
+.pod-klein{font-size:10px;color:var(--dim)}
+.pod-wert{font-family:var(--display);font-size:22px;line-height:1;margin-top:5px}
+.pod-rang{font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--dim);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+
+.pod-1{
+  padding-top:19px;padding-bottom:16px;
+  border-color:color-mix(in srgb,var(--gold) 55%,transparent);
+  background:linear-gradient(180deg,
+    color-mix(in srgb,var(--gold) 15%,transparent),rgba(255,255,255,.012));
+  box-shadow:0 14px 34px -24px var(--gold);
+}
+.pod-1 .pod-platz,.pod-1 .pod-wert{color:var(--gold)}
+.pod-1 .pod-name{font-size:14px}
+.pod-2{border-color:color-mix(in srgb,var(--muted) 45%,transparent)}
+.pod-2 .pod-wert{color:var(--text)}
+.pod-3{border-color:color-mix(in srgb,#c98a52 45%,transparent)}
+.pod-3 .pod-platz,.pod-3 .pod-wert{color:#c98a52}
+.pod-ich{outline:2px solid var(--accent);outline-offset:-2px}
+
+/* Die eigene Laufbahn in der Liste */
+.bl-zeile.bl-ich{
+  border-color:var(--accent);
+  background:linear-gradient(120deg,
+    color-mix(in srgb,var(--accent) 13%,transparent),rgba(255,255,255,.01));
+}
+.bl-du{
+  display:inline-block;margin-left:6px;padding:1px 6px;border-radius:99px;
+  font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  background:var(--accent);color:#04121b;vertical-align:middle;
+}
+
+@media (max-width:760px){
+  .podest{gap:6px}
+  .pod{padding:10px 5px 9px}
+  .pod-1{padding-top:15px;padding-bottom:12px}
+  .pod-platz{font-size:19px}
+  .pod-name{font-size:11px}
+  .pod-1 .pod-name{font-size:12px}
+  .pod-wert{font-size:18px}
+  .pod-rang{font-size:8.5px}
+  .bl-sortlabel{width:100%;margin-bottom:-2px}
+}
+
+/* ---------- Der Bogen einer Laufbahn ---------- */
+.bogen{
+  padding:11px 13px;border-radius:var(--radius-sm);
+  border:1px solid var(--line);
+  background:color-mix(in srgb,var(--line) 12%,transparent);
+  color:var(--muted);
+}
+.bogen-kopf{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--dim);margin-bottom:8px;flex-wrap:wrap;
+}
+.bogen-kopf > span:first-child{display:inline-flex;align-items:center;gap:6px}
+.bogen-legende{display:inline-flex;align-items:center;gap:9px;letter-spacing:.02em;
+  text-transform:none;font-weight:600;font-size:9.5px}
+.bogen-legende i{display:inline-block;margin-right:4px;vertical-align:middle}
+.bl-marke{width:1px;height:9px;background:currentColor;opacity:.45}
+.bl-titel{width:6px;height:6px;border-radius:50%;background:var(--gold)}
+.bogen-bild{display:block;width:100%;height:88px;overflow:visible}
+.bogen-fuss{
+  display:flex;justify-content:space-between;gap:8px;margin-top:6px;
+  font-size:10px;color:var(--dim);
+}
+.bogen-fuss > span:nth-child(2){color:var(--muted);font-weight:650}
+@media (max-width:760px){
+  .bogen{padding:9px 11px}
+  .bogen-bild{height:74px}
+  .bogen-fuss{font-size:9.5px}
+  .bogen-legende{display:none}
+}

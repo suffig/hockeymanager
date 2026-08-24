@@ -1561,6 +1561,9 @@ function CareerGame(root, cfg){
           </div>
         </div>
 
+        ${UI.laufbahnBogen((res.seasons || []).filter(s => s.gp).map(s => ({
+          j: s.year, a: s.age, l: s.lg, o: s.ovr, ti: s.title || null })))}
+
         ${abschnitt('Bilanz nach Ligen', UI.ligaBilanz(res))}
         ${abschnitt('Stationen', UI.klubKarten(res))}
         ${UI.rollenWeg(res) ? abschnitt('Deine Rolle über die Jahre', UI.rollenWeg(res), true) : ''}
