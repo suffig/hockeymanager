@@ -2235,3 +2235,106 @@ footer.site a:hover{color:var(--text)}
   .hk-text{font-size:11px}
   .fb-faden{font-size:11.5px;padding:8px 10px}
 }
+
+/* ==========================================================
+   Die Rolle im Verein
+   ========================================================== */
+.rollenstand{
+  margin:10px 0 0;padding:10px 12px;border-radius:var(--radius-sm);
+  background:color-mix(in srgb,var(--line) 22%,transparent);
+  border:1px solid var(--line);border-left:3px solid var(--muted);
+}
+.rollenstand.probe { border-left-color:var(--red) }
+.rollenstand.fest  { border-left-color:var(--accent) }
+.rollenstand.saeule{ border-left-color:var(--gold) }
+
+.rs-kopf{display:flex;align-items:center;gap:9px}
+.rs-icon{font-size:19px;line-height:1;flex:0 0 auto}
+.rs-name{display:flex;flex-direction:column;min-width:0;flex:1}
+.rs-name b{font-size:13.5px;font-weight:700;line-height:1.25}
+.rs-lage{font-size:11px;color:var(--muted);letter-spacing:.02em}
+.rollenstand.saeule .rs-lage{color:var(--gold);font-weight:600}
+.rollenstand.probe  .rs-lage{color:var(--red);font-weight:600}
+
+.rs-urteil{
+  font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;
+  padding:3px 7px;border-radius:99px;flex:0 0 auto;
+}
+.rs-urteil.gut{background:color-mix(in srgb,var(--green) 18%,transparent);color:var(--green)}
+.rs-urteil.schlecht{background:color-mix(in srgb,var(--red) 18%,transparent);color:var(--red)}
+
+.rs-leiste{
+  position:relative;height:5px;margin:9px 0 7px;border-radius:99px;
+  background:color-mix(in srgb,var(--muted) 22%,transparent);overflow:hidden;
+}
+.rs-leiste i{
+  display:block;height:100%;border-radius:99px;
+  background:linear-gradient(90deg,var(--red),var(--accent) 55%,var(--gold));
+  transition:width .5s cubic-bezier(.2,1,.3,1);
+}
+.rs-marke{position:absolute;top:-2px;width:1px;height:9px;
+  background:var(--card,var(--ice-800));opacity:.75}
+.rs-fuss{display:flex;gap:12px;flex-wrap:wrap;font-size:11px;color:var(--muted)}
+.rs-fuss span{display:inline-flex;align-items:center;gap:4px}
+.rs-fuss .warnton{color:var(--red)}
+
+/* Urteil im Saisonkopf */
+.pill.rolle-uebertroffen{color:var(--gold);border-color:var(--gold)}
+.pill.rolle-erfuellt{color:var(--green);border-color:color-mix(in srgb,var(--green) 55%,transparent)}
+.pill.rolle-verfehlt{color:var(--red);border-color:color-mix(in srgb,var(--red) 55%,transparent)}
+
+/* Die Rollenwahl */
+.rollenkarte.zu-nein{opacity:.72}
+.rk-marken{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.rk-marken > span{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:10.5px;padding:2px 7px;border-radius:99px;
+  border:1px solid var(--line);color:var(--muted);
+}
+.rk-zusage{font-weight:750;letter-spacing:.03em}
+.rk-zusage.zu-sicher{color:var(--green);border-color:color-mix(in srgb,var(--green) 45%,transparent)}
+.rk-zusage.zu-probe {color:var(--gold);border-color:color-mix(in srgb,var(--gold) 45%,transparent)}
+.rk-zusage.zu-nein  {color:var(--red);border-color:color-mix(in srgb,var(--red) 45%,transparent)}
+.rk-passung.gut{color:var(--green)}
+.rk-passung.schwach{color:var(--red)}
+
+@media (max-width:760px){
+  .rollenstand{padding:9px 10px;margin-top:8px}
+  .rs-name b{font-size:12.5px}
+  .rs-fuss{font-size:10.5px;gap:9px}
+  .rk-marken > span{font-size:10px;padding:2px 6px}
+}
+
+/* Die Rollenwahl auf dem Telefon: vier Karten muessen ohne Scrollen
+   nebeneinander bestehen koennen. Die Beschreibung bleibt - auf eine
+   Zeile gekuerzt, weil die Marken darunter das Wesentliche tragen. */
+@media (max-width:760px){
+  .rollenwahl-kopf h2{font-size:20px;line-height:1.2;margin-bottom:3px}
+  .rollenwahl-kopf .lead{font-size:12.5px;line-height:1.35}
+  .rollenliste{gap:7px}
+  /* Die aeltere Telefonregel weiter oben stellt das Gehalt in eine
+     eigene Zeile - das kostet je Karte 26 Pixel und damit die vierte
+     Karte. Hier bleibt es in der dritten Spalte. */
+  .rollenkarte{
+    padding:8px 10px;gap:9px;align-items:center;row-gap:0;
+    grid-template-columns:34px minmax(0,1fr) auto;
+  }
+  .rollenkarte .rk-gehalt{
+    grid-column:auto;text-align:right;font-size:17px;align-self:center;
+  }
+  .rollenkarte .rk-gehalt span{display:block;margin-left:0}
+  .rollenkarte .rk-icon{font-size:20px;width:34px;height:34px}
+  .rollenkarte .rk-text b{font-size:13px}
+  .rollenkarte .rk-text > .small{
+    display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;
+    overflow:hidden;font-size:11px;line-height:1.3;
+  }
+  .rk-marken{margin-top:4px;gap:4px}
+  /* Was der Trainer misst, steht nach der Wahl in der Rollenkarte -
+     hier kostet es eine zweite Zeile je Karte und damit die vierte
+     Karte unterhalb des Bildschirms. Der Nachbarwaehler traegt zwei
+     Klassen, deshalb hier ebenfalls zwei. */
+  .rk-marken > .rk-soll{display:none}
+  .rk-gehalt{font-size:17px}
+  .rk-gehalt span{font-size:8.5px}
+}

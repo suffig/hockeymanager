@@ -68,8 +68,9 @@ const DRAFT = (() => {
       w:{ rufStart:4, robust:6 } }
   };
 
-  /* ---------- Die fünf Fragen ----------
-     Runde 3 (Waffe) und 5 (Preis) sind positionsabhängig.        */
+  /* ---------- Die vier Fragen ----------
+     Die Waffe ist positionsabhaengig; aus jedem Vorrat werden je
+     Spieler nur drei Antworten gezogen.                          */
 
   const HERKUNFT = [
     { id:'h_klein', n:'Kleinstadtverein', tag:'Herkunft',

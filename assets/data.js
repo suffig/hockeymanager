@@ -492,31 +492,64 @@ const PUCKERO_DATA = (() => {
 
   /* ---------- Rollen im Team ----------
      Wird bei jeder Vertragsunterschrift gewaehlt und gilt fuer dessen Laufzeit. */
+  /* ---------- Rollen im Verein ----------
+     Eine Rolle ist keine Einstellung, sondern eine Abmachung.
+
+     anspruch  Wie hoch der Klub dich einschaetzen muss, damit er sie
+               ueberhaupt vergibt (0 = bekommt jeder, 3 = nur Traeger
+               der Mannschaft).
+     attr      Woran sich zeigt, ob du dafuer gebaut bist. Wer als
+               Scorer verpflichtet wird, aber nicht treffen kann,
+               verliert die Rolle wieder.
+     soll      Was der Trainer als erfuellt ansieht, gemessen am
+               eigenen Niveau - nicht an einer festen Zahl. Die Werte
+               stammen aus gemessenen Verteilungen (siehe Erwartung
+               in engine.js).
+     ---------- */
   const ROLLEN = [
-    { k:'offensiv', n:'Als Scorer verpflichtet', icon:'🎯',
+    { k:'offensiv', n:'Als Scorer verpflichtet', icon:'🎯', anspruch:3,
       d:'Du sollst treffen. Alles andere interessiert den Trainer weniger.',
+      soll:'Punkte', attr:['praezision','schuss','puck'],
       w:{ punkte:0.16, plus:-6, risiko:0, eiszeit:1.5, gehalt:1.10 } },
-    { k:'zweiweg', n:'Als Zweiwegspieler', icon:'⚖',
+    { k:'zweiweg', n:'Als Zweiwegspieler', icon:'⚖', anspruch:1,
       d:'Beide Enden des Eises. Weniger Ruhm, mehr Vertrauen.',
+      soll:'Punkte und Bilanz', attr:['uebersicht','defensive','skating'],
       w:{ punkte:0.02, plus:8, risiko:0, eiszeit:1.0, gehalt:1.0, selke:0.18 } },
-    { k:'defensiv', n:'Als defensiver Anker', icon:'🧱',
+    { k:'defensiv', n:'Als defensiver Anker', icon:'🧱', anspruch:2,
       d:'Unterzahl, letzte Minute, gegnerische Paradereihe. Deine Nacht beginnt, wenn es eng wird.',
+      soll:'Plus-Minus', attr:['defensive','nerven','zweikampf'],
       w:{ punkte:-0.14, plus:14, risiko:0.01, eiszeit:1.2, gehalt:0.95, selke:0.3 } },
-    { k:'physisch', n:'Als körperlicher Faktor', icon:'💪',
+    { k:'physisch', n:'Als körperlicher Faktor', icon:'💪', anspruch:0,
       d:'Du sollst wehtun, den Slot räumen und die Reihe schützen.',
+      soll:'Härte und Bilanz', attr:['zweikampf','defensive','antritt'],
       w:{ punkte:-0.08, plus:4, risiko:0.05, strafen:1.8, eiszeit:0.8, gehalt:0.9, moral:6 } }
   ];
   const ROLLEN_G = [
-    { k:'stamm', n:'Als klare Nummer eins', icon:'🥅',
+    { k:'stamm', n:'Als klare Nummer eins', icon:'🥅', anspruch:3,
       d:'Siebzig Spiele, keine Diskussion. Und keine Ausrede.',
+      soll:'Einsätze', attr:['konstanz','stellung','nerven'],
       w:{ anteil:0.16, risiko:0.03, gehalt:1.12 } },
-    { k:'teilung', n:'Als Teil eines Duos', icon:'🤝',
+    { k:'teilung', n:'Als Teil eines Duos', icon:'🤝', anspruch:1,
       d:'Geteilte Last, geteilte Verantwortung – und ein frischerer Körper im April.',
+      soll:'Fangquote', attr:['reflexe','fanghand','beweglich'],
       w:{ anteil:-0.10, risiko:-0.04, gehalt:0.95, playoff:4 } },
-    { k:'aufbau', n:'Als Entwicklungsprojekt', icon:'🌱',
+    { k:'aufbau', n:'Als Entwicklungsprojekt', icon:'🌱', anspruch:0,
       d:'Weniger Spiele, mehr Training. Der Klub baut dich langsam auf.',
+      soll:'Fortschritt', attr:['lesen','puckspiel','beweglich'],
       w:{ anteil:-0.16, gehalt:0.8, training:2 } }
   ];
+
+  /* Wie fest du in deiner Rolle sitzt. Der Faktor skaliert alles, was
+     die Rolle bewirkt: auf Bewaehrung zaehlt die Abmachung wenig, als
+     Saeule der Mannschaft zaehlt sie doppelt. */
+  const ROLLENSTAND = {
+    bewaehrung: { n:'Auf Bewährung', k:'stand-probe', f:0.55,
+                  d:'Der Trainer hat dich noch nicht abgeschrieben – aber auch nicht eingeplant.' },
+    gesetzt:    { n:'Gesetzt',       k:'stand-fest',  f:1.00,
+                  d:'Die Rolle gehört dir, solange du lieferst.' },
+    saeule:     { n:'Säule',         k:'stand-saeule',f:1.30,
+                  d:'Die Mannschaft wird um dich herum gebaut.' }
+  };
 
   /* ---------- Saisonhoehepunkte ----------
      Ein herausragendes Spiel pro Saison, je nach Ausbeute. */
@@ -708,7 +741,7 @@ const PUCKERO_DATA = (() => {
   ];
 
   return { ATTRS, POSITIONS, NATIONS, LEAGUES, CLUBS, AWARDS, INTL, TURNIERE,
-           VERLETZUNGEN, ROLLEN, ROLLEN_G, HOEHEPUNKTE, VERMAECHTNIS,
+           VERLETZUNGEN, ROLLEN, ROLLEN_G, ROLLENSTAND, HOEHEPUNKTE, VERMAECHTNIS,
            STORY, ENDEN, HERAUSFORDERUNGEN, HEIM_LIGA, FIRST, LAST };
 })();
 

@@ -16,7 +16,7 @@
      Speicher; sie aendern sich mit ihrem Dateinamen.
    ========================================================== */
 
-const VERSION = 'eiszeit-v2';
+const VERSION = 'eiszeit-v3';
 const SCHALE = [
   './',
   './index.html',
@@ -78,7 +78,11 @@ self.addEventListener('fetch', e => {
     // Erst das Netz, damit Aenderungen sofort ankommen
     e.respondWith((async () => {
       try {
-        const antwort = await fetch(anfrage);
+        /* Ohne no-cache beantwortet der Browser diesen Abruf aus seinem
+           eigenen Zwischenspeicher - dann waere "erst das Netz" nur ein
+           frommer Wunsch. So wird immer nachgefragt; unveraendert
+           kommt nur ein 304 zurueck. */
+        const antwort = await fetch(new Request(anfrage, { cache: 'no-cache' }));
         const speicher = await caches.open(VERSION);
         speicher.put(anfrage, antwort.clone());
         return antwort;

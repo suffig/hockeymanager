@@ -633,7 +633,7 @@ function CareerGame(root, cfg){
           Ausstiegsklausel im Vertrag</div>` : ''}
         ${st.natKapitaen ? `<div class="sk-rolle nat">${UI.ikone('krone', 14)}
           Kapitän der Nationalmannschaft</div>` : ''}
-        ${st.rolle ? `<div class="sk-rolle">${st.rolle.icon} ${esc(st.rolle.n)}</div>` : ''}
+        ${UI.rollenKarte(st, letzte)}
         ${umfeldBlock(st)}
         ${st.entryDraft ? `<div class="sk-rolle draft">${st.entryDraft.ungezogen
           ? '📋 Im Draft nicht gezogen'
@@ -703,7 +703,8 @@ function CareerGame(root, cfg){
     if (st.ruecktrittsfrage) return kopf + bilanz + ruecktrittHtml(st.ruecktrittsfrage, st);
     if (st.kapitaensfrage)return kopf + bilanz + kapitaenHtml(st.kapitaensfrage);
     if (st.angebote)      return kopf + bilanz + angeboteHtml(st.angebote, st.angebotsGrund);
-    if (st.rollenwahl)    return kopf + bilanz + rollenHtml(st.rollenwahl, st.club);
+    if (st.rollenwahl)    return kopf + (alsApp ? '' : bilanz)
+                               + rollenHtml(st.rollenwahl, st.club);
     if (st.training)      return kopf + bilanz + trainingHtml(st.training, st.age);
     if (st.fertig)   return kopf + `
       <div class="card center pad-lg anim">
@@ -797,22 +798,47 @@ function CareerGame(root, cfg){
 
   /* ---------- Bausteine der mittleren Spalte ---------- */
   /* Rolle im Team – direkt nach der Vertragsunterschrift */
+  const ZUSAGE = {
+    sicher:     { n:'Zugesagt',      k:'zu-sicher' },
+    bewaehrung: { n:'Auf Bewährung', k:'zu-probe' },
+    abgelehnt:  { n:'Zu hoch gegriffen', k:'zu-nein' }
+  };
+  const PASSUNG = w =>
+    w >= 0.45 ? { n:'wie gemacht',   k:'gut' }
+  : w >= 0.12 ? { n:'passt gut',     k:'gut' }
+  : w >= -0.15? { n:'geht so',       k:'' }
+  : w >= -0.5 ? { n:'passt kaum',    k:'schwach' }
+  :             { n:'falsch besetzt',k:'schwach' };
+
   function rollenHtml(rollen, klub){
+    const rang = rollen.length ? rollen[0].rang : 0;
+    const einschaetzung = ['einen Ergänzungsspieler', 'einen festen Teil des Kaders',
+                           'eine wichtige Stütze', 'einen Träger der Mannschaft'][rang] || '';
     return `
       <div class="anim">
-        <h2 style="margin-bottom:6px">Deine Rolle bei ${esc(klub ? klub.n : 'dem Klub')}</h2>
-        <p class="lead" style="font-size:15px">Der Trainer will wissen, wofür er dich einplant.
-          Die Absprache gilt für die gesamte Vertragslaufzeit.</p>
+        <div class="rollenwahl-kopf">
+          <h2 style="margin-bottom:6px">Deine Rolle bei ${esc(klub ? klub.n : 'dem Klub')}</h2>
+          <p class="lead" style="font-size:15px">Der Klub sieht in dir <b>${einschaetzung}</b>.
+            Was du forderst, muss er mittragen.</p>
+        </div>
         <div class="rollenliste mt-l stagger">
-          ${rollen.map((x, i) => `
-            <button class="rollenkarte" data-rolle="${i}">
+          ${rollen.map((x, i) => {
+            const z = ZUSAGE[x.zusage] || ZUSAGE.sicher;
+            const p = PASSUNG(x.passung || 0);
+            return `
+            <button class="rollenkarte ${z.k}" data-rolle="${i}">
               <span class="rk-icon">${x.icon}</span>
               <span class="rk-text">
                 <b>${esc(x.n)}</b>
                 <span class="small">${esc(x.d)}</span>
+                <span class="rk-marken">
+                  <span class="rk-zusage ${z.k}">${z.n}</span>
+                  <span class="rk-passung ${p.k}">${UI.ikone('ziel', 11)} ${p.n}</span>
+                  <span class="rk-soll">${UI.ikone('waage', 11)} ${esc(x.soll || '')}</span>
+                </span>
               </span>
               <span class="rk-gehalt">${x.gehalt < 1 ? x.gehalt.toFixed(2) : x.gehalt.toFixed(1)}<span>Mio/Jahr</span></span>
-            </button>`).join('')}
+            </button>`; }).join('')}
         </div>
       </div>`;
   }

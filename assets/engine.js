@@ -317,6 +317,10 @@ const PUCKERO = (() => {
       entryDraft: null,       // Ergebnis des Entry Drafts
       rolle: null,            // gewaehlte Rolle im aktuellen Vertrag
       rollenwahl: null,       // offene Rollenfrage
+      rollenStand: null,      // wie fest du darin sitzt
+      rollenPunkte: 0,        // Guthaben beim Trainer, -4 bis +4
+      rollenJahre: 0,         // Saisons in dieser Rolle
+      rollenLauf: [],         // jede Aenderung, mit Grund
       verhandlung: null,      // offene Vertragsverhandlung
       klausel: false,         // Ausstiegsklausel im laufenden Vertrag
       gehaltFaktor: 1,        // ausgehandelter Aufschlag auf das Grundgehalt
@@ -796,13 +800,13 @@ const PUCKERO = (() => {
         optionen: [
           { t: 'Platz in der ersten Reihe einfordern', ikone: 'krone', chance: 55,
             hinweis: 'Mehr Eiszeit, mehr Verantwortung', folgt: 'wortfuehrer',
-            gut: { ruf: 8, moral: 6, trait: { playoff: 5 }, form: 0.06,
+            gut: { ruf: 8, moral: 6, trait: { playoff: 5 }, form: 0.06, rolle: 2,
                    text: 'Er stellt dich neben die Neuzugänge. Ab jetzt spielst du die wichtigen Minuten.' },
-            schlecht: { moral: -8,
+            schlecht: { moral: -8, rolle: -2,
                    text: 'Du bekommst, was du dir verdienst – sagt er. Die Neuen spielen, du schaust zu.' } },
           { t: 'Dich in den Dienst der Mannschaft stellen', ikone: 'herz', chance: 80,
             hinweis: 'Weniger Rampenlicht, mehr Rückhalt',
-            gut: { moral: 10, attr: { defensive: 3 },
+            gut: { moral: 10, attr: { defensive: 3 }, rolle: 1,
                    text: 'Du übernimmst die undankbaren Aufgaben. In der Kabine steigt dein Wert deutlich.' },
             schlecht: { ruf: -4,
                    text: 'Deine Zahlen sacken ab – und Zahlen sind das, was am Ende zitiert wird.' } },
@@ -887,6 +891,166 @@ const PUCKERO = (() => {
        an die Mannschaft und eine an dich persoenlich. Beide werden am
        Ende abgerechnet – das gibt jedem Jahr einen eigenen Einsatz.
        --------------------------------------------------------------- */
+    /* ---------------------------------------------------------------
+       Die Rolle im Verein
+
+       Frueher war die Rolle eine Einstellung: einmal angeklickt, bis
+       zum Vertragsende unveraenderlich, und der Klub sagte zu allem ja.
+       Jetzt ist sie eine Abmachung mit drei Teilen.
+
+       Erstens der Anspruch: eine grosse Rolle bekommt nur, wen der Klub
+       gross genug einschaetzt. Wer knapp darunter liegt, bekommt sie
+       auf Bewaehrung - wer weit darunter liegt, gar nicht.
+
+       Zweitens die Passung: wofuer du gebaut bist. Ein Scorer ohne
+       Praezision liefert nicht, egal was im Vertrag steht.
+
+       Drittens die Bewaehrung: nach jeder Saison schaut der Trainer
+       nach, ob die Abmachung gehalten hat. Wer liefert, wird zur
+       Saeule; wer zweimal danebenliegt, verliert die Rolle mitten im
+       Vertrag.
+       --------------------------------------------------------------- */
+
+    /* Wie hoch der Klub dich einschaetzt: 0 bis 3. Es zaehlt nicht der
+       nackte Wert, sondern der Abstand zur Mannschaft, die dich holt -
+       derselbe Spieler ist beim Aufsteiger eine Saeule und beim
+       Spitzenklub der vierte Stuermer. */
+    function klubRang(club, ovr){
+      const abstand = ovr - (club ? club.str : 76);
+      const rufTeil = (st.ruf - 70) / 22;
+      const jung = st.age <= 20 ? -0.6 : 0;
+      const punkte = abstand / 3.4 + rufTeil + jung
+                   + (st.kapitaenSeit === (club && club.n) ? 0.8 : 0);
+      return clamp(Math.round(punkte), 0, 3);
+    }
+
+    /* Wofuer du gebaut bist: -1 (falsch besetzt) bis +1 (wie gemacht).
+
+       Gemessen wird gegen den eigenen Durchschnitt, nicht gegen eine
+       feste Zahl. Der erste Versuch nahm den Ligaschnitt als Messlatte -
+       dann galt jeder Neunzehnjaehrige fuer jede Rolle als falsch
+       besetzt, und die Anzeige sagte nur noch "du bist jung". Die Frage
+       ist aber nicht, ob du gut bist - das steht im Anspruch -, sondern
+       worin du besser bist als in allem anderen. */
+    function rollenPassung(rolle, dev){
+      if (!rolle || !rolle.attr || !rolle.attr.length) return 0;
+      const werte = rolle.attr.map(k => dev[k]).filter(v => typeof v === 'number');
+      const alle = Object.values(dev).filter(v => typeof v === 'number');
+      if (!werte.length || !alle.length) return 0;
+      const schnitt = werte.reduce((a, b) => a + b, 0) / werte.length;
+      const eigen   = alle.reduce((a, b) => a + b, 0) / alle.length;
+      return clamp((schnitt - eigen) / 11, -1, 1);
+    }
+
+    /* Was ausserhalb der Saisonbilanz auf die Rolle einzahlt: eine
+       durchgesetzte Forderung, ein verpatzter Auftritt, ein Wort in der
+       Kabine. Der Stand zieht sofort nach - sonst merkte man die
+       Wirkung erst ein Jahr spaeter. */
+    function rollenGutschrift(n){
+      if (!st.rolle || !n) return;
+      st.rollenPunkte = clamp(st.rollenPunkte + n, -4, 4);
+      st.rollenStand = st.rollenPunkte >= 3 ? 'saeule'
+                     : st.rollenPunkte <= -1 ? 'bewaehrung' : 'gesetzt';
+    }
+
+    function standFaktor(){
+      const S = D.ROLLENSTAND[st.rollenStand || 'gesetzt'];
+      return S ? S.f : 1;
+    }
+
+    /* Was der Trainer erwartet - gemessen am eigenen Niveau, nicht an
+       einer festen Zahl. Bei Passung null trifft ein Median-Jahr genau
+       die Erwartung; die Faktoren stammen aus gemessenen Verteilungen. */
+    function rollenErwartung(rolle, kante, posFactor, isG){
+      if (!rolle) return null;
+      if (isG) return { art: rolle.k === 'stamm' ? 'anteil'
+                          : rolle.k === 'teilung' ? 'quote' : 'aufbau' };
+      const grund = Math.max(0.12, kante * posFactor);
+      return rolle.k === 'offensiv' ? { art:'punkte', soll: grund * 1.30 }
+           : rolle.k === 'zweiweg'  ? { art:'beides', soll: grund * 1.02, plus: 25 }
+           : rolle.k === 'defensiv' ? { art:'plus',   plus: 31 }
+           :                          { art:'haerte', plus: 22, pim: 50 };
+    }
+
+    /* Nach der Saison: hat die Abmachung gehalten? */
+    function werteRolle(season, kante, posFactor, isG, dev){
+      if (!st.rolle) return;
+      const rolle = st.rolle;
+      const e = rollenErwartung(rolle, kante, posFactor, isG);
+      const vollGp = season.vollGp || season.gp || 1;
+      let quote;                       // 1.0 = genau erfuellt
+
+      if (isG){
+        const anteil = season.gp / vollGp;
+        quote = e.art === 'anteil' ? anteil / 0.78
+              : e.art === 'quote'  ? (season.sv - 0.900) / (0.940 - 0.900)
+              : (season.ovrGewinn || 0) / 1.6;
+      } else {
+        const ppg = season.p / Math.max(1, season.gp);
+        quote = e.art === 'punkte' ? ppg / Math.max(0.05, e.soll)
+              : e.art === 'beides' ? (ppg / Math.max(0.05, e.soll)) * 0.55
+                                   + (season.plus / e.plus) * 0.45
+              : e.art === 'plus'   ? season.plus / e.plus
+              : (season.plus / e.plus) * 0.45 + (season.pim / e.pim) * 0.55;
+      }
+
+      /* Verletzungen zaehlen halb: wer nicht spielen konnte, hat nicht
+         versagt - aber der Trainer plant trotzdem um. */
+      if (season.gp / vollGp < 0.75) quote = quote * 0.5 + 0.5;
+
+      const urteil = quote >= 1.15 ? 'uebertroffen' : quote >= 0.86 ? 'erfuellt' : 'verfehlt';
+      season.rollenUrteil  = urteil;
+      season.rollenQuote   = Math.round(quote * 100) / 100;
+      season.rollenStand   = st.rollenStand;
+      season.rollenName    = rolle.n;
+      season.rollenIcon    = rolle.icon;
+      season.rollenKey     = rolle.k;
+      season.rollenPassung = Math.round(rollenPassung(rolle, dev) * 100) / 100;
+
+      st.rollenPunkte = clamp(st.rollenPunkte
+        + (urteil === 'uebertroffen' ? 2 : urteil === 'erfuellt' ? 1 : -2), -4, 4);
+      st.rollenJahre++;
+
+      const vorher = st.rollenStand;
+      if (st.rollenPunkte >= 3)       st.rollenStand = 'saeule';
+      else if (st.rollenPunkte <= -1) st.rollenStand = 'bewaehrung';
+      else                            st.rollenStand = 'gesetzt';
+
+      if (st.rollenStand !== vorher){
+        season.events.push({
+          t: st.rollenStand === 'saeule'
+             ? rolle.n.replace(/^Als /, 'Als ') + ': der Trainer baut die Mannschaft um dich'
+             : st.rollenStand === 'bewaehrung'
+             ? 'Deine Rolle steht zur Debatte'
+             : 'Deine Rolle ist gefestigt',
+          c: st.rollenStand === 'bewaehrung' ? 'bad' : 'good' });
+        st.moral = clamp(st.moral + (st.rollenStand === 'saeule' ? 5
+                                   : st.rollenStand === 'bewaehrung' ? -5 : 2), 10, 100);
+        st.rollenLauf.push({ jahr: st.year, rolle: rolle.k, stand: st.rollenStand,
+                             grund: urteil });
+      }
+
+      /* Zweimal danebengelegen: der Trainer stellt dich um. Das ist der
+         Punkt, an dem die Rolle wirklich weh tut - mitten im Vertrag. */
+      if (st.rollenPunkte <= -4){
+        const alle = isG ? D.ROLLEN_G : D.ROLLEN;
+        const rang = klubRang(st.club, season.ovr);
+        const offen = alle.filter(x => x.k !== rolle.k && x.anspruch <= rang);
+        const neu = (offen.length ? offen : alle.filter(x => x.k !== rolle.k))
+          .slice().sort((a, b) => rollenPassung(b, dev) - rollenPassung(a, dev))[0];
+        season.events.push({ t: 'Der Trainer stellt dich um: ' + neu.n.replace(/^Als /, ''),
+                             c: 'bad' });
+        season.rollenVerlust = { von: rolle.n, zu: neu.n };
+        st.rolle = Object.assign({}, neu, { gehalt: rolle.gehalt });
+        st.rollenStand = 'bewaehrung';
+        st.rollenPunkte = 0;
+        st.rollenJahre = 0;
+        st.moral = clamp(st.moral - 9, 10, 100);
+        st.rollenLauf.push({ jahr: st.year, rolle: neu.k, stand: 'bewaehrung',
+                             grund: 'umgestellt', von: rolle.k });
+      }
+    }
+
     function setzeSaisonZiel(club){
       /* Die Schwellen sind an der gemessenen Verteilung der Kaderstaerken
          geeicht: Titel fordert nur die Spitze, sonst waere jede Saison
@@ -1270,6 +1434,9 @@ const PUCKERO = (() => {
         });
         if (w.ruf)    merke((w.ruf > 0 ? '+' : '') + w.ruf + ' Ansehen', w.ruf > 0);
         if (w.moral)  merke((w.moral > 0 ? '+' : '') + w.moral + ' Moral', w.moral > 0);
+        if (w.rolle && st.rolle)
+          merke(w.rolle > 0 ? 'Der Trainer plant fester mit dir'
+                            : 'Deine Rolle wackelt', w.rolle > 0);
         if (w.form)   merke((w.form > 0 ? '+' : '') + Math.round(w.form * 100) + '% Form', w.form > 0);
         if (w.risiko) merke('+' + w.risiko + ' Verletzungsrisiko', false);
       }
@@ -1283,6 +1450,7 @@ const PUCKERO = (() => {
           player.traits[k] = (player.traits[k] || 0) + v);
         if (w.ruf) st.ruf = clamp(st.ruf + w.ruf, 20, 99);
         if (w.moral) st.moral = clamp(st.moral + w.moral, 10, 100);
+        if (w.rolle) rollenGutschrift(w.rolle);
         if (w.form) st.formBonus += w.form;
         if (w.risiko) st.risikoBonus += w.risiko / 100;
       }
@@ -1402,6 +1570,13 @@ const PUCKERO = (() => {
         mitspieler: Math.round(mitspieler * 1000) / 10
       };
 
+      /* Wie fest du in der Rolle sitzt und wie gut sie zu dir passt -
+         beides skaliert, was die Abmachung ueberhaupt bewirkt. */
+      const rStand = standFaktor();
+      const rPass  = rollenPassung(st.rolle, dev);
+      let posFactor = 1;
+      season.vollGp = fullGp;
+
       if (isG){
         const rg = (st.rolle && st.rolle.w) || {};
         /* Frueher haing der Einsatzanteil allein an der eigenen Form -
@@ -1409,8 +1584,9 @@ const PUCKERO = (() => {
            Jetzt entscheidet der Abstand zum zweiten Mann. */
         const tr = st.torwartrivale;
         const duell = tr ? clamp(tr.abstand, -0.7, 0.7) * 0.50 : 0;
-        const anteil = clamp(0.50 + duell + kante * 0.08 + (rg.anteil || 0) * 1.6,
-                             0.12, 0.96);
+        const anteil = clamp(0.50 + duell + kante * 0.08
+                             + (rg.anteil || 0) * 1.6 * rStand
+                             + rPass * 0.07, 0.12, 0.96);
         if (tr){
           season.torwartduell = { name: tr.name, abstand: tr.abstand, alter: tr.alter };
           /* Er entwickelt sich weiter: jung holt auf, alt faellt zurueck. */
@@ -1420,7 +1596,8 @@ const PUCKERO = (() => {
         }
         const gp = Math.max(6, Math.min(fullGp - missed, Math.round((fullGp - missed) * anteil)));
         season.gp = gp;
-        season.sv = clamp(0.885 + kante * 0.045 + (r() - 0.5) * 0.007, 0.868, 0.948);
+        season.sv = clamp(0.885 + kante * 0.045 + rPass * 0.006
+                          + (r() - 0.5) * 0.007, 0.868, 0.948);
         season.gaa = clamp(3.40 - kante * 1.55 + (r() - 0.5) * 0.30, 1.42, 4.3);
         season.so = Math.max(0, Math.round((season.sv - 0.902) * 130 * (gp / 50) + (r() - 0.65)));
         season.wins = Math.round(gp * clamp(0.32 + kante * 0.22 + (club.str - 74) * 0.007, 0.18, 0.78));
@@ -1431,8 +1608,9 @@ const PUCKERO = (() => {
         season.shotsAgainst = Math.round(season.ga / Math.max(0.02, 1 - season.sv));
         season.saves = season.shotsAgainst - season.ga;
         season.toi = Math.round(58 + r() * 3);
-        season.rolle = anteil >= 0.62 ? 'Stammtorhüter'
+        season.reihe = anteil >= 0.62 ? 'Stammtorhüter'
                      : anteil >= 0.42 ? 'Geteiltes Tor' : 'Ersatztorhüter';
+        season.rolle = season.reihe;   // Altbestand: gespeicherte Karrieren
         const tw = st.torwartrivale;
         if (tw){
           if (anteil >= 0.72)
@@ -1447,9 +1625,12 @@ const PUCKERO = (() => {
       } else {
         const rw = (st.rolle && st.rolle.w) || {};
         const gp = Math.max(8, fullGp - missed);
-        const posFactor = P.k === 'D' ? 0.62 : (P.k === 'C' ? 1.15 : 1.0);
-        // Die Rolle wirkt jetzt multiplikativ – die Wahl ist deutlich spuerbar.
-        const rollenFaktor = 1 + (rw.punkte || 0) * 1.9;
+        posFactor = P.k === 'D' ? 0.62 : (P.k === 'C' ? 1.15 : 1.0);
+        /* Die Rolle wirkt multiplikativ - und zwar nur so weit, wie du
+           drin sitzt. Auf Bewaehrung bekommst du die Minuten nicht, die
+           der Vertrag verspricht. Die Passung kommt oben drauf: wer
+           dafuer gebaut ist, holt mehr aus derselben Abmachung. */
+        const rollenFaktor = 1 + (rw.punkte || 0) * 1.9 * rStand + rPass * 0.13;
         const streuung = 0.90 + r() * 0.20 * (1.3 - konstanzWert / 140);
         const ppg = clamp(kante * posFactor * rollenFaktor * streuung, 0.02, 2.4);
         const punkte = Math.round(ppg * gp);
@@ -1460,7 +1641,7 @@ const PUCKERO = (() => {
         season.a = punkte - season.g;
         season.p = punkte;
         season.plus = Math.round((kante * 16 + (club.str - 76) * 0.5) * (0.6 + r() * 0.8)
-                                 + (rw.plus || 0));
+                                 + (rw.plus || 0) * rStand + rPass * 4);
         season.pim = Math.round(ri(r, 8, 12 + Math.round((dev.zweikampf || 50) / 2))
                                 * (rw.strafen || 1));
         // Spezialteams, Schüsse und Eiszeit
@@ -1471,11 +1652,17 @@ const PUCKERO = (() => {
         season.shots = Math.max(season.g, Math.round(season.g / quote));
         season.shotPct = season.shots ? Math.round(season.g / season.shots * 1000) / 10 : 0;
         season.toi = Math.round(clamp(10 + kante * 7 + (P.k === 'D' ? 2.5 : 0)
-                                      + (rw.eiszeit || 0), 8, 27) * 10) / 10;
+                                      + (rw.eiszeit || 0) * rStand, 8, 27) * 10) / 10;
         if (P.k === 'C') season.bully = Math.round(clamp(44 + (dev.zweikampf || 50) * 0.12
                                           + (r() - 0.5) * 5, 38, 62) * 10) / 10;
-        season.rolle = kante > 1.0 ? 'Erste Reihe' : kante > 0.6 ? 'Zweite Reihe'
-                     : kante > 0.25 ? 'Dritte Reihe' : 'Vierte Reihe';
+        /* Die Reihe folgt der Leistung und der Rolle: wer als Saeule
+           verpflichtet ist, spielt weiter oben als seine Zahlen allein
+           hergeben, wer auf Bewaehrung sitzt, weiter unten. */
+        const reihenWert = kante + (rStand - 1) * 0.55 + (rw.eiszeit || 0) * 0.12;
+        season.reihe = reihenWert > 1.62 ? 'Erste Reihe'
+                     : reihenWert > 1.28 ? 'Zweite Reihe'
+                     : reihenWert > 0.98 ? 'Dritte Reihe' : 'Vierte Reihe';
+        season.rolle = season.reihe;   // Altbestand: gespeicherte Karrieren
       }
 
       /* Teamerfolg */
@@ -1749,8 +1936,12 @@ const PUCKERO = (() => {
       })();
 
       /* ---- Kapitaensamt: wird angeboten, nicht verordnet ---- */
+      /* Das C bekommt niemand, dessen Rolle gerade zur Debatte steht -
+         die Mannschaft folgt keinem, den der Trainer selbst infrage
+         stellt. Wer seine Rolle traegt, wird eher gefragt. */
       if (!st.kapitaenSeit && !st.kapitaenGefragt && st.klubJahre >= 2 && st.age >= 25
-          && kante > 0.65 && lg.k !== 'JUN' && r() < 0.55){
+          && kante > 0.65 && lg.k !== 'JUN' && st.rollenStand !== 'bewaehrung'
+          && r() < (st.rollenStand === 'saeule' ? 0.72 : 0.50)){
         st.kapitaensfrage = { klub: club.n, jahr: st.year };
       }
       if (st.kapitaenSeit === club.n) season.kapitaen = true;
@@ -1791,6 +1982,7 @@ const PUCKERO = (() => {
       });
 
       if (st.wechselVon){ season.wechselVon = st.wechselVon; st.wechselVon = null; }
+      werteRolle(season, kante, posFactor, isG, dev);
       werteSaisonZiel(season);
       st.seasons.push(season);
       st.ruf = st.ruf * 0.5 + (ovr + season.awards.length * 3 + (season.title ? 4 : 0)) * 0.5;
@@ -2068,9 +2260,7 @@ const PUCKERO = (() => {
       // Die Rolle wird bei einem Wechsel neu verhandelt – bei einer Verlaengerung
       // bleibt sie bestehen, sofern schon eine festgelegt wurde.
       if (!a.bleibt || !st.rolle){
-        st.rollenwahl = (isG ? D.ROLLEN_G : D.ROLLEN).map(x => Object.assign({}, x, {
-          gehalt: Math.round(a.gehalt * (x.w.gehalt || 1) * 100) / 100
-        }));
+        st.rollenwahl = baueRollenwahl(a.club, a.gehalt);
       }
       st.klausel = false;              // neuer Vertrag, neue Bedingungen
       st.gehaltFaktor = 1;
@@ -2205,13 +2395,56 @@ const PUCKERO = (() => {
       return true;
     }
 
-    /* ---- Rolle im Team festlegen ---- */
+    /* ---- Rolle im Team festlegen ----
+
+       Der Klub sagt nicht mehr zu allem ja. Jede Rolle traegt, was sie
+       verlangt, und was du davon bekommst: zugesagt, auf Bewaehrung
+       oder gar nicht. Wer zu hoch greift, landet dort, wo der Trainer
+       ihn ohnehin gesehen haette - und weiss das vorher.
+       ---- */
+    function baueRollenwahl(club, grundgehalt){
+      const dev = devAttrs(player.attrs,
+        formFactor(st.age, player.traits, (player.wirkung || {}).lernkurve, st.scheitel));
+      const rang = klubRang(club, overall(player, dev));
+      return (isG ? D.ROLLEN_G : D.ROLLEN).map(x => {
+        const luecke = x.anspruch - rang;
+        return Object.assign({}, x, {
+          gehalt: Math.round(grundgehalt * (x.w.gehalt || 1) * 100) / 100,
+          rang,
+          passung: Math.round(rollenPassung(x, dev) * 100) / 100,
+          zusage: luecke <= 0 ? 'sicher' : luecke === 1 ? 'bewaehrung' : 'abgelehnt'
+        });
+      });
+    }
+
     function waehleRolle(index){
       if (!st.rollenwahl) return false;
-      const gewaehlt = st.rollenwahl[clamp(index, 0, st.rollenwahl.length - 1)];
-      st.rolle = gewaehlt;
+      const gewuenscht = st.rollenwahl[clamp(index, 0, st.rollenwahl.length - 1)];
       const letzte = st.seasons[st.seasons.length - 1];
-      if (letzte) letzte.events.push({ t: 'Rolle im Team: ' + gewaehlt.n, c: '' });
+
+      /* Zu hoch gegriffen: der Klub gibt dir die groesste Rolle, die er
+         dir zutraut - und du merkst dir, dass du gefragt hast. */
+      let gewaehlt = gewuenscht, abgelehnt = false;
+      if (gewuenscht.zusage === 'abgelehnt'){
+        abgelehnt = true;
+        const moeglich = st.rollenwahl.filter(x => x.zusage !== 'abgelehnt');
+        gewaehlt = moeglich.sort((a, b) => (b.passung - a.passung))[0] || st.rollenwahl[0];
+        st.moral = clamp(st.moral - 6, 10, 100);
+        if (letzte) letzte.events.push({
+          t: 'Als ' + gewuenscht.n.replace(/^Als /, '') + ' abgelehnt – es wird '
+             + gewaehlt.n.replace(/^Als /, ''), c: 'bad' });
+      }
+
+      st.rolle = gewaehlt;
+      st.rollenStand = gewaehlt.zusage === 'bewaehrung' || abgelehnt ? 'bewaehrung' : 'gesetzt';
+      st.rollenPunkte = st.rollenStand === 'bewaehrung' ? -1 : 1;
+      st.rollenJahre = 0;
+      st.rollenLauf.push({ jahr: st.year, rolle: gewaehlt.k, stand: st.rollenStand,
+                           grund: abgelehnt ? 'abgelehnt' : 'vereinbart' });
+
+      if (!abgelehnt && letzte) letzte.events.push({
+        t: 'Rolle im Team: ' + gewaehlt.n
+           + (st.rollenStand === 'bewaehrung' ? ' – auf Bewährung' : ''), c: '' });
       if (gewaehlt.w && gewaehlt.w.moral) st.moral = clamp(st.moral + gewaehlt.w.moral, 10, 100);
       if (gewaehlt.w && gewaehlt.w.playoff)
         player.traits.playoff = (player.traits.playoff || 0) + gewaehlt.w.playoff;
@@ -2222,7 +2455,10 @@ const PUCKERO = (() => {
       if (!st.rollenwahl) return false;
       const bewertet = st.rollenwahl.map((x, i) => ({ i,
         s: (x.w.punkte || 0) * 60 + (x.w.plus || 0) * 0.6 + (x.w.anteil || 0) * 90
-           - (x.w.risiko || 0) * 120 + r() * 8 })).sort((a, b) => b.s - a.s);
+           - (x.w.risiko || 0) * 120
+           + (x.passung || 0) * 26
+           + (x.zusage === 'abgelehnt' ? -80 : x.zusage === 'bewaehrung' ? -12 : 0)
+           + r() * 8 })).sort((a, b) => b.s - a.s);
       return waehleRolle(bewertet[0].i);
     }
 
@@ -2424,6 +2660,8 @@ const PUCKERO = (() => {
         natDebuet: st.natDebuet,
         entryDraft: st.entryDraft,
         rolle: st.rolle,
+        rollenStand: st.rollenStand,
+        rollenLauf: st.rollenLauf,
         trainer: st.trainer,
         mitspieler: st.mitspieler,
         torwartrivale: st.torwartrivale,
@@ -2548,6 +2786,11 @@ const PUCKERO = (() => {
         jgVon: (result.jahrgangStand || []).length || null,
         straenge: (result.freigeschaltet || []).slice(),
         natKapitaen: !!result.natKapitaen,
+        /* Die Rolle am Ende der Laufbahn - und wie oft der Trainer
+           unterwegs umgestellt hat. */
+        rolle: result.rolle ? result.rolle.n : null,
+        rollenStand: result.rollenStand || null,
+        umstellungen: (result.rollenLauf || []).filter(x => x.grund === 'umgestellt').length,
         klubs: (result.ehemalige || []).length + 1,
         wahlen: (result.verlauf || []).length,
         gelungen: (result.verlauf || []).filter(v => v.gelungen).length,

@@ -350,7 +350,9 @@ const UI = (() => {
         <span class="lgtag lg-${s.lg}">${s.lgName}</span>
         <span class="pill">${s.age} Jahre</span>
         ${blind ? '' : '<span class="pill">GES ' + s.ovr + '</span>'}
-        ${s.rolle ? '<span class="pill">' + s.rolle + '</span>' : ''}
+        ${s.reihe || s.rolle ? '<span class="pill">' + (s.reihe || s.rolle) + '</span>' : ''}
+        ${s.rollenUrteil ? '<span class="pill rolle-' + s.rollenUrteil + '">'
+          + (s.rollenIcon || '') + ' ' + (URTEIL[s.rollenUrteil] || {}).n + '</span>' : ''}
         ${s.platz ? '<span class="pill">' + s.platz + '. Platz</span>' : ''}
         ${s.sternstunde ? '<span class="pill" style="color:var(--accent-2);border-color:var(--accent-2)">Sternstunde</span>' : ''}
         ${s.title ? '<span class="pill gold">' + s.title + '</span>' : ''}
@@ -400,6 +402,60 @@ const UI = (() => {
           + z('uhr', s.toi || 0, 'Eiszeit')}
     </div>`;
   }
+
+  /* ----------------------------------------------------------------
+     Die Rolle im Verein
+
+     Bisher stand da eine Zeile mit einem Emoji. Dabei ist die Rolle
+     das, woran der Trainer dich misst - also gehoert sichtbar dazu,
+     wie fest du drin sitzt, wofuer du gebaut bist und in welcher
+     Reihe dich das aufs Eis bringt.
+     ---------------------------------------------------------------- */
+  const ROLLEN_STAND = {
+    bewaehrung: { n:'Auf Bewährung', k:'probe' },
+    gesetzt:    { n:'Gesetzt',       k:'fest' },
+    saeule:     { n:'Säule',         k:'saeule' }
+  };
+  const URTEIL = {
+    uebertroffen: { n:'übertroffen', k:'gut' },
+    erfuellt:     { n:'erfüllt',     k:'gut' },
+    verfehlt:     { n:'verfehlt',    k:'schlecht' }
+  };
+  const PASSUNG_TEXT = w =>
+    w >= 0.45 ? 'wie gemacht dafür' : w >= 0.12 ? 'passt gut'
+  : w >= -0.15 ? 'geht so' : w >= -0.5 ? 'nicht deine Stärke'
+  : 'falsch besetzt';
+
+  function rollenKarte(st, letzte){
+    if (!st || !st.rolle) return '';
+    const stand = ROLLEN_STAND[st.rollenStand] || ROLLEN_STAND.gesetzt;
+    /* -4 bis +4 auf eine Leiste. Der Spieler soll sehen, wie nah die
+       naechste Beförderung oder die Umstellung ist. */
+    const anteil = Math.round((clampZahl(st.rollenPunkte || 0, -4, 4) + 4) / 8 * 100);
+    const pass = letzte && letzte.rollenPassung !== undefined ? letzte.rollenPassung : null;
+    const urteil = letzte && letzte.rollenUrteil ? URTEIL[letzte.rollenUrteil] : null;
+
+    return `<div class="rollenstand ${stand.k}">
+      <div class="rs-kopf">
+        <span class="rs-icon">${st.rolle.icon}</span>
+        <span class="rs-name">
+          <b>${esc(st.rolle.n.replace(/^Als /, ''))}</b>
+          <span class="rs-lage">${stand.n}${letzte && letzte.reihe
+            ? ' · ' + esc(letzte.reihe) : ''}</span>
+        </span>
+        ${urteil ? `<span class="rs-urteil ${urteil.k}">${urteil.n}</span>` : ''}
+      </div>
+      <div class="rs-leiste"><i style="width:${anteil}%"></i>
+        <span class="rs-marke" style="left:37.5%"></span></div>
+      <div class="rs-fuss">
+        <span>${ikone('waage', 12)} ${st.rolle.soll ? esc(st.rolle.soll) : 'Leistung'}</span>
+        ${pass !== null ? `<span class="${pass < -0.15 ? 'warnton' : ''}">
+          ${ikone('ziel', 12)} ${PASSUNG_TEXT(pass)}</span>` : ''}
+      </div>
+    </div>`;
+  }
+
+  function clampZahl(v, a, b){ return v < a ? a : v > b ? b : v; }
 
   /* Saisonvorgaben des Klubs – vorher als Auftrag, nachher als Abrechnung. */
   const ZIEL_ICON = { titel:'pokal', runden:'medaille', playoffs:'ziel', platz:'schild',
@@ -1381,7 +1437,7 @@ const UI = (() => {
            trophyList, klubKarten, natKarte, ligaBilanz, shareText, rankLeiste, karriereKarte,
            statBoxen, natTabelle, rivaleKarte, vermaechtnisKarte, zeremonie, formKurve,
            eisfeld, serienBaum, meilensteinJagd, jahrgangTabelle, zielKarte,
-           bilanzStreifen,
+           bilanzStreifen, rollenKarte,
            ikone, kennzahl, IKONEN, wendepunkte, jahrgangVerlauf, STRANG_INFO,
            konfetti, zahlHoch, alleZahlenHoch, toast, copy };
 })();
