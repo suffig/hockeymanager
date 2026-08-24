@@ -3200,7 +3200,7 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
    ================================================================== */
 .staerke{
   display:flex;flex-direction:column;align-items:center;gap:3px;
-  margin:14px 0;padding:14px 12px 12px;
+  margin:10px 0;padding:12px 12px 10px;
   border:1px solid var(--line);border-radius:var(--r);
   background:radial-gradient(120% 140% at 50% 0%,
     color-mix(in srgb,var(--accent) 12%,transparent), transparent 70%), var(--card);
@@ -3368,3 +3368,75 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
   .einladung{gap:9px;padding:10px}
   .einladung .ei-text span{font-size:11px}
 }
+
+/* ------------------------------------------------------------------
+   Was diese Saison geformt hat
+
+   Vier Kraefte um eine Mittellinie: nach rechts hat getragen, nach
+   links hat gekostet. Seit Moral und Vertrauen wirklich auf die
+   Ausbeute wirken, muss man sie auch sehen koennen.
+   ------------------------------------------------------------------ */
+.kraefte{
+  margin:8px 0;border:1px solid var(--line);border-radius:12px;
+  background:var(--card);overflow:hidden;
+}
+.kraefte.plus{border-left:3px solid var(--green)}
+.kraefte.minus{border-left:3px solid var(--red)}
+.kraefte.neutral{border-left:3px solid var(--dim)}
+.kraefte>summary{
+  display:flex;align-items:center;gap:8px;padding:9px 11px;cursor:pointer;list-style:none;
+}
+.kraefte>summary::-webkit-details-marker{display:none}
+.kr-ik{flex:0 0 auto;display:flex}
+.kraefte.plus .kr-ik{color:var(--green)}
+.kraefte.minus .kr-ik{color:var(--red)}
+.kraefte.neutral .kr-ik{color:var(--dim)}
+.kr-satz{flex:1;min-width:0;font-size:12.5px;line-height:1.25}
+.kr-netto{
+  flex:0 0 auto;font-size:12px;font-weight:800;font-variant-numeric:tabular-nums;
+}
+.kraefte.plus .kr-netto{color:var(--green)}
+.kraefte.minus .kr-netto{color:var(--red)}
+.kraefte.neutral .kr-netto{color:var(--dim)}
+.kr-pfeil{flex:0 0 auto;display:flex;color:var(--dim);
+  transition:transform .25s cubic-bezier(.2,.8,.3,1)}
+.kraefte[open] .kr-pfeil{transform:rotate(180deg)}
+.kr-liste{display:flex;flex-direction:column;gap:5px;padding:2px 11px 10px}
+.kraefte[open] .kr-liste{animation:bandAuf .3s cubic-bezier(.2,.8,.3,1) both}
+.kr-zeile{
+  display:grid;grid-template-columns:78px 1fr 42px;align-items:center;gap:8px;
+}
+.kr-n{
+  display:flex;align-items:center;gap:4px;
+  font-size:10.5px;color:var(--muted);white-space:nowrap;overflow:hidden;
+}
+.kr-n svg{flex:0 0 auto;color:var(--dim)}
+.kr-bahn{
+  position:relative;height:6px;border-radius:99px;
+  background:color-mix(in srgb,var(--dim) 16%,transparent);
+}
+.kr-bahn::before{
+  content:'';position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;
+  background:color-mix(in srgb,var(--dim) 55%,transparent);
+}
+.kr-bahn i{position:absolute;top:0;height:100%;border-radius:99px}
+.kr-zeile.plus  .kr-bahn i{background:var(--green)}
+.kr-zeile.minus .kr-bahn i{background:var(--red)}
+.kr-v{font-size:11px;font-weight:700;text-align:right;font-variant-numeric:tabular-nums}
+.kr-zeile.plus  .kr-v{color:var(--green)}
+.kr-zeile.minus .kr-v{color:var(--red)}
+@media (prefers-reduced-motion:reduce){ .kraefte[open] .kr-liste,.kr-pfeil{animation:none;transition:none} }
+.kr-kopf{
+  display:flex;align-items:center;gap:5px;margin-bottom:3px;
+  font-size:10px;letter-spacing:.05em;text-transform:uppercase;
+  color:var(--dim);font-weight:700;
+}
+.kr-kopf svg{color:var(--dim)}
+/* Stillstand in einer Zeile statt auf ganzer Buehne */
+.staerke.schmal{
+  flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-start;
+  gap:8px;padding:8px 11px;background:var(--card);
+}
+.staerke.schmal .st-klein{font-size:12px;color:var(--muted)}
+.staerke.schmal .st-klein b{color:var(--text);font-family:var(--display);font-size:16px}
+.staerke.schmal .st-attrs{margin-top:0;justify-content:flex-start}

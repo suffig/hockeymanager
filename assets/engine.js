@@ -54,6 +54,13 @@ const PUCKERO = (() => {
   }
   const attrsOf = posKey => D.ATTRS[pos(posKey).group];
 
+  /* Der gemessene Median der Moral ueber alle Laufbahnen. Er ist der
+     Nullpunkt fuer alles, was von der Moral abhaengt - so wirkt sie
+     als Unterschied zwischen Spielern und nicht als Zuschlag oder
+     Steuer fuer alle. Aendert sich die Moralrechnung, gehoert diese
+     Zahl neu gemessen (scratchpad/spirale.js). */
+  const MORAL_MITTE = 71;
+
   /* Mindestwertung, ab der eine Liga einen Vertrag anbietet */
   const LG_MIN = { NHL:86, KHL:79, SHL:77, NL:75, LII:74, DEL:72, CZE:71, AHL:60 };
   /* Jede Jugendliga fordert nichts - frueher stand dafuer ein einzelnes
@@ -430,6 +437,27 @@ const PUCKERO = (() => {
       rollenVorOvr: null,     // Wert der Vorsaison, fuer die Aufbaurolle
       startVerpasst: 0,       // Spiele, die die Reha den Saisonstart kostet
       /* ----------------------------------------------------------------
+         Die Grundstimmung
+
+         Solange die Moral nur addiert und abgezogen wurde, staute sie
+         sich: gemessen landeten 273 von 400 Laufbahnen am Ende
+         zwischen 90 und 100, waehrend am unteren Rand Tiefphasen von
+         elf Saisons standen. Beides ist dasselbe Problem - ein Wert
+         ohne Rueckstellkraft bleibt liegen, wo ihn der letzte Stoss
+         hingeschoben hat.
+
+         Jetzt hat jeder einen eigenen Ruhepunkt, zu dem er
+         zurueckfindet. Er haengt an den Nerven (beim Torhueter an der
+         Konstanz): wer die Ruhe weghat, faellt nach einem schlechten
+         Jahr nicht so tief und braucht die Euphorie nicht. Damit ist
+         die Moral keine Punktesammlung mehr, sondern ein Zustand mit
+         Traegheit - und der Unterschied zwischen zwei Spielern liegt
+         nicht nur darin, was ihnen zugestossen ist, sondern auch
+         darin, wie sie es wegstecken.
+         ---------------------------------------------------------------- */
+      grundstimmung: 72,
+
+      /* ----------------------------------------------------------------
          Leben neben dem Eis
 
          Familie und Heimkehr gab es schon - aber nur als Wuerfel im
@@ -568,6 +596,16 @@ const PUCKERO = (() => {
       umfeldBenennen();
       st.jugend = null;
       st.vertragJahre = 2;
+    /* Der Ruhepunkt aus Nerven bzw. Konstanz, plus ein Eigenanteil,
+       damit zwei gleich veranlagte Spieler nicht dieselbe Stimmung
+       haben. Die Spanne bleibt eng - es geht um eine Neigung, nicht
+       um ein zweites Talent. */
+    (() => {
+      const ruhe = isG ? (player.attrs.konstanz || 50) : (player.attrs.nerven || 50);
+      const eigen = rng(player.seed + ':stimmung')();
+      st.grundstimmung = Math.round(clamp(58 + (ruhe - 50) * 0.34 + eigen * 12, 52, 88));
+      st.moral = st.grundstimmung;
+    })();
       st.entscheidungen.push(a.club.n);
       return true;
     }
@@ -743,7 +781,7 @@ const PUCKERO = (() => {
       }
       if (e.ruf){    st.ruf = clamp(st.ruf + e.ruf, 20, 99);
                      merke((e.ruf > 0 ? '+' : '') + e.ruf + ' Ansehen', e.ruf > 0); }
-      if (e.moral){  st.moral = clamp(st.moral + e.moral, 10, 100);
+      if (e.moral){  moralAendern(e.moral);
                      merke((e.moral > 0 ? '+' : '') + e.moral + ' Moral', e.moral > 0); }
       if (e.form){   st.formBonus += e.form;
                      merke((e.form > 0 ? '+' : '') + Math.round(e.form * 100) + '% Form', e.form > 0); }
@@ -859,7 +897,7 @@ const PUCKERO = (() => {
       });
       if (e.ruf){   st.ruf = clamp(st.ruf + e.ruf, 20, 99);
                     merke((e.ruf > 0 ? '+' : '') + e.ruf + ' Ansehen', e.ruf > 0); }
-      if (e.moral){ st.moral = clamp(st.moral + e.moral, 10, 100);
+      if (e.moral){ moralAendern(e.moral);
                     merke((e.moral > 0 ? '+' : '') + e.moral + ' Moral', e.moral > 0); }
       if (e.form){  st.formBonus += e.form;
                     merke('+' + Math.round(e.form * 100) + '% Form', true); }
@@ -1084,7 +1122,7 @@ const PUCKERO = (() => {
         player.traits[k] = (player.traits[k] || 0) + v);
       if (e.ruf){   st.ruf = clamp(st.ruf + e.ruf, 20, 99);
                     merke((e.ruf > 0 ? '+' : '') + e.ruf + ' Ansehen', e.ruf > 0); }
-      if (e.moral){ st.moral = clamp(st.moral + e.moral, 10, 100);
+      if (e.moral){ moralAendern(e.moral);
                     merke((e.moral > 0 ? '+' : '') + e.moral + ' Moral', e.moral > 0); }
       if (e.form){  st.formBonus += e.form;
                     merke((e.form > 0 ? '+' : '') + Math.round(e.form * 100) + '% Form', e.form > 0); }
@@ -1250,6 +1288,34 @@ const PUCKERO = (() => {
     /* Ohne die Notbremse steht hier ein harter Absturz, sobald ein
        Browser eine alte data.js neben einer neuen engine.js liegen hat -
        genau das ist beim Entwickeln passiert. */
+    /* ----------------------------------------------------------------
+       Die eine Stelle, an der sich die Moral aendert
+
+       Sie wurde an neunzehn Stellen direkt addiert, und in der Summe
+       gab das Spiel zu viel: gemessen landeten 182 von 400 Laufbahnen
+       ueber neunzig, obwohl der Ruhepunkt im Schnitt bei siebzig
+       liegt. Jedes einzelne Ereignis nachzurechnen waere die falsche
+       Antwort - es gibt fuenfundneunzig davon.
+
+       Stattdessen greift hier ein abnehmender Ertrag: je weiter der
+       Wert schon in die Richtung gewandert ist, in die der Stoss
+       zeigt, desto weniger bringt er. Von 90 auf 98 ist ein weiter
+       Weg, von 60 auf 68 ein kurzer - so, wie sich auch eine gute
+       Nachricht bei jemandem anfuehlt, dem es ohnehin blendend geht.
+       Nach unten gilt dasselbe.
+       ---------------------------------------------------------------- */
+    function moralAendern(d){
+      if (!d) return 0;
+      const m = st.moral;
+      /* Wie viel Luft in der Richtung des Stosses noch ist, von 0 bis 1 */
+      const luft = d > 0 ? (100 - m) / 45 : (m - 10) / 45;
+      const wirksam = d * clamp(luft, 0.25, 1);
+      const neu = clamp(Math.round(m + wirksam), 10, 100);
+      const echt = neu - m;
+      st.moral = neu;
+      return echt;
+    }
+
     function standFaktor(){
       const S = (D.ROLLENSTAND || {})[st.rollenStand || 'gesetzt'];
       return S ? S.f : 1;
@@ -1390,8 +1456,8 @@ const PUCKERO = (() => {
              ? 'Deine Rolle steht zur Debatte'
              : 'Deine Rolle ist gefestigt',
           c: st.rollenStand === 'bewaehrung' ? 'bad' : 'good' });
-        st.moral = clamp(st.moral + (st.rollenStand === 'saeule' ? 5
-                                   : st.rollenStand === 'bewaehrung' ? -5 : 2), 10, 100);
+        moralAendern((st.rollenStand === 'saeule' ? 5
+                                   : st.rollenStand === 'bewaehrung' ? -5 : 2));
         st.rollenLauf.push({ jahr: st.year, rolle: rolle.k, stand: st.rollenStand,
                              grund: urteil });
       }
@@ -1412,7 +1478,7 @@ const PUCKERO = (() => {
         st.rollenPunkte = 0;
         st.rollenJahre = 0;
         st.rollenVorOvr = season.ovr;
-        st.moral = clamp(st.moral - 9, 10, 100);
+        moralAendern(-(9));
         st.rollenLauf.push({ jahr: st.year, rolle: neu.k, stand: 'bewaehrung',
                              grund: 'umgestellt', von: rolle.k });
       }
@@ -1460,7 +1526,42 @@ const PUCKERO = (() => {
         trainer: st.trainer || null,
         trainerJahre: st.trainerJahre,
         trainerNeu: !!st.trainerNeu,
-        ziele: setzeSaisonZiel(st.club)
+        ziele: setzeSaisonZiel(st.club),
+        /* ------------------------------------------------------------
+           Dieselben Kraefte, aber vorher
+
+           Als Rueckblick im Saisonbericht war die Aufstellung eine
+           Obduktion: richtig, aber zu spaet. Hier steht sie vor der
+           Saison, wo sich noch etwas daran aendern laesst - durch
+           Training, die Rollenwahl, eine Entscheidung im Sommer.
+
+           Gerechnet wird mit denselben Formeln wie in der Saison
+           selbst; nur der Zufallsanteil und die Sternstunde fehlen,
+           weil die niemand vorhersehen kann.
+           ------------------------------------------------------------ */
+        einfluesse: kraefteVorschau()
+      };
+    }
+
+    /* Die Kraefte vor der Saison. Bewusst dieselben Ausdruecke wie in
+       simulate() - stehen sie zweimal verschieden da, zeigt die
+       Vorschau etwas anderes, als danach passiert. */
+    function kraefteVorschau(){
+      if (!st.club) return null;
+      const moralAbstand = (clamp(st.moral, 10, 100) - MORAL_MITTE) / 28;
+      const moral = Math.sign(moralAbstand) * Math.sqrt(Math.abs(moralAbstand)) * 0.035;
+      const stand = st.rollenStand === 'saeule' ? 0.030
+                  : st.rollenStand === 'bewaehrung' ? -0.045 : 0;
+      const eingewoehnung = st.klubJahre === 0 ? -0.055
+                          : st.klubJahre === 1 ? 0.01
+                          : Math.min(0.055, 0.02 + st.klubJahre * 0.008);
+      const mitspieler = clamp(
+        (klubStaerke(st.club) - ligaSchnittJetzt(st.club.lg)) * 0.006, -0.06, 0.07);
+      return {
+        moral:  Math.round(moral * 1000) / 10,
+        stand:  Math.round(stand * 1000) / 10,
+        form:   Math.round(st.formzustand * 0.055 * 1000) / 10,
+        umfeld: Math.round((eingewoehnung + mitspieler) * 1000) / 10
       };
     }
 
@@ -1550,7 +1651,7 @@ const PUCKERO = (() => {
                        0: { ruf: -4, moral: -7 } };
       const f = FOLGEN[treffer];
       st.ruf = clamp(st.ruf + f.ruf, 20, 99);
-      st.moral = clamp(st.moral + f.moral, 10, 100);
+      moralAendern(f.moral);
       z.bilanz = { treffer, ruf: f.ruf, moral: f.moral };
 
       season.events.push(
@@ -1917,7 +2018,7 @@ const PUCKERO = (() => {
         if (w.trait) Object.entries(w.trait).forEach(([k, v]) =>
           player.traits[k] = (player.traits[k] || 0) + v);
         if (w.ruf) st.ruf = clamp(st.ruf + w.ruf, 20, 99);
-        if (w.moral) st.moral = clamp(st.moral + w.moral, 10, 100);
+        if (w.moral) moralAendern(w.moral);
         if (w.rolle) rollenGutschrift(w.rolle);
         if (w.form) st.formBonus += w.form;
         if (w.risiko) st.risikoBonus += w.risiko / 100;
@@ -2067,11 +2168,45 @@ const PUCKERO = (() => {
          In einer starken Mannschaft faellt es leichter zu punkten. */
       const mitspieler = clamp((klubStaerke(club) - ligaSchnittJetzt(club.lg)) * 0.006, -0.06, 0.07);
 
+      /* ---- Kopf und Umfeld ----
+         Gemessen ueber 3700 Saisons hatte die Moral auf die Ausbeute
+         keinen Einfluss - 0,940 Punkte je Spiel bei hoher, 0,965 bei
+         tiefer Moral, also wenn ueberhaupt verkehrt herum. Neunzehn
+         Stellen im Spiel schrieben einen Wert, der nirgends ankam:
+         jedes "+8 Moral" nach einer Entscheidung war eine Zusage, die
+         nicht eingeloest wurde.
+
+         Der Zusammenhang ist bewusst gedaempft. Eine Wurzelkennlinie
+         statt einer geraden haelt die Mitte flach und laesst nur die
+         Raender wirken - sonst entsteht aus schwacher Saison, gefallener
+         Moral und noch schwaecherer Saison eine Abwaertsspirale, aus
+         der niemand mehr herausfindet. */
+      const moralAbstand = (clamp(st.moral, 10, 100) - MORAL_MITTE) / 28;
+      const moralWirkung = Math.sign(moralAbstand)
+                         * Math.sqrt(Math.abs(moralAbstand)) * 0.035;
+
+      /* ---- Das Vertrauen des Trainers ----
+         Der Rollenstand multiplizierte bisher nur die Zuschlaege der
+         jeweiligen Rolle. Wer eine unauffaellige Rolle hatte, bei dem
+         wirkte er praktisch nicht: Saeule 0,976, gesetzt 0,940,
+         Bewaehrung 0,961 - nicht einmal der Reihe nach. Wer auf
+         Bewaehrung steht, spielt aber in der vierten Reihe, egal was
+         auf dem Papier steht. */
+      const standWirkung = st.rollenStand === 'saeule' ? 0.030
+                         : st.rollenStand === 'bewaehrung' ? -0.045 : 0;
+
       /* Klassenunterschied zur Liga */
       const tagesform = 0.97 + r() * 0.04
                       + st.formzustand * 0.055
                       + eingewoehnung + mitspieler
+                      + moralWirkung + standWirkung
                       + (season.sternstunde ? 0.10 : 0) + st.formBonus;
+      season.einfluesse = {
+        moral: Math.round(moralWirkung * 1000) / 10,
+        stand: Math.round(standWirkung * 1000) / 10,
+        form:  Math.round(st.formzustand * 0.055 * 1000) / 10,
+        umfeld: Math.round((eingewoehnung + mitspieler) * 1000) / 10
+      };
       const kante = clamp((ovr * tagesform - lg.level * 0.58) / 32, -0.35, 1.7);
       season.kante = Math.round(kante * 100) / 100;
       season.faktoren = {
@@ -2162,8 +2297,15 @@ const PUCKERO = (() => {
         const quote = clamp(0.055 + (dev.praezision || 50) / 900 + (r() - 0.5) * 0.02, 0.04, 0.20);
         season.shots = Math.max(season.g, Math.round(season.g / quote));
         season.shotPct = season.shots ? Math.round(season.g / season.shots * 1000) / 10 : 0;
+        /* Der Stand kommt hier zusaetzlich als eigener Betrag dazu,
+           nicht nur als Faktor auf den Rollenzuschlag - sonst haengt
+           das Vertrauen des Trainers daran, welche Rolle man gewaehlt
+           hat, statt an ihm. */
+        const standMinuten = st.rollenStand === 'saeule' ? 1.7
+                           : st.rollenStand === 'bewaehrung' ? -2.4 : 0;
         season.toi = Math.round(clamp(10 + kante * 7 + (P.k === 'D' ? 2.5 : 0)
-                                      + (rw.eiszeit || 0) * rStand, 8, 27) * 10) / 10;
+                                      + (rw.eiszeit || 0) * rStand + standMinuten,
+                                      8, 27) * 10) / 10;
         if (P.k === 'C') season.bully = Math.round(clamp(44 + (dev.zweikampf || 50) * 0.12
                                           + (r() - 0.5) * 5, 38, 62) * 10) / 10;
         /* Die Reihe folgt der Leistung und der Rolle: wer als Saeule
@@ -2178,11 +2320,14 @@ const PUCKERO = (() => {
 
       /* Teamerfolg */
       const einfluss = clamp((ovr - 80) * (isG ? 0.38 : 0.34), -7, 14);
-      /* Der Nullpunkt liegt auf dem gemessenen Mittel (rund 86), nicht bei 60:
-         sonst bekaeme fast jeder dauerhaft einen Bonus statt eines Ausschlags.
-         Dafuer wiegt der Ausschlag jetzt deutlich schwerer - eine kaputte
-         Kabine kostet spuerbar, eine intakte traegt. */
-      const moralBonus = clamp((st.moral - 70) * 0.20, -9, 5);
+      /* Der Nullpunkt gehoert auf das gemessene Mittel, sonst ist der
+         "Ausschlag" in Wahrheit ein Dauerzuschlag. Genau das war er:
+         der Kommentar nannte 86 als Mittel, im Code stand 70, und
+         gemessen lag die Moral bei 81 - fast jeder bekam also
+         staendig etwas obendrauf, und die Zahl sagte nichts ueber die
+         Kabine aus. Seit die Moral einen Ruhepunkt hat, liegt ihr
+         Median bei 71; darauf ist beides jetzt geeicht. */
+      const moralBonus = clamp((st.moral - MORAL_MITTE) * 0.20, -9, 6);
       /* Wer das C traegt, hebt die Mannschaft - nicht nur die Vitrine. */
       const kapitaensBonus = st.kapitaenSeit === club.n ? 2.2 : 0;
       const teamPower = klubStaerke(club) + einfluss + moralBonus + kapitaensBonus
@@ -2193,7 +2338,13 @@ const PUCKERO = (() => {
       season.platz = (st.tabelle.find(t => t.eigen) || {}).platz || null;
       const ligaSchnitt = lgAvgStr(club.lg);
       const poBoost = (player.traits.playoff || 0) * 0.42;
-      season.playoffs = teamPower > ligaSchnitt + 2;
+      /* Die Schwelle stand auf +2, geeicht gegen eine Welt, in der
+         jede Mannschaft ueber den falsch gesetzten Nullpunkt der
+         Moral dauerhaft rund zwei Punkte geschenkt bekam. Faellt der
+         Zuschlag weg, faellt die Quote mit - gemessen von 59,8 auf
+         52,0 Prozent, ohne dass sich am Spiel etwas geaendert haette.
+         Die Schwelle wandert deshalb um denselben Betrag mit. */
+      season.playoffs = teamPower > ligaSchnitt + 0.6;
 
       if (season.playoffs){
         /* ---- Playoffs als Serienfolge ----
@@ -2517,7 +2668,7 @@ const PUCKERO = (() => {
       season.marktwert = marktwert(ovr, st.age);
       st.formBonus *= 0.5;          // Nachwirkung klingt ab
       st.risikoBonus *= 0.5;
-      st.moral = clamp(st.moral + (season.title ? 6 : (season.playoffs ? 2 : -3)), 10, 100);
+      moralAendern((season.title ? 6 : (season.playoffs ? 2 : -3)));
       /* Die groessten Veraenderungen an den Einzelwerten - erst hier,
          nachdem Training, Ereignisse und Alterung gewirkt haben. */
       const bewegt = [];
@@ -2529,6 +2680,12 @@ const PUCKERO = (() => {
       season.attrBewegung = bewegt.slice(0, 3);
       st.attrsLetzte = Object.assign({}, player.attrs);
       st.ovrLetzte = ovr;
+
+      /* Rueckstellkraft: ein Viertel des Abstands je Saison. Sie wirkt
+         nach beiden Seiten - sie holt aus dem Loch heraus und nimmt
+         der Dauereuphorie die Spitze. */
+      st.moral = clamp(Math.round(st.moral + (st.grundstimmung - st.moral) * 0.25),
+                       10, 100);
 
       werteLeben(season);
       werteKlausel(season);
@@ -2576,7 +2733,7 @@ const PUCKERO = (() => {
                                  stand: st.rollenStand, grund: 'neuerTrainer' });
           }
           /* Ein Kapitaen bleibt Kapitaen - aber nicht selbstverstaendlich. */
-          st.moral = clamp(st.moral - 6, 10, 100);
+          moralAendern(-(6));
         }
       }
 
@@ -3008,7 +3165,7 @@ const PUCKERO = (() => {
           const L = st.leben;
           const preis = Math.round(L.wurzeln * 0.09
             + (L.familie === 'kinder' ? 7 : L.familie === 'partner' ? 3 : 0));
-          if (preis) st.moral = clamp(st.moral - preis, 10, 100);
+          if (preis) moralAendern(-(preis));
           L.wurzeln = Math.round(clamp(L.wurzeln * 0.35 + 8, 0, 100));
           /* Kinder in der Schule ziehen nicht jedes Mal mit. */
           if (L.familie === 'kinder' && a.club.lg !== st.club.lg && r() < 0.30){
@@ -3161,12 +3318,12 @@ const PUCKERO = (() => {
         L.familie = 'partner';
         L.partnerMit = true;
         season.events.push({ t: 'Du bist nicht mehr allein', c: 'good' });
-        st.moral = clamp(st.moral + 6, 10, 100);
+        moralAendern(6);
       } else if (L.familie === 'partner' && st.age >= 25
                  && L.wurzeln >= 45 && r() < 0.22){
         L.familie = 'kinder'; L.kinder = 1;
         season.events.push({ t: 'Du bist Vater geworden', c: 'good' });
-        st.moral = clamp(st.moral + 8, 10, 100);
+        moralAendern(8);
       } else if (L.familie === 'kinder' && L.kinder < 3
                  && st.age >= 28 && r() < 0.16){
         L.kinder++;
@@ -3182,7 +3339,7 @@ const PUCKERO = (() => {
          Heimweh zehrt. Beides klein genug, um nicht alles andere zu
          ueberdecken. */
       const zug = Math.round(L.wurzeln * 0.04 - L.heimweh * 0.07);
-      if (zug) st.moral = clamp(st.moral + zug, 10, 100);
+      if (zug) moralAendern(zug);
       season.leben = { heimweh: Math.round(L.heimweh), wurzeln: Math.round(L.wurzeln),
                        familie: L.familie, kinder: L.kinder, vermoegen: L.vermoegen };
     }
@@ -3204,7 +3361,7 @@ const PUCKERO = (() => {
         st.bonusBilanz.erfuellt++;
         if (b.lohn.geld)  st.gehaltFaktor = round1((st.gehaltFaktor || 1) + b.lohn.geld);
         if (b.lohn.ruf)   st.ruf = clamp(st.ruf + b.lohn.ruf, 20, 99);
-        if (b.lohn.moral) st.moral = clamp(st.moral + b.lohn.moral, 10, 100);
+        if (b.lohn.moral) moralAendern(b.lohn.moral);
         if (b.lohn.jahre) st.vertragJahre += b.lohn.jahre;
         season.events.push({ t: 'Bonusklausel erfüllt: ' + b.n
           + (b.lohn.jahre ? ' – der Vertrag verlängert sich' : ' – das Gehalt steigt'), c: 'good' });
@@ -3339,7 +3496,7 @@ const PUCKERO = (() => {
           merke('Bonusklausel: ' + o.klausel.n, true);
         }
       }
-      if (e.moral){ st.moral = clamp(st.moral + e.moral, 10, 100);
+      if (e.moral){ moralAendern(e.moral);
                     merke((e.moral > 0 ? '+' : '') + e.moral + ' Moral', e.moral > 0); }
       if (e.ruf){   st.ruf = clamp(st.ruf + e.ruf, 20, 99);
                     merke('+' + e.ruf + ' Ansehen', true); }
@@ -3464,7 +3621,7 @@ const PUCKERO = (() => {
         abgelehnt = true;
         const moeglich = st.rollenwahl.filter(x => x.zusage !== 'abgelehnt');
         gewaehlt = moeglich.sort((a, b) => (b.passung - a.passung))[0] || st.rollenwahl[0];
-        st.moral = clamp(st.moral - 6, 10, 100);
+        moralAendern(-(6));
         if (letzte) letzte.events.push({
           t: 'Als ' + gewuenscht.n.replace(/^Als /, '') + ' abgelehnt – es wird '
              + gewaehlt.n.replace(/^Als /, ''), c: 'bad' });
@@ -3488,7 +3645,7 @@ const PUCKERO = (() => {
       if (!abgelehnt && letzte) letzte.events.push({
         t: 'Rolle im Team: ' + gewaehlt.n
            + (st.rollenStand === 'bewaehrung' ? ' – auf Bewährung' : ''), c: '' });
-      if (gewaehlt.w && gewaehlt.w.moral) st.moral = clamp(st.moral + gewaehlt.w.moral, 10, 100);
+      if (gewaehlt.w && gewaehlt.w.moral) moralAendern(gewaehlt.w.moral);
       if (gewaehlt.w && gewaehlt.w.playoff)
         player.traits.playoff = (player.traits.playoff || 0) + gewaehlt.w.playoff;
       st.rollenwahl = null;
@@ -3513,7 +3670,7 @@ const PUCKERO = (() => {
       st.kapitaenGefragt = true;
       if (annehmen){
         st.kapitaenSeit = k.klub;
-        st.moral = clamp(st.moral + 8, 10, 100);
+        moralAendern(8);
         st.ruf = clamp(st.ruf + 4, 20, 99);
         player.traits.playoff = (player.traits.playoff || 0) + 4;
         if (letzte){
@@ -3523,7 +3680,7 @@ const PUCKERO = (() => {
         }
       } else if (letzte){
         letzte.events.push({ t: 'Kapitänsamt abgelehnt', c: '' });
-        st.moral = clamp(st.moral - 3, 10, 100);
+        moralAendern(-(3));
         st.formBonus += 0.04;
       }
       st.kapitaensfrage = null;
@@ -3695,6 +3852,7 @@ const PUCKERO = (() => {
         bonus: st.bonus,
         bonusBilanz: st.bonusBilanz,
         leben: st.leben,
+        grundstimmung: st.grundstimmung,
         zielBilanz: st.zielBilanz,
         hauptklub: klubs.slice().sort((a, b) => b.saisons - a.saisons)[0] || null,
         entscheidungen: st.entscheidungen,

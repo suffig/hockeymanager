@@ -1097,6 +1097,22 @@ const UI = (() => {
     const d = season.ovrGewinn;
     const richtung = d > 0 ? 'auf' : d < 0 ? 'ab' : 'gleich';
     const bew = season.attrBewegung || [];
+
+    /* Stillstand braucht keine grosse Buehne. Gemessen kostete das
+       volle Feld 130 Pixel, um "Wertung unveraendert" zu sagen - und
+       genau dieser Bericht war der einzige, der ueberlief. Wenn sich
+       die Gesamtwertung nicht bewegt hat, ist die Nachricht ohnehin
+       eine andere: welche Einzelwerte sich trotzdem verschoben haben. */
+    if (d === 0){
+      if (!bew.length) return '';
+      return `<div class="staerke gleich schmal">
+        <span class="st-klein">Wertung bleibt bei <b>${season.ovr}</b></span>
+        <div class="st-attrs">${bew.map(x => `
+          <span class="st-attr ${x.d > 0 ? 'gut' : 'schlecht'}">
+            ${esc((attrNamen && attrNamen[x.k]) || x.k)} ${x.d > 0 ? '+' : ''}${x.d}
+          </span>`).join('')}</div>
+      </div>`;
+    }
     return `<div class="staerke ${richtung}">
       <div class="st-zahlen">
         <span class="st-vorher">${season.ovrVorher}</span>
@@ -1112,6 +1128,81 @@ const UI = (() => {
           ${esc((attrNamen && attrNamen[x.k]) || x.k)} ${x.d > 0 ? '+' : ''}${x.d}
         </span>`).join('')}</div>` : ''}
     </div>`;
+  }
+
+  /* ------------------------------------------------------------------
+     Was diese Saison geformt hat
+
+     Seit Moral und das Vertrauen des Trainers wirklich auf die
+     Ausbeute wirken, hat der Spieler Stellschrauben - aber er sieht
+     sie nicht. Eine Zahl, die etwas bewirkt, von der man nichts
+     weiss, ist genauso gut keine.
+
+     Deshalb hier die vier Kraefte nebeneinander, als Balken um eine
+     Mittellinie: was nach rechts geht, hat getragen, was nach links
+     geht, hat gekostet. Nur die, die tatsaechlich etwas ausgemacht
+     haben - unter einem halben Prozent ist es Rauschen.
+     ------------------------------------------------------------------ */
+  const KRAFT = {
+    moral:  { n:'Kopf',     ik:'flamme' },
+    stand:  { n:'Vertrauen', ik:'schild' },
+    form:   { n:'Form',     ik:'blitz' },
+    umfeld: { n:'Umfeld',   ik:'gruppe' }
+  };
+
+  function einflussLeiste(e, vorschau){
+    if (!e) return '';
+    const posten = Object.keys(KRAFT)
+      .map(k => ({ k, v: e[k] || 0 }))
+      .filter(x => Math.abs(x.v) >= 0.5);
+    if (!posten.length) return '';
+    /* Gemeinsamer Massstab, damit die Balken untereinander vergleichbar
+       sind und nicht jeder fuer sich normiert wird. */
+    const gross = Math.max(4, ...posten.map(x => Math.abs(x.v)));
+    /* ----------------------------------------------------------------
+       Erst der Satz, dann die Zahlen
+
+       Als Karte kostete die Aufstellung 82 Pixel und drueckte den
+       Auftakt ins Scrollen - der Knopf "Saison beginnen" lag
+       ausserhalb des Bildes. Vier Balken sind aber ohnehin nicht das,
+       was jemand vor einer Saison wissen will; er will wissen, ob es
+       fuer oder gegen ihn steht. Also steht das als Satz da, und wer
+       die Zahlen sehen will, tippt darauf.
+       ---------------------------------------------------------------- */
+    const netto = posten.reduce((a, x) => a + x.v, 0);
+    const beste = posten.slice().sort((a, b) => b.v - a.v)[0];
+    const schlechteste = posten.slice().sort((a, b) => a.v - b.v)[0];
+    const satz = (() => {
+      const gut = beste.v > 0 ? KRAFT[beste.k].n : null;
+      const schlecht = schlechteste.v < 0 ? KRAFT[schlechteste.k].n : null;
+      if (gut && schlecht) return gut + ' trägt, ' + schlecht + ' kostet';
+      if (gut)             return gut + ' trägt dich';
+      return schlecht + ' zieht dich runter';
+    })();
+
+    const balken = `<div class="kr-liste">
+      ${posten.map(x => {
+        const anteil = Math.min(50, Math.abs(x.v) / gross * 50);
+        return `<div class="kr-zeile ${x.v > 0 ? 'plus' : 'minus'}">
+          <span class="kr-n">${ikone(KRAFT[x.k].ik, 12)} ${KRAFT[x.k].n}</span>
+          <div class="kr-bahn">
+            <i style="${x.v > 0 ? 'left:50%' : 'right:50%'};width:${anteil}%"></i>
+          </div>
+          <span class="kr-v">${x.v > 0 ? '+' : ''}${x.v.toFixed(1)}%</span>
+        </div>`;
+      }).join('')}
+    </div>`;
+
+    const klasse = netto > 0.6 ? 'plus' : netto < -0.6 ? 'minus' : 'neutral';
+    return `<details class="kraefte ${klasse}">
+      <summary>
+        <span class="kr-ik">${ikone(netto >= 0 ? 'hoch' : 'runter', 14)}</span>
+        <span class="kr-satz">${esc(satz)}</span>
+        <span class="kr-netto">${netto > 0 ? '+' : ''}${netto.toFixed(1)}%</span>
+        <span class="kr-pfeil">${ikone('runter', 13)}</span>
+      </summary>
+      ${balken}
+    </details>`;
   }
 
   function natTabelle(res){
@@ -1750,7 +1841,7 @@ const UI = (() => {
   const clampP = v => Math.max(0, Math.min(100, Math.round(v || 0)));
 
   return {
-    lebenKarte, turnierKarte, staerkeWandel,
+    lebenKarte, turnierKarte, staerkeWandel, einflussLeiste,
  header, footer, mount, themaSetzen, themaLesen, attrRows, ovrBadge, seasonCard, statsTable,
            wappenBild, pokalBild,
            trophyList, klubKarten, natKarte, ligaBilanz, shareText, rankLeiste, karriereKarte,

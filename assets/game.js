@@ -760,12 +760,44 @@ function CareerGame(root, cfg){
       () => { const b = root.querySelector('.bilanzstreifen');
               if (b) b.style.display = 'none'; },
       /* Die aufklappbare Liste frueherer Saisons - dieselben Karten
-         stehen im Verlauf-Tab. */
-      () => k.querySelectorAll('.auftakt > details, .bericht details')
-             .forEach(x => x.style.display = 'none'),
+         stehen im Verlauf-Tab.
+
+         Hier stand einmal '.auftakt > details, .bericht details'. Das
+         traf jedes aufklappbare Element und hat spaeter stumm auch
+         die Kraefteleiste und das Turnierband verschluckt - beide
+         waren als <details> gebaut, und beide verschwanden ohne
+         Fehlermeldung. Was weggelassen werden darf, traegt deshalb
+         jetzt eine eigene Auszeichnung, statt am Tag zu haengen. */
+      () => k.querySelectorAll('.verzichtbar').forEach(x => x.style.display = 'none'),
       /* Die Erlaeuterung unter jedem Saisonziel. Was verlangt wird,
          steht in der Zeile darueber; hier steht nur das Warum. */
       () => k.querySelectorAll('.ziel-text > .small').forEach(x => x.style.display = 'none'),
+      /* Der Ausklapphinweis unter der Saisonkarte. Dieselben Zahlen
+         stehen vollstaendig im Verlauf-Tab. Er kommt vor der
+         Zeremonie dran: eine Meisterfeier ist der Lohn der Saison und
+         wird nicht wegoptimiert. */
+      () => k.querySelectorAll('.bericht .season-mehr').forEach(x => x.style.display = 'none'),
+      /* Die Einzelwerte unter der Wertungsentwicklung. Dass sie sich
+         bewegt hat, steht in der Zahl darueber; welche Werte genau,
+         steht auch im Profil-Tab. */
+      () => k.querySelectorAll('.staerke .st-attrs').forEach(x => x.style.display = 'none'),
+      /* Die Lebenskarte auf ihren Satz eindampfen. Der Satz sagt das
+         Wesentliche ("Hier bist du zu Hause geworden"); die beiden
+         Balken darunter sind die Begruendung und koennen warten -
+         sie stehen ohnehin in der Abschlussbilanz. */
+      () => k.querySelectorAll('.lebenkarte .lb-werte, .lebenkarte .lb-geld')
+             .forEach(x => x.style.display = 'none'),
+      /* Die Einschaetzung der eigenen Anlage auf Kopf und Balken
+         eindampfen. Der Prozentsatz und der Balken tragen die
+         Aussage; der Satz darunter erlaeutert sie nur, und im
+         Profil-Tab steht er ohnehin.
+
+         Diese Stufe fehlte lange, und das fiel nicht auf, weil die
+         drei letzten Stufen nur auf Ereignistexte zielen - im Auftakt
+         gibt es keine, also lief die Staffel dort ins Leere und
+         endete mit bis zu 49 Pixeln Rest. */
+      () => k.querySelectorAll('.anlage .an-text, .anlage .an-fuss')
+             .forEach(x => x.style.display = 'none'),
       /* Zuletzt der Text selbst, in kleinen Schritten. */
       () => setzeText(k, 0.92),
       () => setzeText(k, 0.86),
@@ -1123,6 +1155,7 @@ function CareerGame(root, cfg){
         </div>
 
         ${UI.zielKarte(v.ziele)}
+        ${blind() ? '' : UI.einflussLeiste(v.einfluesse, true)}
         ${UI.lebenKarte(v.leben)}
 
         <div class="row mt-l">
@@ -1131,7 +1164,7 @@ function CareerGame(root, cfg){
         </div>
 
         ${st.seasons.length ? `
-          <details class="mt-l">
+          <details class="mt-l verzichtbar">
             <summary class="small" style="cursor:pointer;color:var(--accent)">
               Frühere Saisons (${st.seasons.length})</summary>
             <div class="mt">${st.seasons.slice().reverse()
