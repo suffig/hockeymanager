@@ -1032,7 +1032,8 @@ function CareerGame(root, cfg){
     if (lauf.sommer)       return kopf + bilanz + sommerHtml(lauf.sommer);
     if (st.ruecktrittsfrage) return kopf + bilanz + ruecktrittHtml(st.ruecktrittsfrage, st);
     if (st.kapitaensfrage)return kopf + bilanz + kapitaenHtml(st.kapitaensfrage);
-    if (st.angebote)      return kopf + bilanz + angeboteHtml(st.angebote, st.angebotsGrund);
+    if (st.angebote)      return kopf + bilanz
+                               + angeboteHtml(st.angebote, st.angebotsGrund, st.angebotsBelege);
     if (st.rollenwahl)    return kopf + (alsApp ? '' : bilanz)
                                + rollenHtml(st.rollenwahl, st.club);
     if (st.training)      return kopf + bilanz + trainingHtml(st.training, st.age);
@@ -1181,6 +1182,21 @@ function CareerGame(root, cfg){
   }
 
   /* Der Bericht: wie die Saison gelaufen ist, sofort danach. */
+  /* Die Einzelwerte heissen im Zustand kurz - fuer die Anzeige der
+     Entwicklung brauchen sie ihre ausgeschriebenen Namen. */
+  const ATTR_NAMEN = (() => {
+    const m = {};
+    const D = window.PUCKERO_DATA || {};
+    Object.values(D.ATTRS || {}).forEach(liste =>
+      (liste || []).forEach(a => { m[a.k] = a.n; }));
+    return m;
+  })();
+  const natName = () => {
+    const D = window.PUCKERO_DATA || {};
+    const n = (D.NATIONS || []).find(x => x.k === (S.ident && S.ident.nation));
+    return n ? n.n : '';
+  };
+
   function berichtHtml(b, isG){
     const alle = (S.lauf && S.lauf.st.seasons) || [];
     const u = saisonUrteil(b.saison, alle, isG);
@@ -1191,7 +1207,9 @@ function CareerGame(root, cfg){
           <b>${esc(u.t)}</b>
           <span class="be-dazu">${esc(u.d)}</span>
         </div>
+        ${blind() ? '' : UI.staerkeWandel(b.saison, ATTR_NAMEN)}
         ${UI.seasonCard(b.saison, isG, blind(), true, mobil())}
+        ${b.saison.nat ? UI.turnierKarte(b.saison.nat, natName(), isG, mobil()) : ''}
         <div class="row mt-l">
           <button class="btn btn-primary" id="bericht-weiter">Weiter →</button>
         </div>
@@ -1646,12 +1664,18 @@ function CareerGame(root, cfg){
       </div>`;
   }
 
-  function angeboteHtml(angebote, grund){
+  function angeboteHtml(angebote, grund, belege){
     return `
       <div class="anim">
         <h2 style="margin-bottom:6px">Angebote für die kommende Saison</h2>
-        <p class="lead" style="font-size:15px">${esc(grund || 'Dein Vertrag läuft aus.')}
-          Ein starker Klub bringt Titel, ein schwächerer mehr Eiszeit.</p>
+        <p class="lead" style="font-size:15px">${esc(grund || 'Dein Vertrag läuft aus.')}</p>
+        ${(belege && belege.length) ? `<div class="belege staffel">
+          ${belege.map(x => `<div class="beleg ${x.gut === true ? 'gut'
+              : x.gut === false ? 'schlecht' : ''}">
+            ${UI.ikone(x.ik, 14)}<span>${esc(x.t)}</span>
+          </div>`).join('')}
+        </div>` : ''}
+        <p class="small mt">Ein starker Klub bringt Titel, ein schwächerer mehr Eiszeit.</p>
         <div class="grid g3 mt-l stagger">
           ${angebote.map((a, i) => `
             <button class="jugendkarte" data-angebot="${i}">

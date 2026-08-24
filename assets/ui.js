@@ -1029,6 +1029,91 @@ const UI = (() => {
   }
 
   /* ---------- Nationalmannschaft ---------- */
+  /* ------------------------------------------------------------------
+     Der Sommer beim Verband
+
+     Eine Zeile im Saisonbericht wurde dem nicht gerecht: das Turnier
+     hat eine eigene Statistik, eine eigene Rolle und ein Spiel, an
+     dem es sich entschieden hat. Die Karte zeigt genau das - und die
+     Medaille ist gross genug, dass man sie nicht uebersieht.
+     ------------------------------------------------------------------ */
+  const MEDAILLE = { Gold:'\ud83e\udd47', Silber:'\ud83e\udd48', Bronze:'\ud83e\udd49' };
+
+  function turnierKarte(t, natName, isG, kompakt){
+    if (!t) return '';
+    const med = MEDAILLE[t.platz] || '';
+    /* Auf dem Telefon kostet die volle Karte gemessen 182 Pixel und
+       zwingt den Saisonbericht ins Scrollen (837 statt 677). Dort
+       steht deshalb ein Band, das sich auf Tippen oeffnet - die
+       Angabe bleibt vollstaendig, nur nicht dauernd ausgebreitet. */
+    if (kompakt){
+      const kern = isG ? t.gp + ' Sp · ' + t.wins + ' S'
+                       : t.gp + ' Sp · ' + t.p + ' Pkt';
+      return `<details class="turnierband ${med ? 'medaille-' + t.platz.toLowerCase() : ''}">
+        <summary>
+          <span class="tb-med">${med || ikone('pfeife', 15)}</span>
+          <span class="tb-wer"><b>${esc(t.kurz || t.n)}</b>
+            <span>${esc(natName)} · ${esc(t.platz)}</span></span>
+          <span class="tb-kern">${kern}</span>
+          <span class="tb-pfeil">${ikone('runter', 14)}</span>
+        </summary>
+        <div class="tb-auf">${turnierKarte(t, natName, isG, false)}</div>
+      </details>`;
+    }
+    const linie = isG
+      ? [[t.gp, 'Spiele'], [t.wins, 'Siege'], [(t.sv || 0).toFixed(3).slice(1), 'Fangquote']]
+      : [[t.gp, 'Spiele'], [t.g, 'Tore'], [t.a, 'Vorlagen'], [t.p, 'Punkte']];
+    return `<div class="turnierkarte ${med ? 'medaille-' + t.platz.toLowerCase() : ''}">
+      <div class="tk-kopf">
+        <span class="tk-med">${med || ikone('pfeife', 18)}</span>
+        <div class="tk-wer">
+          <b>${esc(t.n)}</b>
+          <span>${esc(natName)} \u00b7 ${esc(t.platz)}</span>
+        </div>
+        <span class="tk-rolle">${esc(t.rolle || '')}</span>
+      </div>
+      ${t.gegner ? `<div class="tk-spiel ${t.gewonnen ? 'gut' : 'schlecht'}">
+        <span class="tk-erg">${esc(t.ergebnis)}</span>
+        <span class="tk-geg">${t.flagge || ''} ${esc(t.runde)} gegen ${esc(t.gegner)}</span>
+      </div>` : ''}
+      <div class="tk-linie">
+        ${linie.map(([w, n]) => `<div class="tk-wert">
+          <b data-zahl="${w}">${w}</b><span>${n}</span></div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  /* ------------------------------------------------------------------
+     Die Wertung, die sich bewegt
+
+     Eine Zahl, die still von 74 auf 77 springt, wird nicht
+     wahrgenommen. Hier laeuft sie sichtbar hoch, die Differenz kommt
+     als eigenes Zeichen dazu, und darunter stehen die drei Werte, die
+     sich am meisten bewegt haben - damit die Verbesserung eine
+     Ursache hat und nicht nur ein Ergebnis ist.
+     ------------------------------------------------------------------ */
+  function staerkeWandel(season, attrNamen){
+    if (!season || season.ovrGewinn === undefined) return '';
+    const d = season.ovrGewinn;
+    const richtung = d > 0 ? 'auf' : d < 0 ? 'ab' : 'gleich';
+    const bew = season.attrBewegung || [];
+    return `<div class="staerke ${richtung}">
+      <div class="st-zahlen">
+        <span class="st-vorher">${season.ovrVorher}</span>
+        <span class="st-pfeil">${ikone(d >= 0 ? 'hoch' : 'runter', 15)}</span>
+        <b class="st-jetzt" data-zahl="${season.ovr}"
+           data-von="${season.ovrVorher}">${season.ovrVorher}</b>
+        ${d !== 0 ? `<span class="st-delta">${d > 0 ? '+' : ''}${d}</span>` : ''}
+      </div>
+      <div class="st-text">${d > 0 ? 'stärker geworden'
+        : d < 0 ? 'schwächer geworden' : 'Wertung unverändert'}</div>
+      ${bew.length ? `<div class="st-attrs">${bew.map(x => `
+        <span class="st-attr ${x.d > 0 ? 'gut' : 'schlecht'}">
+          ${esc((attrNamen && attrNamen[x.k]) || x.k)} ${x.d > 0 ? '+' : ''}${x.d}
+        </span>`).join('')}</div>` : ''}
+    </div>`;
+  }
+
   function natTabelle(res){
     const b = res.laenderBilanz || {};
     if (!b.turniere) return `<p class="small">Nie für die Nationalmannschaft nominiert –
@@ -1200,7 +1285,8 @@ const UI = (() => {
   }
 
   /* ---------- Zahlen hochzählen ---------- */
-  function zahlHoch(el, ziel, dauer){
+  function zahlHoch(el, ziel, dauer, von){
+    const start0 = von || 0;
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
       el.textContent = ziel; return;
     }
@@ -1211,7 +1297,7 @@ const UI = (() => {
     const schritt = jetzt => {
       const t = Math.min(1, (jetzt - start) / d);
       const eased = 1 - Math.pow(1 - t, 3);
-      el.textContent = (ziel * eased).toFixed(stellen);
+      el.textContent = (start0 + (ziel - start0) * eased).toFixed(stellen);
       if (t < 1) requestAnimationFrame(schritt);
       else el.textContent = ziel;
     };
@@ -1220,7 +1306,10 @@ const UI = (() => {
   function alleZahlenHoch(wurzel){
     (wurzel || document).querySelectorAll('[data-zahl]').forEach(el => {
       const z = parseFloat(el.dataset.zahl);
-      if (!isNaN(z)) zahlHoch(el, z);
+      /* Eine Wertung faengt nicht bei null an - von 0 auf 77 zu zaehlen
+         sieht aus wie ein Aufbau, nicht wie eine Verbesserung. */
+      const von = el.dataset.von !== undefined ? parseFloat(el.dataset.von) : 0;
+      if (!isNaN(z)) zahlHoch(el, z, undefined, isNaN(von) ? 0 : von);
     });
   }
 
@@ -1661,7 +1750,7 @@ const UI = (() => {
   const clampP = v => Math.max(0, Math.min(100, Math.round(v || 0)));
 
   return {
-    lebenKarte,
+    lebenKarte, turnierKarte, staerkeWandel,
  header, footer, mount, themaSetzen, themaLesen, attrRows, ovrBadge, seasonCard, statsTable,
            wappenBild, pokalBild,
            trophyList, klubKarten, natKarte, ligaBilanz, shareText, rankLeiste, karriereKarte,
@@ -1671,5 +1760,9 @@ const UI = (() => {
            ikone, kennzahl, IKONEN, wendepunkte, jahrgangVerlauf, STRANG_INFO,
            konfetti, zahlHoch, alleZahlenHoch, toast, copy };
 })();
+
+/* Wie PUCKERO und EREIGNISSE auch: als einziges Modul war UI nur ueber
+   die Modulkonstante erreichbar und damit von aussen nicht pruefbar. */
+if (typeof window !== 'undefined') window.UI = UI;
 
 document.addEventListener('DOMContentLoaded', () => UI.mount(document.body.dataset.nav || ''));

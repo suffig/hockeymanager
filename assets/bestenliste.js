@@ -150,8 +150,21 @@
     });
     S.laden = false;
     if (erg.fehler){
-      bereich.innerHTML = `<div class="card"><h3>Die Liste kam nicht an</h3>
-        <p class="small mb0">${esc(erg.fehler)}</p></div>`;
+      /* Ein fehlendes Leserecht ist der eine Fehler, der hier
+         wahrscheinlich ist und der sich genau benennen laesst -
+         "permission denied for view bestenliste" sagt einem Besucher
+         nichts, und dem Betreiber sagt es nicht, was zu tun ist. */
+      const keinRecht = /permission denied/i.test(erg.fehler);
+      bereich.innerHTML = (S.gast ? einladung() : '') + `
+        <div class="card">
+          <h3>${keinRecht ? 'Die Liste ist noch nicht freigegeben'
+                          : 'Die Liste kam nicht an'}</h3>
+          <p class="small${keinRecht ? '' : ' mb0'}">${keinRecht
+            ? 'Für Gäste fehlt noch das Leserecht auf die Rangliste.'
+            : esc(erg.fehler)}</p>
+          ${keinRecht ? `<p class="small mb0">Wer die Seite betreibt, führt dafür
+            <code>db/05_gaeste.sql</code> in Supabase aus.</p>` : ''}
+        </div>`;
       return;
     }
     S.zeilen = erg.zeilen;
@@ -160,7 +173,7 @@
       ? S.gesamt + (S.gesamt === 1 ? ' Laufbahn' : ' Laufbahnen') +
         ', nach ' + sorte().dativ + ' sortiert. Tipp auf eine Position für die ganze Geschichte.'
       : 'Noch nichts eingetragen.';
-    bereich.innerHTML = listeHtml();
+    bereich.innerHTML = (S.gast ? einladung() : '') + listeHtml();
     binde();
   }
 
@@ -350,18 +363,27 @@
      Start
      --------------------------------------------------------------- */
 
-  function ohneKonto(){
-    bereich.innerHTML = `
-      <div class="card">
-        <h3>Die Bestenliste braucht ein Konto</h3>
-        <p class="small">Sie zeigt Laufbahnen von Spielern aus aller Welt – dafür
-          müssen die Laufbahnen irgendwo liegen. Ohne Konto bleibt alles im
-          Browser, und der kennt nur deine eigenen.</p>
-        <div class="row">
-          <a class="btn btn-primary btn-sm" href="konto.html">Zum Konto</a>
-          <a class="btn btn-ghost btn-sm" href="pokalraum.html">Eigene Laufbahnen</a>
-        </div>
-      </div>`;
+  /* ---------------------------------------------------------------
+     Gaeste sehen die Liste auch
+
+     Sie verlangte bisher ein Konto - fuer eine Bestenliste die
+     falsche Reihenfolge: sie ist das, was jemanden ueberhaupt dazu
+     bringt, eines anzulegen. Wer sie hinter der Anmeldung versteckt,
+     zeigt sie genau denen, die sie am wenigsten brauchen.
+
+     Statt der Sperre steht jetzt eine Einladung ueber der Liste, und
+     zwar nur einmal. Das Leserecht dafuer kommt aus db/05_gaeste.sql
+     und gilt allein den beiden Ansichten.
+     --------------------------------------------------------------- */
+  function einladung(){
+    return `<div class="einladung">
+      ${UI.ikone('krone', 18)}
+      <div class="ei-text">
+        <b>Du stehst noch nicht hier</b>
+        <span>Mit einem Konto landen deine Laufbahnen in dieser Liste.</span>
+      </div>
+      <a class="btn btn-primary btn-sm" href="konto.html">Konto</a>
+    </div>`;
   }
 
   if (!KONTO.konfiguriert()){
@@ -371,8 +393,10 @@
           Supabase-Werte. Die Schritte stehen in <code>db/README.md</code>.</p></div>`;
   } else {
     KONTO.beiAenderung(z => {
-      if (!z.angemeldet){ ohneKonto(); return; }
-      S.ich = (z.profil || {}).benutzername || null;
+      /* Ohne Anmeldung faellt nur die eigene Hervorhebung weg - die
+         Liste selbst laedt genauso. */
+      S.ich = z.angemeldet ? ((z.profil || {}).benutzername || null) : null;
+      S.gast = !z.angemeldet;
       ausAdresse();
     });
     KONTO.starten();

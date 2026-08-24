@@ -55,12 +55,37 @@ const PUCKERO = (() => {
   const attrsOf = posKey => D.ATTRS[pos(posKey).group];
 
   /* Mindestwertung, ab der eine Liga einen Vertrag anbietet */
-  const LG_MIN = { NHL:86, KHL:79, SHL:77, NL:75, LII:74, DEL:72, CZE:71, AHL:60, JUN:0 };
+  const LG_MIN = { NHL:86, KHL:79, SHL:77, NL:75, LII:74, DEL:72, CZE:71, AHL:60 };
+  /* Jede Jugendliga fordert nichts - frueher stand dafuer ein einzelnes
+     JUN:0 hier. Wird das vergessen, ist LG_MIN[k] undefined, und die
+     Rechnung damit ergibt NaN statt eines Fehlers: die Auswahl liefert
+     dann stillschweigend einen leeren Klub. Deshalb aus den Ligendaten
+     abgeleitet und nicht von Hand gepflegt. */
+  D.LEAGUES.filter(l => l.jugend).forEach(l => { LG_MIN[l.k] = 0; });
   /* Unter diesem Wert findet niemand mehr einen Profivertrag */
   const VERTRAG_MIN = 56;
   /* Heimatliga je Nation */
   const HOME_LG = { CAN:'AHL', USA:'AHL', SWE:'SHL', FIN:'LII', RUS:'KHL', CZE:'CZE',
                     SVK:'CZE', GER:'DEL', SUI:'NL', AUT:'DEL', LAT:'DEL', DEN:'DEL', NOR:'SHL' };
+
+  /* ------------------------------------------------------------------
+     Juniorenliga je Nation
+
+     Es gab eine einzige, in der die London Knights gegen die
+     Jungadler Mannheim spielten. Jetzt spielt jeder dort, wo er
+     herkommt. Die kleinen Nationen haengen an dem System, in das ihre
+     Jugendlichen tatsaechlich gehen - dasselbe Muster, nach dem oben
+     schon die Heimatligen zugeordnet sind.
+     ------------------------------------------------------------------ */
+  const HOME_JUN = { CAN:'JCHL', USA:'JUSA', SWE:'JSWE', FIN:'JFIN', RUS:'JRUS',
+                     CZE:'JCZE', SVK:'JCZE', GER:'JGER', SUI:'JSUI',
+                     AUT:'JGER', LAT:'JRUS', DEN:'JSWE', NOR:'JSWE' };
+
+  /* Ob eine Liga eine Jugendliga ist, stand frueher an einem Dutzend
+     Stellen als lg.k === 'JUN'. Das geht jetzt ueber die Markierung
+     in den Ligendaten, damit acht Ligen dasselbe bedeuten koennen. */
+  const JUGEND = new Set(D.LEAGUES.filter(l => l.jugend).map(l => l.k));
+  const istJugend = k => JUGEND.has(k);
 
   /* ---------------- Spieler anlegen ---------------- */
   /* ----------------------------------------------------------------
@@ -362,6 +387,7 @@ const PUCKERO = (() => {
     const nat = nation(player.nation);
     const isG = P.group === 'goalie';
     const homeLg = HOME_LG[player.nation] || 'AHL';
+    const heimJugend = HOME_JUN[player.nation] || 'JCHL';
 
     const st = {
       age: 18,
@@ -478,7 +504,10 @@ const PUCKERO = (() => {
       fertig: false,
       grund: null,
       angebote: null,
+      ovrLetzte: null,       // Wertung der Vorsaison, fuer die Entwicklung
+      attrsLetzte: null,
       angebotsGrund: null,
+      angebotsBelege: null,
       training: null
     };
 
@@ -508,7 +537,7 @@ const PUCKERO = (() => {
     /* ---- Angebote aus dem Nachwuchs (Karrierestart) ---- */
     function macheJugendangebote(){
       const heim = HOME_LG[player.nation] || 'AHL';
-      const kandidaten = shuffle(r, clubsOf('JUN')).slice(0, 2);
+      const kandidaten = shuffle(r, clubsOf(heimJugend)).slice(0, 2);
       // Ein Angebot aus dem Unterbau der Heimat, damit die Wahl etwas bedeutet
       const unten = D.LEAGUES.filter(l => l.prestige >= 8 && l.prestige <= 22);
       const heimLiga = unten.find(l => l.land === (nation(player.nation) || {}).n) || pick(r, unten);
@@ -1256,7 +1285,7 @@ const PUCKERO = (() => {
        neun zu wenig und beim Einsatzanteil vier Prozentpunkte zu wenig
        voraus, und die Rolle galt reihenweise als uebertroffen. */
     function latteFuer(club, ovr, dev){
-      const lg = league(club ? club.lg : 'JUN');
+      const lg = league(club ? club.lg : heimJugend);
       const w = (st.rolle && st.rolle.w) || {};
       const kante = clamp((ovr - lg.level * 0.58) / 32, -0.35, 1.7);
       const pf = P.k === 'D' ? 0.62 : (P.k === 'C' ? 1.15 : 1.0);
@@ -1957,8 +1986,27 @@ const PUCKERO = (() => {
       const ovr = overall(player, dev);
       if (ovr > st.peak){ st.peak = ovr; st.peakAttrs = dev; }
 
+      /* ----------------------------------------------------------------
+         Wie stark bist du geworden?
+
+         Die Wertung stand als Zahl im Kopf und aenderte sich still. Ob
+         eine Saison einen weitergebracht hat, war damit genau das, was
+         man nicht sehen konnte - obwohl es die eigentliche Frage einer
+         Laufbahn ist. Jetzt traegt jede Saison, wo sie angefangen hat,
+         und welche Werte sich am meisten bewegt haben.
+         ---------------------------------------------------------------- */
+      /* In der ersten Saison gibt es nichts zu vergleichen - der Wert
+         zu Beginn ist der Wert. Ohne diese Unterscheidung meldete die
+         Anzeige dort "Wertung unveraendert", was nach Stillstand
+         aussieht, obwohl noch gar nichts passiert sein kann. */
+      const ersteSaison = st.ovrLetzte == null;
+      const ovrVorher = ersteSaison ? ovr : st.ovrLetzte;
+      const attrsVorher = st.attrsLetzte || Object.assign({}, player.attrs);
+
       const season = { year: st.year, age: st.age, club: club.n, lg: club.lg,
-                       lgName: lg.n, ovr, events: [], awards: [] };
+                       lgName: lg.n, ovr, events: [], awards: [],
+                       ovrVorher: ersteSaison ? undefined : ovrVorher,
+                       ovrGewinn: ersteSaison ? undefined : ovr - ovrVorher };
       if (st.offeneNotiz){ season.events.push(st.offeneNotiz); st.offeneNotiz = null; }
 
       /* Was der Klub in dieser Saison von dir und der Mannschaft erwartet */
@@ -1985,7 +2033,7 @@ const PUCKERO = (() => {
         season.verletzung = { n: V.n, spiele: missed, schwere: V.schwere };
         season.events.push({ t: V.n + ' – ' + missed + ' Spiele verpasst', c: 'bad' });
       }
-      const fullGp = lg.k === 'NHL' ? 82 : (lg.k === 'JUN' ? 60 : 52);
+      const fullGp = lg.k === 'NHL' ? 82 : (istJugend(lg.k) ? 60 : 52);
 
       /* Sternstunde: einmal im Leben läuft einfach alles */
       const primeJahre = st.age >= 24 && st.age <= 31;
@@ -2213,7 +2261,7 @@ const PUCKERO = (() => {
                + ' mit ' + letzte.eigene + ':' + letzte.fremde + ' verloren',
             c: letzte.knapp ? 'bad' : '' });
         }
-      } else if (lg.k !== 'JUN'){
+      } else if (!istJugend(lg.k)){
         season.events.push({ t: 'Playoffs verpasst', c: '' });
       }
 
@@ -2282,7 +2330,7 @@ const PUCKERO = (() => {
          Verband anruft. Junge Spieler laufen ueber U18 und U20. */
       const natBonus = (player.wirkung || {}).natBonus || 0;
       const stufe = (() => {
-        if (lg.k === 'JUN' && st.age > 20) return null;
+        if (istJugend(lg.k) && st.age > 20) return null;
         // Juniorenstufen
         if (st.age <= 18 && ovr >= 56 + (100 - nat.wm) * 0.10 - natBonus * 0.3) return 'U18';
         if (st.age <= 20 && ovr >= 64 + (100 - nat.wm) * 0.14 - natBonus * 0.3) return 'U20';
@@ -2352,6 +2400,47 @@ const PUCKERO = (() => {
           } else if (wurf < 88){ platz = 'Viertelfinale'; }
           turnier.platz = platz;
 
+          /* ------------------------------------------------------------
+             Was man dort eigentlich macht
+
+             Das Turnier war bisher eine Zeile: "Weltmeisterschaft mit
+             Deutschland: Bronze". Simuliert wurde deutlich mehr - eine
+             eigene Statistik, eine Rolle, ein Verlauf -, nur zu sehen
+             war davon nichts. Jetzt traegt das Turnier, gegen wen es
+             sich entschieden hat, wie es ausging und welche Rolle man
+             in der Mannschaft hatte.
+             ------------------------------------------------------------ */
+          const RUNDE = { 'Gold':'im Finale', 'Silber':'im Finale',
+                          'Bronze':'im Spiel um Platz drei',
+                          'Viertelfinale':'im Viertelfinale',
+                          'Vorrunde':'in der Vorrunde' };
+          /* Der Gegner ist keiner der schwachen - wer um Medaillen
+             spielt, trifft oben auf jemanden, der auch dort hingehoert. */
+          const gegnerPool = D.NATIONS.filter(n => n.k !== player.nation
+            && n.wm >= (platz === 'Vorrunde' ? 54 : 72));
+          const gegner = gegnerPool.length ? pick(r, gegnerPool) : null;
+          const gewonnen = platz === 'Gold' || platz === 'Bronze';
+          /* Immer das eigene Ergebnis zuerst. Beim ersten Anlauf stand
+             bei einer Niederlage der Gegner vorn - "Silber, 5:3" las
+             sich damit wie ein gewonnenes Finale. */
+          const eigene = gewonnen ? ri(r, 2, 5) : ri(r, 0, 3);
+          const fremde = gewonnen ? ri(r, 0, eigene - 1) : eigene + ri(r, 1, 2);
+          const knapp = Math.abs(eigene - fremde) === 1;
+          turnier.gegner = gegner ? gegner.n : null;
+          turnier.flagge = gegner ? gegner.flag : '';
+          turnier.runde = RUNDE[platz] || 'im Turnier';
+          turnier.ergebnis = eigene + ':' + fremde
+                           + (knapp && r() < 0.45 ? ' n. V.' : '');
+          turnier.gewonnen = gewonnen;
+
+          /* Die eigene Rolle im Team - sie ergibt sich aus dem Abstand
+             zwischen der eigenen Wertung und dem Niveau der Nation. */
+          const abstand = ovr - (jugend ? 68 : 82);
+          turnier.rolle = st.natKapitaen ? 'Kapitän'
+                        : abstand >= 6  ? 'Erste Reihe'
+                        : abstand >= 0  ? 'Stammkraft'
+                        : 'Ergänzungsspieler';
+
           if (medaille){
             const M = D.INTL[medaille];
             addTrophy('int_' + medaille, M.n, M.pts, M.icon, nat.n);
@@ -2410,14 +2499,14 @@ const PUCKERO = (() => {
          die Mannschaft folgt keinem, den der Trainer selbst infrage
          stellt. Wer seine Rolle traegt, wird eher gefragt. */
       if (!st.kapitaenSeit && !st.kapitaenGefragt && st.klubJahre >= 2 && st.age >= 25
-          && kante > 0.65 && lg.k !== 'JUN' && st.rollenStand !== 'bewaehrung'
+          && kante > 0.65 && !istJugend(lg.k) && st.rollenStand !== 'bewaehrung'
           && r() < (st.rollenStand === 'saeule' ? 0.72 : 0.50)){
         st.kapitaensfrage = { klub: club.n, jahr: st.year };
       }
       if (st.kapitaenSeit === club.n) season.kapitaen = true;
 
       /* ---- Erzaehlung der Saison ---- */
-      if (st.klubJahre === 0 && lg.k !== 'JUN') season.story = pick(r, D.STORY.ankunft);
+      if (st.klubJahre === 0 && !istJugend(lg.k)) season.story = pick(r, D.STORY.ankunft);
       else if (kante > 1.1 && r() < 0.55)       season.story = pick(r, D.STORY.gut);
       else if (kante < 0.3 && r() < 0.55)       season.story = pick(r, D.STORY.schlecht);
       else if (r() < 0.35)                      season.story = pick(r, D.STORY.neutral);
@@ -2429,6 +2518,18 @@ const PUCKERO = (() => {
       st.formBonus *= 0.5;          // Nachwirkung klingt ab
       st.risikoBonus *= 0.5;
       st.moral = clamp(st.moral + (season.title ? 6 : (season.playoffs ? 2 : -3)), 10, 100);
+      /* Die groessten Veraenderungen an den Einzelwerten - erst hier,
+         nachdem Training, Ereignisse und Alterung gewirkt haben. */
+      const bewegt = [];
+      Object.keys(player.attrs).forEach(k => {
+        const d = Math.round(player.attrs[k] - (attrsVorher[k] || player.attrs[k]));
+        if (d) bewegt.push({ k, d });
+      });
+      bewegt.sort((a, b) => Math.abs(b.d) - Math.abs(a.d));
+      season.attrBewegung = bewegt.slice(0, 3);
+      st.attrsLetzte = Object.assign({}, player.attrs);
+      st.ovrLetzte = ovr;
+
       werteLeben(season);
       werteKlausel(season);
 
@@ -2443,7 +2544,7 @@ const PUCKERO = (() => {
          an: der neue Mann kennt ihn nicht.
          ---------------------------------------------------------------- */
       st.trainerNeu = false;
-      if (st.club && lg.k !== 'JUN'){
+      if (st.club && !istJugend(lg.k)){
         st.trainerJahre++;
         const zielVerfehlt = season.ziele && season.ziele.team
                           && season.ziele.team.erfuellt === false;
@@ -2657,8 +2758,8 @@ const PUCKERO = (() => {
       const aktuelleLiga = league(st.club.lg);
       const zuSchwach = bewertung < LG_MIN[st.club.lg] - 6;
       const zuGross = D.LEAGUES.some(l =>
-        l.k !== 'JUN' && l.prestige >= aktuelleLiga.prestige + 30 && bewertung >= LG_MIN[l.k]);
-      const juniorEnde = st.club.lg === 'JUN' && st.age > 20;
+        !istJugend(l.k) && l.prestige >= aktuelleLiga.prestige + 30 && bewertung >= LG_MIN[l.k]);
+      const juniorEnde = istJugend(st.club.lg) && st.age > 20;
 
       let grund = null;
       if (juniorEnde)         grund = 'Die Juniorenzeit ist vorbei.';
@@ -2672,13 +2773,102 @@ const PUCKERO = (() => {
         return;
       }
       st.angebotsGrund = grund;
+      st.angebotsBelege = belegeFuerAngebot(bewertung, grund, zuSchwach, zuGross, juniorEnde);
       st.angebote = macheAngebote(bewertung);
+    }
+
+    /* ----------------------------------------------------------------
+       Warum es so gekommen ist
+
+       Ein Satz sagte, dass der Vertrag nicht verlaengert wird - aber
+       nicht, woran es lag. Das ist die haeufigste Stelle, an der
+       jemand das Spiel nicht versteht: die Wertung war zwei Punkte zu
+       niedrig, das Saisonziel zweimal verfehlt, der Klub im Umbruch,
+       und all das war nirgends zu sehen. Die Belege ziehen deshalb
+       genau die Zahlen heraus, an denen die Entscheidung haengt.
+       ---------------------------------------------------------------- */
+    function belegeFuerAngebot(bewertung, grund, zuSchwach, zuGross, juniorEnde){
+      const b = [];
+      const wert = Math.round(bewertung);
+      const noetig = LG_MIN[st.club.lg];
+
+      if (juniorEnde){
+        b.push({ ik:'kalender', t:'Mit ' + st.age + ' ist die Juniorenzeit vorbei',
+                 gut:null });
+        b.push({ ik:'waage', t:'Deine Wertung: ' + wert, gut:null });
+        return b;
+      }
+
+      /* Eine Jugendliga fordert nichts - "verlangt 0 (60 darueber)"
+         waere zwar richtig gerechnet und trotzdem Unsinn. Dort zaehlt
+         nicht die Schwelle, sondern was der naechste Schritt fordert. */
+      if (noetig) {
+        const ab = wert - noetig;
+        b.push({ ik:'waage',
+                 t: 'Wertung ' + wert + ' – ' + league(st.club.lg).n
+                    + ' verlangt ' + noetig
+                    + (ab >= 0 ? ' (' + ab + ' darüber)' : ' (' + Math.abs(ab) + ' zu wenig)'),
+                 gut: ab >= 0 });
+      } else {
+        /* Die naechsterreichbare Profiliga als Massstab. */
+        const naechste = D.LEAGUES
+          .filter(l => !l.jugend && LG_MIN[l.k] !== undefined)
+          .sort((x, y) => LG_MIN[x.k] - LG_MIN[y.k])
+          .find(l => LG_MIN[l.k] > wert);
+        b.push({ ik:'waage',
+                 t: naechste
+                    ? 'Wertung ' + wert + ' – für die ' + naechste.n
+                      + ' fehlen ' + (LG_MIN[naechste.k] - wert)
+                    : 'Wertung ' + wert + ' – reif für den Profibereich',
+                 gut: !naechste });
+      }
+
+      /* Die letzten beiden Saisons: erfuellt oder verfehlt? */
+      const letzten = st.seasons.slice(-2).filter(x => x.ziele);
+      const verfehlt = letzten.filter(x =>
+        x.ziele.person && x.ziele.person.erfuellt === false).length;
+      if (letzten.length){
+        b.push({ ik:'ziel',
+                 t: verfehlt === 0 ? 'Deine Vorgabe zuletzt erfüllt'
+                  : verfehlt === letzten.length && letzten.length > 1
+                    ? 'Vorgabe zweimal in Folge verfehlt'
+                    : 'Vorgabe zuletzt verfehlt',
+                 gut: verfehlt === 0 });
+      }
+
+      /* Der Klub selbst - ein Abbau trifft auch gute Spieler. */
+      const trend = klubTrend(st.club);
+      if (trend && trend.k !== 'stabil'){
+        b.push({ ik: trend.k === 'auf' ? 'hoch' : 'runter',
+                 t: trend.k === 'auf' ? st.club.n + ' baut auf'
+                                      : st.club.n + ' steht im Umbruch',
+                 gut: trend.k === 'auf' });
+      }
+
+      if (st.rollenStand === 'bewaehrung'){
+        b.push({ ik:'schild', t:'Beim Trainer nur noch auf Bewährung', gut:false });
+      }
+      if (st.trainerNeu){
+        b.push({ ik:'pfeife', t:'Der Trainer hat gewechselt', gut:false });
+      }
+      if (st.sperre){
+        b.push({ ik:'schild', t:'Die Wechselsperre läuft mit dem Vertrag aus', gut:null });
+      }
+      if (zuGross){
+        b.push({ ik:'krone', t:'Ein größerer Klub kauft dich heraus', gut:true });
+      }
+      if (!zuSchwach && !zuGross && st.vertragJahre <= 0){
+        b.push({ ik:'stift', t:'Der Vertrag lief nach ' + (st.klubJahre + 1)
+                 + (st.klubJahre + 1 === 1 ? ' Jahr' : ' Jahren') + ' aus', gut:null });
+      }
+      return b;
     }
 
     /* Angebote erzeugen, ohne die uebrigen Pruefungen zu wiederholen */
     function vertragsangebote(bewertung, season){
       st.vertragJahre = 0;
       st.angebotsGrund = 'Nach der Rücktrittsentscheidung wird neu verhandelt.';
+      st.angebotsBelege = belegeFuerAngebot(bewertung, st.angebotsGrund, false, false, false);
       st.angebote = macheAngebote(bewertung);
     }
 
@@ -2698,17 +2888,22 @@ const PUCKERO = (() => {
     function macheAngebote(bewertung){
       const aktuell = st.club;
       let moeglicheLigen = D.LEAGUES.filter(l => {
-        if (l.k === 'JUN') return st.age <= 20;
+                /* Nur die eigene Juniorenliga - ein Deutscher bekommt kein
+           Angebot aus der kanadischen CHL. */
+        if (istJugend(l.k)) return l.k === heimJugend && st.age <= 20;
         /* Wer lange fort war, greift auch nach unten - Heimweh macht
            eine Liga erreichbar, die die Wertung sonst ausschliesst. */
         const bonus = l.k === homeLg
           ? 4 + ((player.wirkung || {}).heimbonus || 0) * 0.4 + st.leben.heimweh * 0.05 : 0;
         return bewertung >= LG_MIN[l.k] - bonus;
       });
-      if (!moeglicheLigen.length) moeglicheLigen = [league(st.age <= 20 ? 'JUN' : 'AHL')];
+      if (!moeglicheLigen.length) moeglicheLigen = [league(st.age <= 20 ? heimJugend : 'AHL')];
 
       const angebote = [];
       const nimm = (club, bleibt) => {
+        /* Ohne diese Zeile landet ein leerer Klub im Angebot und faellt
+           erst drei Aufrufe spaeter als Fehler auf. */
+        if (!club) return;
         if (angebote.some(a => a.club.n === club.n)) return;
         const lg = league(club.lg);
         const schnitt = ligaSchnittJetzt(club.lg);
@@ -2841,6 +3036,7 @@ const PUCKERO = (() => {
       st.verhandlung = macheVerhandlung(a);
       st.angebote = null;
       st.angebotsGrund = null;
+      st.angebotsBelege = null;
       return true;
     }
 
@@ -3477,7 +3673,7 @@ const PUCKERO = (() => {
       if (seasons.length >= 14 && legacy >= 700) nimm('trainer');
       if (hauptklub && hauptklub.saisons >= 9) nimm('nachwuchs');
       // Juniorenjahre zaehlen nicht als beste Saison – zu schwache Gegner
-      const bewertbar = seasons.filter(s => s.lg !== 'JUN');
+      const bewertbar = seasons.filter(s => !istJugend(s.lg));
       const besteSaison = (bewertbar.length ? bewertbar : seasons).slice().sort((a, b) =>
         (isG ? (b.wins || 0) - (a.wins || 0) : (b.p || 0) - (a.p || 0)))[0] || null;
 
@@ -3668,7 +3864,7 @@ const PUCKERO = (() => {
           let b = null, hoch = -1;
           (result.seasons || []).forEach(s => {
             const L = league(s.lg) || { prestige: 0 };
-            if (s.lg !== 'JUN' && L.prestige > hoch){ hoch = L.prestige; b = s.lg; }
+            if (!istJugend(s.lg) && L.prestige > hoch){ hoch = L.prestige; b = s.lg; }
           });
           return b;
         })(),

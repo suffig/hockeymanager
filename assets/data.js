@@ -130,8 +130,42 @@ const PUCKERO_DATA = (() => {
       title:'Chance-liga-Titel',        titleShort:'Chance liga' },
     { k:'ECHL', n:'ECHL',                land:'Nordamerika',  level:52,  prestige:10,  salary:.08,
       title:'Kelly Cup',                titleShort:'Kelly Cup' },
-    { k:'JUN',  n:'Juniorenliga',       land:'International',level:40,  prestige:6,   salary:.03,
-      title:'Junioren-Meisterschaft',   titleShort:'Junioren-Titel' }
+    /* ------------------------------------------------------------
+       Die Juniorenligen
+
+       Es gab genau eine, "International", und darin spielten die
+       London Knights gegen die Jungadler Mannheim. So etwas gibt es
+       nicht: jedes Land hat seinen eigenen Unterbau, und ein
+       Achtzehnjaehriger spielt darin, wo er herkommt. Deshalb jetzt
+       acht, jede mit ihrem eigenen Namen und ihrer eigenen Tabelle.
+
+       jugend:true markiert sie fuer die Engine - dort hing bisher
+       ein Dutzend Abfragen am festen Schluessel 'JUN'.
+       ------------------------------------------------------------ */
+    { k:'JCHL', n:'CHL',                land:'Kanada',       level:42,  prestige:7,   salary:.03,
+      jugend:true,
+      title:'Memorial Cup',             titleShort:'Memorial Cup' },
+    { k:'JUSA', n:'USHL',               land:'USA',          level:40,  prestige:6,   salary:.03,
+      jugend:true,
+      title:'Clark Cup',                titleShort:'Clark Cup' },
+    { k:'JSWE', n:'J20 Nationell',      land:'Schweden',     level:41,  prestige:6,   salary:.03,
+      jugend:true,
+      title:'J20-Meisterschaft',        titleShort:'J20-Titel' },
+    { k:'JFIN', n:'U20 SM-sarja',       land:'Finnland',     level:40,  prestige:6,   salary:.03,
+      jugend:true,
+      title:'U20-Meisterschaft',        titleShort:'U20-Titel' },
+    { k:'JRUS', n:'MHL',                land:'Russland',     level:40,  prestige:6,   salary:.03,
+      jugend:true,
+      title:'Charlamow-Pokal',          titleShort:'Charlamow-Pokal' },
+    { k:'JCZE', n:'Extraliga juniorů',  land:'Tschechien',   level:38,  prestige:5,   salary:.03,
+      jugend:true,
+      title:'Junioren-Extraliga',       titleShort:'Junioren-Extraliga' },
+    { k:'JGER', n:'DNL',                land:'Deutschland',  level:36,  prestige:5,   salary:.03,
+      jugend:true,
+      title:'DNL-Meisterschaft',        titleShort:'DNL-Titel' },
+    { k:'JSUI', n:'U20-Elit',           land:'Schweiz',      level:37,  prestige:5,   salary:.03,
+      jugend:true,
+      title:'U20-Elit-Titel',           titleShort:'U20-Elit' }
   ];
 
   /* ---------- Klubs ----------
@@ -359,13 +393,64 @@ const PUCKERO_DATA = (() => {
     { n:'Reading Royals',          lg:'ECHL',str:50 },
 
     // ---- Junioren ----
-    { n:'London Knights',          lg:'JUN', str:46 },
-    { n:'Frölunda HC J20',         lg:'JUN', str:45 },
-    { n:'Rimouski Océanic',        lg:'JUN', str:44 },
-    { n:'Portland Winterhawks',    lg:'JUN', str:44 },
-    { n:'Kärpät U20',              lg:'JUN', str:42 },
-    { n:'Jungadler Mannheim',      lg:'JUN', str:40 },
-    { n:'GCK Lions U20',           lg:'JUN', str:39 }
+    // ---- CHL (Kanada) ----
+    { n:'London Knights',          lg:'JCHL', str:47 },
+    { n:'Rimouski Océanic',        lg:'JCHL', str:45 },
+    { n:'Portland Winterhawks',    lg:'JCHL', str:45 },
+    { n:'Halifax Mooseheads',      lg:'JCHL', str:44 },
+    { n:'Edmonton Oil Kings',      lg:'JCHL', str:43 },
+    { n:'Kitchener Rangers',       lg:'JCHL', str:42 },
+    { n:'Saskatoon Blades',        lg:'JCHL', str:41 },
+    { n:'Sherbrooke Phoenix',      lg:'JCHL', str:40 },
+    // ---- USHL (USA) ----
+    { n:'Chicago Steel',           lg:'JUSA', str:44 },
+    { n:'Green Bay Gamblers',      lg:'JUSA', str:42 },
+    { n:'Fargo Force',             lg:'JUSA', str:41 },
+    { n:'Sioux City Musketeers',   lg:'JUSA', str:40 },
+    { n:'Youngstown Phantoms',     lg:'JUSA', str:39 },
+    { n:'Muskegon Lumberjacks',    lg:'JUSA', str:38 },
+    // ---- J20 Nationell (Schweden) ----
+    { n:'Frölunda HC J20',         lg:'JSWE', str:46 },
+    { n:'Djurgårdens IF J20',      lg:'JSWE', str:44 },
+    { n:'Färjestad BK J20',        lg:'JSWE', str:43 },
+    { n:'Skellefteå AIK J20',      lg:'JSWE', str:42 },
+    { n:'Luleå HF J20',            lg:'JSWE', str:41 },
+    { n:'Rögle BK J20',            lg:'JSWE', str:39 },
+    // ---- U20 SM-sarja (Finnland) ----
+    { n:'Kärpät U20',              lg:'JFIN', str:44 },
+    { n:'Tappara U20',             lg:'JFIN', str:43 },
+    { n:'Ilves U20',               lg:'JFIN', str:41 },
+    { n:'JYP U20',                 lg:'JFIN', str:40 },
+    { n:'HIFK U20',                lg:'JFIN', str:39 },
+    { n:'Lukko U20',               lg:'JFIN', str:38 },
+    // ---- MHL (Russland) ----
+    { n:'Loko Jaroslawl',          lg:'JRUS', str:45 },
+    { n:'SKA-1946',                lg:'JRUS', str:44 },
+    { n:'Krasnaja Armija',         lg:'JRUS', str:42 },
+    { n:'Tolpar Ufa',              lg:'JRUS', str:40 },
+    { n:'Stalnyje Lisy',           lg:'JRUS', str:39 },
+    { n:'Reaktor Nischnekamsk',    lg:'JRUS', str:37 },
+    // ---- Extraliga juniorů (Tschechien) ----
+    { n:'HC Sparta Praha U20',     lg:'JCZE', str:42 },
+    { n:'HC Oceláři Třinec U20',   lg:'JCZE', str:40 },
+    { n:'HC Kometa Brno U20',      lg:'JCZE', str:39 },
+    { n:'HC Vítkovice U20',        lg:'JCZE', str:38 },
+    { n:'HC Plzeň U20',            lg:'JCZE', str:37 },
+    { n:'HC Liberec U20',          lg:'JCZE', str:36 },
+    // ---- DNL (Deutschland) ----
+    { n:'Jungadler Mannheim',      lg:'JGER', str:41 },
+    { n:'EV Landshut U20',         lg:'JGER', str:38 },
+    { n:'Eisbären Juniors Berlin', lg:'JGER', str:37 },
+    { n:'Kölner Junghaie',         lg:'JGER', str:36 },
+    { n:'Krefelder EV U20',        lg:'JGER', str:35 },
+    { n:'Iserlohn Young Roosters', lg:'JGER', str:34 },
+    // ---- U20-Elit (Schweiz) ----
+    { n:'GCK Lions U20',           lg:'JSUI', str:40 },
+    { n:'SC Bern U20',             lg:'JSUI', str:39 },
+    { n:'EV Zug U20',              lg:'JSUI', str:38 },
+    { n:'HC Davos U20',            lg:'JSUI', str:37 },
+    { n:'SC Rapperswil U20',       lg:'JSUI', str:35 },
+    { n:'HC Lugano U20',           lg:'JSUI', str:34 }
   ];
 
   /* ---------- Individuelle Auszeichnungen ----------
@@ -623,7 +708,13 @@ const PUCKERO_DATA = (() => {
                       AUT:'DEL', LAT:'DEL', DEN:'DEL', NOR:'SHL' };
 
   const hatTrophaee = (res, key) => res.trophies.some(t => t.k === key);
-  const profiSaisons = res => res.seasons.filter(s => s.lg !== 'JUN');
+  /* Eine Jugendsaison zaehlt nicht als Profisaison - das hing frueher
+     am einzigen Schluessel 'JUN', jetzt an der Markierung der Liga. */
+  const istJugendLiga = k => {
+    const l = LEAGUES.find(x => x.k === k);
+    return !!(l && l.jugend);
+  };
+  const profiSaisons = res => res.seasons.filter(s => !istJugendLiga(s.lg));
 
   const HERAUSFORDERUNGEN = [
     { id:'erstesEis', icon:'🏒', n:'Erstes Eis',
