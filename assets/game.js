@@ -15,6 +15,8 @@ function CareerGame(root, cfg){
     seed: cfg.seed || cfg.startSeed || null,
     player: null,
     lauf: null,              // laufende Karriere (createCareer)
+    zuege: [],               // jeder Zug, damit sich die Laufbahn nachspielen laesst
+    karten: [],              // die gewaehlten Draftkarten, in ihrer Reihenfolge
     result: null,
     neueZiele: []
   };
@@ -58,15 +60,147 @@ function CareerGame(root, cfg){
     return renderResult();
   }
 
+  /* ================================================================
+     Eine laufende Karriere ueberlebt das Schliessen des Tabs
+
+     Gespeichert wurden bisher nur abgeschlossene Laufbahnen. Wer auf
+     dem Telefon die App wechselte und den Tab verlor, verlor
+     fuenfzehn Minuten Spiel - der schmerzhafteste Fehlerfall, den
+     dieses Spiel hat.
+
+     Gesichert wird nicht der Zustand, sondern die Zuege. Der Zustand
+     einer Laufbahn haengt an Verweisen auf Klubs, Rollen, Rivalen und
+     Erzaehlstraenge; ihn zu verpacken und wieder aufzubauen waere bei
+     jeder spaeteren Aenderung an den Feldern neu kaputt. Die Zuege
+     dagegen sind ein Dutzend Zahlen, und weil das Spiel bei gleichem
+     Seed und gleichen Entscheidungen immer denselben Verlauf nimmt,
+     ergibt ihr Nachspielen exakt dieselbe Laufbahn.
+     ================================================================ */
+  const STAND_KEY = 'eiszeit.laufendeKarriere';
+
+  /* Alles, was den Verlauf veraendert. runToEnd fehlt mit Absicht: es
+     beendet die Laufbahn, und danach wird der Stand ohnehin geloescht. */
+  const ZUG_METHODEN = [
+    'waehleJugend', 'chooseTraining', 'autoTraining', 'waehleRolle', 'autoRolle',
+    'chooseEreignis', 'entscheideWechselfrist', 'entscheideNominierung',
+    'entscheideVerhandlung', 'entscheideSommer', 'entscheideKapitaen',
+    'entscheideRuecktritt', 'choose', 'schliesseBericht', 'playSeason'
+  ];
+
+  function mitProtokoll(lauf){
+    /* Ueber die Prototypkette, damit die Getter (ereignis, bericht,
+       vorschau ...) unveraendert durchgereicht werden. */
+    const huelle = Object.create(lauf);
+    ZUG_METHODEN.forEach(name => {
+      if (typeof lauf[name] !== 'function') return;
+      huelle[name] = function(){
+        const args = Array.prototype.slice.call(arguments);
+        const erg = lauf[name].apply(lauf, args);
+        S.zuege.push(args.length ? [name, args[0]] : [name]);
+        standSichern();
+        return erg;
+      };
+    });
+    return huelle;
+  }
+
+  function standSichern(){
+    if (!S.player || !S.lauf || cfg.keinStand) return;
+    try {
+      if (S.lauf.fertig){ localStorage.removeItem(STAND_KEY); return; }
+      const st = S.lauf.st || {};
+      localStorage.setItem(STAND_KEY, JSON.stringify({
+        v: 1, t: Date.now(),
+        ident: S.ident, seed: S.seed,
+        karten: S.karten || [],
+        zuege: S.zuege,
+        /* Nur fuer die Anzeige des Angebots - so muss dafuer nicht die
+           ganze Laufbahn nachgespielt werden. */
+        kurz: { name: S.player.name, pos: S.player.pos,
+                jahr: st.year, alter: st.age,
+                klub: st.club ? st.club.n : null,
+                saisons: (st.seasons || []).length }
+      }));
+    } catch(e){ /* voller Speicher: dann eben ohne Sicherung */ }
+  }
+
+  function standLoeschen(){
+    try { localStorage.removeItem(STAND_KEY); } catch(e){}
+  }
+
+  function standLesen(){
+    if (cfg.keinStand) return null;
+    try {
+      const roh = JSON.parse(localStorage.getItem(STAND_KEY) || 'null');
+      if (!roh || roh.v !== 1 || !roh.ident || !roh.seed) return null;
+      if (!Array.isArray(roh.karten) || !Array.isArray(roh.zuege)) return null;
+      return roh;
+    } catch(e){ return null; }
+  }
+
+  /* Nachspielen. Schlaegt irgendetwas fehl, wird der Stand verworfen
+     und ganz normal neu begonnen - ein kaputter Stand darf das Spiel
+     nicht blockieren. */
+  function standFortsetzen(stand){
+    try {
+      S.ident = Object.assign({}, S.ident, stand.ident);
+      S.seed = stand.seed;
+      S.player = PUCKERO.newPlayer({ ...S.ident, seed: S.seed });
+      S.karten = [];
+      stand.karten.forEach((id, runde) => {
+        const frage = PUCKERO.draftFrage(S.player, runde);
+        const karte = frage && frage.karten.find(k => k.id === id);
+        if (!karte) throw new Error('Draftkarte fehlt: ' + id);
+        PUCKERO.applyKarte(S.player, karte);
+        S.karten.push(id);
+      });
+      S.runde = S.karten.length;
+
+      const roh = PUCKERO.createCareer(S.player);
+      S.zuege = [];
+      stand.zuege.forEach(z => {
+        const fn = roh[z[0]];
+        if (typeof fn !== 'function') throw new Error('Unbekannter Zug: ' + z[0]);
+        fn.call(roh, z[1]);
+        S.zuege.push(z);
+      });
+      S.lauf = mitProtokoll(roh);
+      S.phase = S.lauf.fertig ? 'ergebnis' : 'karriere';
+      if (S.lauf.fertig){ standLoeschen(); return false; }
+      return true;
+    } catch(e){
+      standLoeschen();
+      S.player = null; S.lauf = null; S.zuege = []; S.karten = [];
+      S.phase = 'ident';
+      return false;
+    }
+  }
+
   /* ---------- Identität ---------- */
   function renderIdent(){
     const i = S.ident;
+    const stand = standLesen();
     root.innerHTML = `
       <div class="panel-head">
         <h3>Wer bist du auf dem Eis?</h3>
         <span class="pill">Schritt 1 von 3</span>
       </div>
       <div class="panel-body">
+        ${stand && stand.kurz ? `
+          <div class="fortsetzen anim">
+            <div class="fs-text">
+              <span class="fs-marke">${UI.ikone('uhr', 13)} Angefangene Karriere</span>
+              <b>${esc(stand.kurz.name || 'Ohne Namen')}</b>
+              <span class="small mb0">${stand.kurz.klub ? esc(stand.kurz.klub) + ' · ' : ''}${
+                stand.kurz.alter ? stand.kurz.alter + ' Jahre · ' : ''}${
+                stand.kurz.saisons || 0} ${stand.kurz.saisons === 1 ? 'Saison' : 'Saisons'} gespielt</span>
+            </div>
+            <div class="fs-tasten">
+              <button class="btn btn-primary btn-sm" id="fs-weiter">Fortsetzen</button>
+              <button class="btn btn-ghost btn-sm" id="fs-weg">Verwerfen</button>
+            </div>
+          </div>` : ''}
+
         <div class="grid g2">
           <div>
             <label class="field"><span>Name</span>
@@ -138,6 +272,7 @@ function CareerGame(root, cfg){
           + 'die Werte siehst du erst am Karriereende.';
     };
     natHint(); modeHint();
+    bindeFortsetzen();
     root.querySelector('#f-nation').onchange = natHint;
 
     const posWaehlen = k => {
@@ -181,7 +316,8 @@ function CareerGame(root, cfg){
     S.ident.nation = root.querySelector('#f-nation').value;
     S.seed = cfg.seed || (seedFeld && seedFeld.value.trim()) || neuerSeed();
     S.player = PUCKERO.newPlayer({ ...S.ident, seed: S.seed });
-    S.runde = 0;
+    S.runde = 0; S.zuege = []; S.karten = [];
+    standLoeschen();
     S.phase = 'draft';
     render(); scrollTop();
   }
@@ -189,7 +325,11 @@ function CareerGame(root, cfg){
   /* ---------- Charakterdraft: fuenf Fragen ---------- */
   function renderDraft(){
     const frage = PUCKERO.draftFrage(S.player, S.runde);
-    if (!frage){ S.lauf = PUCKERO.createCareer(S.player); S.phase = 'start'; return render(); }
+    if (!frage){
+      S.lauf = mitProtokoll(PUCKERO.createCareer(S.player));
+      S.zuege = []; S.phase = 'start'; standSichern();
+      return render();
+    }
 
     const runden = DRAFT.RUNDEN;
     const dots = Array.from({ length: runden },
@@ -244,14 +384,29 @@ function CareerGame(root, cfg){
     root.querySelectorAll('[data-karte]').forEach(el => el.onclick = () => {
       const k = frage.karten.find(x => x.id === el.dataset.karte);
       PUCKERO.applyKarte(S.player, k);
+      S.karten.push(k.id);
       S.runde++;
       if (S.runde >= DRAFT.RUNDEN){
-        S.lauf = PUCKERO.createCareer(S.player);
+        S.lauf = mitProtokoll(PUCKERO.createCareer(S.player));
+        S.zuege = [];
         S.phase = 'start';
+        standSichern();
       }
       render(); scrollTop();
     });
     root.querySelector('#restart').onclick = bestaetigtNeustart;
+  }
+
+  function bindeFortsetzen(){
+    const w = root.querySelector('#fs-weiter');
+    if (w) w.onclick = () => {
+      const stand = standLesen();
+      if (stand && standFortsetzen(stand)) render();
+      else render();
+      scrollTop();
+    };
+    const weg = root.querySelector('#fs-weg');
+    if (weg) weg.onclick = () => { standLoeschen(); render(); };
   }
 
   function charakterKarte(k){
@@ -1840,6 +1995,7 @@ function CareerGame(root, cfg){
     S.result = res;
     S.neueZiele = PUCKERO.saveCareer(res) || [];
     S.phase = 'ergebnis';
+    standLoeschen();
     render(); scrollTop();
     if (cfg.onFinish) cfg.onFinish(res);
   }
@@ -1851,10 +2007,11 @@ function CareerGame(root, cfg){
   }
 
   function neustart(seedVerwerfen){
+    standLoeschen();
     if (cfg.onAgain){ cfg.onAgain(); return; }
     S.phase = 'ident';
     S.player = null; S.lauf = null; S.result = null;
-    S.runde = 0;
+    S.runde = 0; S.zuege = []; S.karten = [];
     if (seedVerwerfen && !cfg.seed) S.seed = null;
     render(); scrollTop();
   }
@@ -1867,6 +2024,7 @@ function CareerGame(root, cfg){
     S.result = PUCKERO.simulate(S.player);
     S.neueZiele = PUCKERO.saveCareer(S.result) || [];
     S.phase = 'ergebnis';
+    standLoeschen();
     renderResult();
     if (cfg.onFinish) cfg.onFinish(S.result);
   }
