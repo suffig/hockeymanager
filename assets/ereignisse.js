@@ -236,12 +236,16 @@ const EREIGNISSE = (() => {
       ] },
 
     /* ---------- Verletzung ---------- */
-    { id:'comeback1', kat:'spiel', szene:'kabine', tag:'Nach der Verletzung',
+    { id:'comeback1', gewicht:3.5, kat:'spiel', szene:'kabine', tag:'Nach der Verletzung',
       titel:'Der Arzt gibt dir grünes Licht – dein Knie sieht das anders',
       text:'Die Untersuchung ist unauffällig, die Werte gut, alle nicken. Nur du weißt, wie es sich '
-         + 'anfühlt, wenn du in der letzten Kurve vor der Bande abbremst. Die Playoffs beginnen '
-         + 'in elf Tagen, und die Reihe braucht dich.',
-      bedingung: (st, s) => s && s.events.some(e => e.t.indexOf('Verletzung') === 0),
+         + 'anfühlt, wenn du in der letzten Kurve vor der Bande abbremst. In elf Tagen ist '
+         + 'Saisonauftakt, und die Reihe braucht dich.',
+      /* Suchte vorher einen Ereignistext, der mit "Verletzung" beginnt.
+         Keine der zwoelf Verletzungen heisst so - sie heissen
+         Kreuzbandriss oder Jochbeinbruch. Das Ereignis ist deshalb nie
+         erschienen. Die Saison traegt die Verletzung als eigenes Feld. */
+      bedingung: (st, s) => !!(s && s.verletzung && s.verletzung.schwere >= 1),
       optionen:[
         { t:'Sofort zurückkommen', chance:45, hinweis:'Die Serie ruft',
           gut:{ moral:8, ruf:6, trait:{ playoff:4 }, text:'Du spielst die Serie deines Lebens auf einem Bein.' },
@@ -300,7 +304,7 @@ const EREIGNISSE = (() => {
       ] },
 
     /* ---------- Serie ---------- */
-    { id:'krise1', kat:'kabine', szene:'eis', tag:'Sechs Niederlagen in Folge',
+    { id:'krise1', gewicht:3.5, kat:'kabine', szene:'eis', tag:'Sechs Niederlagen in Folge',
       titel:'Der Mannschaftsrat trifft sich ohne den Trainerstab',
       text:'Zwanzig Uhr, Hotelzimmer 412, niemand hat eingeladen und trotzdem sind alle da. '
          + 'Die Stimmung ist irgendwo zwischen Trotz und Ratlosigkeit. Irgendwann sagt jemand, '
@@ -502,7 +506,7 @@ const EREIGNISSE = (() => {
       ] },
 
     /* ---------- Alter ---------- */
-    { id:'alter1', kat:'trainer', szene:'buero', tag:'Das Gespräch',
+    { id:'alter1', gewicht:2.5, kat:'trainer', szene:'buero', tag:'Das Gespräch',
       titel:'Der Sportdirektor fragt, wie lange du noch spielen willst',
       text:'Er formuliert es freundlich, fast beiläufig, zwischen zwei anderen Themen. '
          + 'Auf seinem Bildschirm ist ein Kaderplan offen, in dem hinter deinem Namen '
@@ -673,7 +677,7 @@ const EREIGNISSE = (() => {
       ] },
 
     /* ---------- Rekordjagd ---------- */
-    { id:'rekord1', kat:'spiel', szene:'eis', tag:'Auf Rekordkurs',
+    { id:'rekord1', gewicht:2.5, kat:'spiel', szene:'eis', tag:'Auf Rekordkurs',
       titel:'Dir fehlt ein Punkt zum Vereinsrekord – und das Spiel ist längst entschieden',
       text:'Fünf Tore Vorsprung, viereinhalb Minuten übrig, und der Trainer hat die vierte Reihe '
          + 'draußen. Du sitzt auf der Bank und weißt genau, wie viele Punkte dir fehlen. '
@@ -1175,7 +1179,7 @@ const EREIGNISSE = (() => {
           schlecht:{ text:'Diesmal nicht. Es bleiben noch Spiele.' } }
       ] },
 
-    { id:'st_comeback', kat:'privat', szene:'kabine', tag:'Rückkehr',
+    { id:'st_comeback', gewicht:3, kat:'privat', szene:'kabine', tag:'Rückkehr',
       titel:'Das erste Spiel nach der Verletzung',
       text:'Die Ärzte haben dich freigegeben, der Körper hält, und trotzdem steht beim Aufwärmen '
          + 'die Frage im Raum, die niemand stellt: Gehst du in den nächsten Zweikampf so hinein '
@@ -1212,7 +1216,7 @@ const EREIGNISSE = (() => {
           schlecht:{ moral:-10, text:'Der Verzicht steht ab jetzt zwischen euch im Raum.' } }
       ] },
 
-    { id:'st_abschiedsfrage', kat:'kabine', szene:'kabine', tag:'Wie lange noch',
+    { id:'st_abschiedsfrage', gewicht:3, kat:'kabine', szene:'kabine', tag:'Wie lange noch',
       titel:'Ein Mitspieler fragt dich, wie lange du noch spielst',
       text:'Er meint es nicht böse, er fragt aus echtem Interesse. '
          + 'Trotzdem ist es das erste Mal, dass dir jemand diese Frage stellt – '

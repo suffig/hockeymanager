@@ -1844,6 +1844,11 @@ const PUCKERO = (() => {
           if (P.k !== 'D' && (dev.defensive || 0) > 74 && kante > 0.75 && r() < 0.4 + selkeBonus)
             season.awards.push('selke');
           if (season.plus >= 28 && kante > 0.8 && r() < 0.55) season.awards.push('plusminus');
+          /* Die Fairplay-Auszeichnung war angelegt, hatte ein Wappen -
+             und wurde nirgends vergeben. Sie geht an den, der ohne
+             Strafbank auskommt und trotzdem trifft. */
+          if (season.pim <= 16 && ppg > 0.70 && kante > 0.75 && r() < 0.45)
+            season.awards.push('fairplay');
           if (missed === 0 && season.gp === fullGp && r() < 0.5) season.awards.push('ironman');
         }
         if (kante > 0.62 && r() < 0.45) season.awards.push('allstar');
