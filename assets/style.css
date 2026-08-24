@@ -3018,3 +3018,10 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
 }
 .au-wer .klubtrend{margin-top:3px;align-self:flex-start}
 .app .jk-land .klubtrend{font-size:9px;padding:1px 6px}
+
+/* Die Reha ist keine Sommerpause, sondern ihr Gegenteil: nicht die
+   Frage, was man aus freien Wochen macht, sondern wie viel man vom
+   Koerper verlangt. Deshalb rot statt sommerlich. */
+.wf-kopf.lage-reha .wf-lage{color:var(--red)}
+.wf-kopf.lage-reha{box-shadow:inset 0 3px 0 var(--red)}
+.wechselfrist.reha{border-color:color-mix(in srgb,var(--red) 30%,var(--line))}

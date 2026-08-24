@@ -402,6 +402,7 @@ const PUCKERO = (() => {
       rollenPunkte: 0,        // Guthaben beim Trainer, -4 bis +4
       rollenJahre: 0,         // Saisons in dieser Rolle
       rollenVorOvr: null,     // Wert der Vorsaison, fuer die Aufbaurolle
+      startVerpasst: 0,       // Spiele, die die Reha den Saisonstart kostet
       rollenLauf: [],         // jede Aenderung, mit Grund
       verhandlung: null,      // offene Vertragsverhandlung
       klausel: false,         // Ausstiegsklausel im laufenden Vertrag
@@ -517,8 +518,69 @@ const PUCKERO = (() => {
        eine Wahl - aber nur, wenn wirklich etwas auf dem Spiel steht,
        damit sie nicht jedes Jahr einen Klick kostet.
        --------------------------------------------------------------- */
+    /* ----------------------------------------------------------------
+       Die Reha
+
+       Ein Fuenftel aller Saisons endete mit einer Verletzung, und der
+       Spieler konnte nichts dazu tun: eine Zeile Text, ein paar
+       verpasste Spiele, fertig. Dabei ist genau das die Stelle, an der
+       Laufbahnen kippen - wer zu frueh zurueckkommt, verkuerzt sie,
+       wer sich Zeit laesst, verliert ein halbes Jahr.
+
+       Die drei Wege sind keine Wette gegeneinander, sondern ein Tausch:
+       Zeit gegen Haltbarkeit. Deshalb sind die Aussichten hoch - was
+       ungewiss ist, ist nicht das Ob, sondern was der Koerper daraus
+       macht.
+       ---------------------------------------------------------------- */
+    function macheReha(v){
+      const schwer = v.schwere >= 2 || v.spiele >= 24;
+      return {
+        art: 'reha', ikone: 'pflaster', tag: 'Nach der Verletzung',
+        titel: v.n + ' – wie kommst du zurück?',
+        text: 'Der Sommer gehört der Schulter, dem Knie, dem Rücken. '
+            + v.spiele + ' Spiele hast du verpasst. Die Ärzte geben dir drei Wege, '
+            + 'und alle drei haben ihren Preis.',
+        /* Dieselbe Form wie die Sommerpause - sonst steht im Kopf
+           "undefined Jahre". */
+        stand: { alter: st.age, klub: st.club ? st.club.n : null,
+                 verletzung: v.n, spiele: v.spiele,
+                 verschleiss: st.verletzungsjahre || 0 },
+        optionen: [
+          { t: 'Nichts überstürzen', ikone: 'herz', chance: 88,
+            hinweis: 'Der Saisonstart fällt aus, dafür hält der Körper',
+            wirkung: 'geduld',
+            gut: { trait: { robust: schwer ? 8 : 5 },
+                   text: 'Du steigst erst im Oktober ein – und spürst das Knie danach kein einziges Mal.' },
+            schlecht: { moral: -5,
+                   text: 'Die Wochen ziehen sich. Als du zurückkommst, läuft die Mannschaft ohne dich.' } },
+
+          { t: 'Dem Plan folgen', ikone: 'kalender', chance: 78,
+            hinweis: 'Was die Ärzte sagen, nicht mehr und nicht weniger',
+            wirkung: 'plan',
+            gut: { form: 0.05, moral: 4,
+                   text: 'Woche für Woche wie im Buch. Zum Auftakt bist du da, als wäre nichts gewesen.' },
+            schlecht: { form: -0.04,
+                   text: 'Der Plan geht auf, das Gefühl nicht. Es dauert bis Weihnachten.' } },
+
+          { t: 'Vor dem Auftakt zurück sein', ikone: 'flamme', chance: 52,
+            hinweis: 'Schneller als vernünftig – der Trainer wird es merken',
+            wirkung: 'eile', wagnis: true,
+            gut: { ruf: 7, moral: 8, form: 0.07, rolle: 1,
+                   text: 'Beim ersten Spiel stehst du auf dem Eis. In der Kabine spricht man darüber.' },
+            schlecht: { risiko: 11, form: -0.09, verschleiss: 1,
+                   text: 'Zu früh. Es hält vier Wochen, dann meldet sich dieselbe Stelle wieder.' } }
+        ]
+      };
+    }
+
     function macheSommer(){
       const verschleiss = st.verletzungsjahre || 0;
+      /* Nach einer schweren Verletzung ist die Sommerpause keine Frage
+         des Zufalls mehr - da steht etwas an. */
+      const letzte = st.seasons[st.seasons.length - 1];
+      const v = letzte && letzte.verletzung;
+      if (v && v.spiele >= 9) return macheReha(v);
+
       const lohnt = st.age >= 26 || verschleiss >= 2;
       if (!lohnt || r() > 0.5) return null;
 
@@ -598,19 +660,39 @@ const PUCKERO = (() => {
           merke('Verschleiß bereinigt', true);
         }
       }
+      /* Geduld kostet Spiele, egal wie es ausgeht - das ist der Preis,
+         nicht das Risiko. Deshalb steht es ausserhalb der Abfrage. */
+      if (o.wirkung === 'geduld'){
+        st.startVerpasst = (st.startVerpasst || 0) + (gelungen ? 7 : 11);
+        st.verletzungsjahre = Math.max(0, (st.verletzungsjahre || 0) - 1);
+        merke('Saisonstart verpasst', false);
+        merke('Verschleiß abgebaut', true);
+      }
       if (e.ruf){    st.ruf = clamp(st.ruf + e.ruf, 20, 99);
-                     merke('+' + e.ruf + ' Ansehen', true); }
+                     merke((e.ruf > 0 ? '+' : '') + e.ruf + ' Ansehen', e.ruf > 0); }
       if (e.moral){  st.moral = clamp(st.moral + e.moral, 10, 100);
-                     merke(e.moral + ' Moral', false); }
+                     merke((e.moral > 0 ? '+' : '') + e.moral + ' Moral', e.moral > 0); }
       if (e.form){   st.formBonus += e.form;
                      merke((e.form > 0 ? '+' : '') + Math.round(e.form * 100) + '% Form', e.form > 0); }
       if (e.risiko){ st.risikoBonus += e.risiko / 100;
                      merke('+' + e.risiko + ' Verletzungsrisiko', false); }
+      if (e.trait) Object.entries(e.trait).forEach(([k, v]) => {
+        player.traits[k] = (player.traits[k] || 0) + v;
+        const n = { robust:'Robustheit', langlebig:'Haltbarkeit',
+                    jung:'Frühreife', playoff:'Playoff-Stärke' }[k] || k;
+        merke((v > 0 ? '+' : '') + v + ' ' + n, v > 0);
+      });
+      if (e.verschleiss){
+        st.verletzungsjahre = (st.verletzungsjahre || 0) + e.verschleiss;
+        merke('Der Körper trägt es mit', false);
+      }
+      if (e.rolle) rollenGutschrift(e.rolle);
       if (!folge.wirkungen.length) merke('Ein Sommer wie jeder andere', gelungen);
 
       st.verlauf.push({
         jahr: st.year, alter: st.age, art: 'sommer',
-        tag: so.tag, titel: so.titel, wahl: o.t, gelungen, chance: o.chance, wagnis: false
+        tag: so.tag, titel: so.titel, wahl: o.t, gelungen, chance: o.chance,
+        wagnis: !!o.wagnis
       });
       st.letzteFolge = folge;
       st.sommer = null;
@@ -1790,6 +1872,13 @@ const PUCKERO = (() => {
       const injRisk = clamp(0.19 + (st.age - 28) * 0.02 - (player.traits.robust || 0) * 0.011
                             + st.risikoBonus + rollenRisiko, 0.04, 0.6);
       let missed = 0;
+      /* Was aus der Reha uebrig blieb: der Saisonstart fehlt. */
+      if (st.startVerpasst){
+        missed += st.startVerpasst;
+        season.events.push({ t: 'Erst im Saisonverlauf eingestiegen – '
+          + st.startVerpasst + ' Spiele verpasst', c: '' });
+        st.startVerpasst = 0;
+      }
       if (r() < injRisk){
         const V = pick(r, D.VERLETZUNGEN);
         missed = Math.round(clamp(ri(r, V.min, V.max) / robust, 2, 55));

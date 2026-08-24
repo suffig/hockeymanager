@@ -1302,10 +1302,10 @@ function CareerGame(root, cfg){
         </div>
         <div class="ereignis-wahl">
           ${w.optionen.map((o, i) => `
-            <button class="wahlzeile" data-wechsel="${i}">
+            <button class="wahlzeile ${o.wagnis ? 'wagnis' : ''}" data-wechsel="${i}">
               <span class="wz-ikone">${UI.ikone(o.ikone || 'puck', 20)}</span>
               <span class="wz-text">
-                <b>${esc(o.t)}</b>
+                <b>${o.wagnis ? '<span class="wz-marke">Wagnis</span> ' : ''}${esc(o.t)}</b>
                 <span class="small">${esc(o.hinweis || '')}</span>
               </span>
               <span class="wz-balken">
@@ -1394,25 +1394,29 @@ function CareerGame(root, cfg){
   /* Die Sommerpause. Gleiche Bauform wie die anderen Entscheidungen,
      damit auf dem Handy nichts neu gelernt werden muss. */
   function sommerHtml(so){
+    /* Die Reha ist keine Sommerpause, sondern ihr Gegenteil - sie
+       bekommt einen eigenen Kopf und ihre eigene Farbe. */
+    const reha = so.art === 'reha';
     return `
-      <div class="wechselfrist sommerpause anim">
-        <div class="wf-kopf lage-sommer">
-          <span class="wf-uhr">${UI.ikone('uhr', 18)} ${esc(so.tag)}</span>
+      <div class="wechselfrist sommerpause ${reha ? 'reha' : ''} anim">
+        <div class="wf-kopf ${reha ? 'lage-reha' : 'lage-sommer'}">
+          <span class="wf-uhr">${UI.ikone(reha ? 'pflaster' : 'uhr', 18)} ${esc(so.tag)}</span>
           <span class="wf-lage">${UI.ikone('kalender', 15)} ${so.stand.alter} Jahre</span>
         </div>
         <div class="wf-text">
           <h2>${esc(so.titel)}</h2>
           <p>${esc(so.text)}</p>
-          ${so.stand.verschleiss ? `<div class="wf-stand">
-            ${UI.kennzahl('pflaster', so.stand.verschleiss, 'Angesammelter Verschleiß aus schweren Verletzungen', 'schlecht')}
+          ${(reha || so.stand.verschleiss) ? `<div class="wf-stand">
+            ${reha ? UI.kennzahl('kalender', so.stand.spiele, 'Verpasste Spiele in der vergangenen Saison', 'schlecht') : ''}
+            ${so.stand.verschleiss ? UI.kennzahl('pflaster', so.stand.verschleiss, 'Angesammelter Verschleiß aus schweren Verletzungen', 'schlecht') : ''}
           </div>` : ''}
         </div>
         <div class="ereignis-wahl">
           ${so.optionen.map((o, i) => `
-            <button class="wahlzeile" data-sommer="${i}">
+            <button class="wahlzeile ${o.wagnis ? 'wagnis' : ''}" data-sommer="${i}">
               <span class="wz-ikone">${UI.ikone(o.ikone || 'uhr', 20)}</span>
               <span class="wz-text">
-                <b>${esc(o.t)}</b>
+                <b>${o.wagnis ? '<span class="wz-marke">Wagnis</span> ' : ''}${esc(o.t)}</b>
                 <span class="small">${esc(o.hinweis || '')}</span>
               </span>
               <span class="wz-balken">
