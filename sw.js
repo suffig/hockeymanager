@@ -9,11 +9,14 @@
    - Fremde Adressen (Supabase, Schriften, das SDK) fasst dieser
      Speicher nicht an. Eine Anmeldung darf niemals aus einem alten
      Zwischenstand beantwortet werden.
-   - Seiten kommen aus dem Netz, wenn es geht, und aus dem Speicher,
-     wenn nicht. Bausteine umgekehrt - sie aendern sich seltener.
+   - Seiten und Programmdateien kommen aus dem Netz, wenn es geht,
+     und aus dem Speicher, wenn nicht. Waeren die Seiten frisch und
+     die Skripte alt, traefe neues HTML auf alten Programmcode - das
+     geht schief. Nur Bilder und Symbole kommen zuerst aus dem
+     Speicher; sie aendern sich mit ihrem Dateinamen.
    ========================================================== */
 
-const VERSION = 'eiszeit-v1';
+const VERSION = 'eiszeit-v2';
 const SCHALE = [
   './',
   './index.html',
@@ -67,9 +70,12 @@ self.addEventListener('fetch', e => {
 
   const istSeite = anfrage.mode === 'navigate'
                 || (anfrage.headers.get('accept') || '').includes('text/html');
+  /* Programmdateien gehoeren zur Seite: sie muessen zum gerade
+     geladenen HTML passen, sonst ruft neuer Code alte Bausteine auf. */
+  const istCode = /\.(js|css)$/i.test(url.pathname);
 
-  if (istSeite){
-    // Seiten: erst das Netz, damit Aenderungen ankommen
+  if (istSeite || istCode){
+    // Erst das Netz, damit Aenderungen sofort ankommen
     e.respondWith((async () => {
       try {
         const antwort = await fetch(anfrage);
@@ -78,13 +84,14 @@ self.addEventListener('fetch', e => {
         return antwort;
       } catch(err){
         const treffer = await caches.match(anfrage);
-        return treffer || caches.match('./index.html');
+        if (treffer) return treffer;
+        return istSeite ? caches.match('./index.html') : Response.error();
       }
     })());
     return;
   }
 
-  // Bausteine: erst der Speicher, im Hintergrund auffrischen
+  // Bilder und Symbole: erst der Speicher, im Hintergrund auffrischen
   e.respondWith((async () => {
     const treffer = await caches.match(anfrage);
     const holen = fetch(anfrage).then(antwort => {

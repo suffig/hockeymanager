@@ -1382,7 +1382,7 @@ const UI = (() => {
            statBoxen, natTabelle, rivaleKarte, vermaechtnisKarte, zeremonie, formKurve,
            eisfeld, serienBaum, meilensteinJagd, jahrgangTabelle, zielKarte,
            bilanzStreifen,
-           ikone, kennzahl, IKONEN, wendepunkte, jahrgangVerlauf,
+           ikone, kennzahl, IKONEN, wendepunkte, jahrgangVerlauf, STRANG_INFO,
            konfetti, zahlHoch, alleZahlenHoch, toast, copy };
 })();
 

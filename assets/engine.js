@@ -863,7 +863,11 @@ const PUCKERO = (() => {
       if (gelungen && o.folgt && !st.freigeschaltet.includes(o.folgt)){
         st.freigeschaltet.push(o.folgt);
         st.strangNamen[o.folgt] = { trainer: st.trainer, mitspieler: st.mitspieler,
-                                    klub: w.stand ? w.stand.klub : null };
+                                    klub: w.stand ? w.stand.klub : null,
+                                    /* Woher der Faden kommt - damit das
+                                       Folgeereignis darauf verweisen kann. */
+                                    jahr: st.year, alter: st.age,
+                                    wahl: o.t, tag: w.tag };
       }
 
       st.verlauf.push({
@@ -1190,11 +1194,19 @@ const PUCKERO = (() => {
       const ctx = ereignisKontext();
       /* Ein Folgeereignis erzählt von denselben Menschen wie das Original –
          auch wenn der Spieler das Team längst gewechselt hat. */
+      let herkunft = null;
       if (e.benoetigt && st.strangNamen[e.benoetigt]){
         const alt = st.strangNamen[e.benoetigt];
         ctx.trainer    = alt.trainer    || ctx.trainer;
         ctx.mitspieler = alt.mitspieler || ctx.mitspieler;
         ctx.damalsKlub = alt.klub       || ctx.klub;
+        /* Der Rueckverweis: welche Entscheidung diesen Faden geoeffnet
+           hat und wie lange das her ist. */
+        if (alt.wahl) herkunft = {
+          strang: e.benoetigt, wahl: alt.wahl, tag: alt.tag,
+          jahr: alt.jahr, alter: alt.alter, klub: alt.klub,
+          herJahre: alt.alter ? st.age - alt.alter : null
+        };
       } else ctx.damalsKlub = ctx.klub;
       /* Optionen, die nicht zum Charakter passen, fallen weg –
          dafuer kommen charaktergebundene hinzu. */
@@ -1205,7 +1217,7 @@ const PUCKERO = (() => {
         return true;
       });
       return {
-        id: e.id, kat: e.kat, szene: e.szene, tag: einsetzen(e.tag, ctx),
+        id: e.id, kat: e.kat, szene: e.szene, tag: einsetzen(e.tag, ctx), herkunft,
         titel: einsetzen(e.titel, ctx), text: einsetzen(e.text, ctx),
         spieltag: ri(r, 3, league(st.club.lg).k === 'NHL' ? 78 : 48),
         optionen: passend.map(o => {
@@ -1226,13 +1238,18 @@ const PUCKERO = (() => {
       const o = st.ereignis.optionen[clamp(index, 0, st.ereignis.optionen.length - 1)];
       const gelungen = o._wurf < o.chance;
       const w = gelungen ? o._gut : o._schlecht;
-      if (o.folgt && !st.freigeschaltet.includes(o.folgt)){
+      /* Vor dem Ablegen pruefen: danach steht der Faden schon in der
+         Liste und die Abfrage waere immer falsch. */
+      const oeffnetFaden = (o.folgt && !st.freigeschaltet.includes(o.folgt)) ? o.folgt : null;
+      if (oeffnetFaden){
         st.freigeschaltet.push(o.folgt);
         // Namen festhalten, damit das Folgeereignis dieselben Personen meint
         const c = o._ctx || {};
-        st.strangNamen[o.folgt] = { trainer: c.trainer, mitspieler: c.mitspieler, klub: c.klub };
+        st.strangNamen[o.folgt] = { trainer: c.trainer, mitspieler: c.mitspieler, klub: c.klub,
+                                    jahr: st.year, alter: st.age,
+                                    wahl: o.t, tag: st.ereignis.tag };
       }
-      const folge = { gelungen,
+      const folge = { gelungen, oeffnet: oeffnetFaden,
                       text: einsetzen((w && w.text) || '', o._ctx || {}), chance: o.chance,
                       wurf: Math.round(o._wurf), wahl: o.t, wirkungen: [] };
 

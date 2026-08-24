@@ -512,6 +512,15 @@ function CareerGame(root, cfg){
 
         ${folge.wahl ? `<div class="fb-wahl">${esc(folge.wahl)}</div>` : ''}
         ${folge.text ? `<p class="fb-text">${esc(folge.text)}</p>` : ''}
+        ${(() => {
+          if (!folge.oeffnet) return '';
+          const st = (UI.STRANG_INFO || {})[folge.oeffnet] || {};
+          return `<div class="fb-faden">
+            ${UI.ikone(st.ik || 'flamme', 14)}
+            <span>Ein Strang öffnet sich: <b>${esc(st.n || 'ein neuer Faden')}</b>.
+              Davon wirst du später wieder hören.</span>
+          </div>`;
+        })()}
         ${(folge.wirkungen || []).length ? `<div class="fb-wirkungen">
           ${folge.wirkungen.map((x, i) =>
             `<span class="fk ${x.gut ? 'plus' : 'minus'}" style="animation-delay:${0.26 + i * 0.07}s">${esc(x.t)}</span>`).join('')}
@@ -909,6 +918,23 @@ function CareerGame(root, cfg){
       </div>`;
   }
 
+  /* Woher dieses Ereignis kommt. Ohne den Verweis wirkte ein
+     Folgeereignis wie ein beliebiges neues - dabei ist es die Antwort
+     auf eine Entscheidung, die Jahre zurueckliegt. */
+  function herkunftHtml(h){
+    if (!h || !h.wahl) return '';
+    const wann = h.herJahre > 1 ? 'vor ' + h.herJahre + ' Jahren'
+               : h.herJahre === 1 ? 'im Jahr davor'
+               : 'in dieser Saison';
+    const st = (UI.STRANG_INFO || {})[h.strang] || {};
+    return `<div class="herkunft">
+      <span class="hk-marke">${UI.ikone(st.ik || 'transfer', 13)}
+        ${esc(st.n || 'Folge einer Entscheidung')}</span>
+      <span class="hk-text">${wann}${h.klub ? ' bei ' + esc(h.klub) : ''}:
+        <b>„${esc(h.wahl)}“</b></span>
+    </div>`;
+  }
+
   function ereignisHtml(e){
     const szene = (typeof SZENE !== 'undefined') ? SZENE.bild(e.szene) : '';
     return `
@@ -919,6 +945,7 @@ function CareerGame(root, cfg){
             <span class="pill">Spieltag ${e.spieltag || 1}</span>
             <span class="ereignis-tag">⚡ ${esc(e.tag)}</span>
           </div>
+          ${herkunftHtml(e.herkunft)}
           <h2 style="font-family:var(--font);font-size:23px;font-weight:750;letter-spacing:-.01em">
             ${esc(e.titel)}</h2>
           <p style="color:var(--muted);margin:0">${esc(e.text)}</p>
@@ -932,8 +959,8 @@ function CareerGame(root, cfg){
                   ? ' · +' + o.bonus + '% durch Eigenschaft' : ''}</span>
               </span>
               <span class="wz-balken">
-                <i class="gut" style="width:${o.chance}%">${o.chance}%</i>
-                <i class="schlecht" style="width:${100 - o.chance}%">${100 - o.chance}%</i>
+                <i class="gut" style="width:${o.chance}%">${o.chance >= 22 ? o.chance + '%' : ''}</i>
+                <i class="schlecht" style="width:${100 - o.chance}%">${100 - o.chance >= 22 ? (100 - o.chance) + '%' : ''}</i>
               </span>
               <span class="wz-pfeil">→</span>
             </button>`).join('')}
@@ -977,8 +1004,8 @@ function CareerGame(root, cfg){
                 <span class="small">${esc(o.hinweis || '')}</span>
               </span>
               <span class="wz-balken">
-                <i class="gut" style="width:${o.chance}%">${o.chance}%</i>
-                <i class="schlecht" style="width:${100 - o.chance}%">${100 - o.chance}%</i>
+                <i class="gut" style="width:${o.chance}%">${o.chance >= 22 ? o.chance + '%' : ''}</i>
+                <i class="schlecht" style="width:${100 - o.chance}%">${100 - o.chance >= 22 ? (100 - o.chance) + '%' : ''}</i>
               </span>
               <span class="wz-pfeil">${UI.ikone('transfer', 16)}</span>
             </button>`).join('')}
@@ -1013,8 +1040,8 @@ function CareerGame(root, cfg){
                 <span class="small">${esc(o.hinweis || '')}</span>
               </span>
               <span class="wz-balken">
-                <i class="gut" style="width:${o.chance}%">${o.chance}%</i>
-                <i class="schlecht" style="width:${100 - o.chance}%">${100 - o.chance}%</i>
+                <i class="gut" style="width:${o.chance}%">${o.chance >= 22 ? o.chance + '%' : ''}</i>
+                <i class="schlecht" style="width:${100 - o.chance}%">${100 - o.chance >= 22 ? (100 - o.chance) + '%' : ''}</i>
               </span>
               <span class="wz-pfeil">${UI.ikone('transfer', 16)}</span>
             </button>`).join('')}
@@ -1050,8 +1077,8 @@ function CareerGame(root, cfg){
               ${o.chance >= 100
                 ? '<span class="wz-sicher">sicher</span>'
                 : `<span class="wz-balken">
-                     <i class="gut" style="width:${o.chance}%">${o.chance}%</i>
-                     <i class="schlecht" style="width:${100 - o.chance}%">${100 - o.chance}%</i>
+                     <i class="gut" style="width:${o.chance}%">${o.chance >= 22 ? o.chance + '%' : ''}</i>
+                     <i class="schlecht" style="width:${100 - o.chance}%">${100 - o.chance >= 22 ? (100 - o.chance) + '%' : ''}</i>
                    </span>`}
               <span class="wz-pfeil">${UI.ikone('haken', 16)}</span>
             </button>`).join('')}
@@ -1084,8 +1111,8 @@ function CareerGame(root, cfg){
                 <span class="small">${esc(o.hinweis || '')}</span>
               </span>
               <span class="wz-balken">
-                <i class="gut" style="width:${o.chance}%">${o.chance}%</i>
-                <i class="schlecht" style="width:${100 - o.chance}%">${100 - o.chance}%</i>
+                <i class="gut" style="width:${o.chance}%">${o.chance >= 22 ? o.chance + '%' : ''}</i>
+                <i class="schlecht" style="width:${100 - o.chance}%">${100 - o.chance >= 22 ? (100 - o.chance) + '%' : ''}</i>
               </span>
               <span class="wz-pfeil">${UI.ikone('transfer', 16)}</span>
             </button>`).join('')}
