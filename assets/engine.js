@@ -93,7 +93,7 @@ const PUCKERO = (() => {
      Fuenf Fragen, jede Antwort verschiebt Werte und gibt Eigenschaften. */
   function draftFrage(player, runde){
     if (typeof DRAFT === 'undefined') return null;
-    const alle = DRAFT.fragen(pos(player.pos).group);
+    const alle = DRAFT.fragen(pos(player.pos).group, player.seed);
     return alle[runde] || null;
   }
 
@@ -905,7 +905,10 @@ const PUCKERO = (() => {
         /* Erste Profisaison: niemand erwartet Zahlen, nur Einsatzzeit. */
         person = { art:'spiele', wert: 20, n:'20 Einsätze sammeln',
                    d:'Im ersten Jahr zählt, dass du überhaupt spielst.' };
-        return { team, person };
+        return { team, person,
+               einsatz: { beide: { ruf: 5, moral: 8 },
+                          eines: { ruf: 2, moral: 2 },
+                          keines: { ruf: -4, moral: -7 } } };
       }
 
       /* Ein Ligawechsel verschiebt das Mass: In der NHL sind 70 Punkte
@@ -924,7 +927,10 @@ const PUCKERO = (() => {
         const ziel = clamp(Math.round((letzte.p || 12) * faktor), 8, 115);
         person = { art:'punkte', wert: ziel, n: ziel + ' Scorerpunkte', d:'Deine Vorgabe für die Saison.' };
       }
-      return { team, person };
+      return { team, person,
+               einsatz: { beide: { ruf: 5, moral: 8 },
+                          eines: { ruf: 2, moral: 2 },
+                          keines: { ruf: -4, moral: -7 } } };
     }
 
     function werteSaisonZiel(season){
@@ -951,20 +957,20 @@ const PUCKERO = (() => {
       st.zielBilanz.erfuellt += treffer;
       st.zielBilanz.verfehlt += 2 - treffer;
 
-      if (treffer === 2){
-        st.ruf = clamp(st.ruf + 5, 20, 99);
-        st.moral = clamp(st.moral + 8, 10, 100);
-        season.events.push({ t: 'Beide Saisonziele erfüllt', c: 'good' });
-      } else if (treffer === 1){
-        st.ruf = clamp(st.ruf + 2, 20, 99);
-        st.moral = clamp(st.moral + 2, 10, 100);
-        season.events.push({ t: z.team.erfuellt ? 'Teamziel erreicht, persönliche Vorgabe verfehlt'
-                                                : 'Persönliche Vorgabe erfüllt, Teamziel verfehlt', c: '' });
-      } else {
-        st.ruf = clamp(st.ruf - 4, 20, 99);
-        st.moral = clamp(st.moral - 7, 10, 100);
-        season.events.push({ t: 'Beide Saisonziele verfehlt', c: 'bad' });
-      }
+      /* Die Folgen stehen als Tabelle da, damit die Oberflaeche schon vor
+         der Saison zeigen kann, was auf dem Spiel steht. */
+      const FOLGEN = { 2: { ruf: 5, moral: 8 }, 1: { ruf: 2, moral: 2 },
+                       0: { ruf: -4, moral: -7 } };
+      const f = FOLGEN[treffer];
+      st.ruf = clamp(st.ruf + f.ruf, 20, 99);
+      st.moral = clamp(st.moral + f.moral, 10, 100);
+      z.bilanz = { treffer, ruf: f.ruf, moral: f.moral };
+
+      season.events.push(
+        treffer === 2 ? { t: 'Beide Saisonziele erfüllt', c: 'good' }
+      : treffer === 1 ? { t: z.team.erfuellt ? 'Teamziel erreicht, persönliche Vorgabe verfehlt'
+                                             : 'Persönliche Vorgabe erfüllt, Teamziel verfehlt', c: '' }
+      :                 { t: 'Beide Saisonziele verfehlt', c: 'bad' });
     }
 
     /* ---------------------------------------------------------------

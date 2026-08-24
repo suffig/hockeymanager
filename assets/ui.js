@@ -368,10 +368,31 @@ const UI = (() => {
       </div>`;
     };
 
+    /* Was dabei herauskommt - vorher als Einsatz, nachher als Abrechnung.
+       Vorher stand hier nur, was verlangt wird, nicht was es einbringt. */
+    const wert = (r, m) => `<b class="${r >= 0 ? 'plus' : 'minus'}">${r > 0 ? '+' : ''}${r}</b> Ansehen,
+      <b class="${m >= 0 ? 'plus' : 'minus'}">${m > 0 ? '+' : ''}${m}</b> Moral`;
+
+    const e = ziele.einsatz;
+    const fuss = abgerechnet
+      ? (ziele.bilanz
+          ? `<div class="ziel-fuss ${ziele.bilanz.treffer === 2 ? 'gut'
+               : ziele.bilanz.treffer === 0 ? 'schlecht' : ''}">
+               ${ziele.bilanz.treffer === 2 ? 'Beide erfüllt'
+                 : ziele.bilanz.treffer === 1 ? 'Eines erfüllt' : 'Beide verfehlt'} –
+               ${wert(ziele.bilanz.ruf, ziele.bilanz.moral)}
+             </div>` : '')
+      : (e ? `<div class="ziel-fuss">
+               <span>Beide: ${wert(e.beide.ruf, e.beide.moral)}</span>
+               <span>Eines: ${wert(e.eines.ruf, e.eines.moral)}</span>
+               <span>Keines: ${wert(e.keines.ruf, e.keines.moral)}</span>
+             </div>` : '');
+
     return `<div class="zielkarte ${abgerechnet ? 'fertig' : 'offen'} ${o.klein ? 'klein' : ''}">
       <div class="ziel-kopf">${abgerechnet ? 'Saisonziele – Abrechnung' : 'Vorgaben für die kommende Saison'}</div>
       ${zeile(ziele.team, 'Mannschaft')}
       ${zeile(ziele.person, 'Persönlich')}
+      ${fuss}
     </div>`;
   }
 
