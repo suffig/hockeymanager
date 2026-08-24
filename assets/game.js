@@ -534,7 +534,7 @@ function CareerGame(root, cfg){
       }
     }
     /* Die Vertrauensleiste der Rolle waechst von null auf ihren Wert. */
-    root.querySelectorAll('.rs-leiste i[style*="--ziel"]').forEach(el => {
+    root.querySelectorAll('.rs-leiste i[style*="--ziel"], .an-leiste i[style*="--ziel"]').forEach(el => {
       const ziel = el.style.getPropertyValue('--ziel');
       el.style.width = '0%';
       requestAnimationFrame(() => requestAnimationFrame(() => { el.style.width = ziel; }));
@@ -899,6 +899,18 @@ function CareerGame(root, cfg){
           </div>
           <div class="au-alter"><b>${v.alter}</b><span>Jahre</span></div>
         </div>
+
+        ${v.einschaetzung ? `<div class="anlage ${v.einschaetzung.sicher ? 'fest' : ''}">
+          <div class="an-kopf">
+            <span>${UI.ikone('auge', 13)} ${v.einschaetzung.sicher
+              ? 'So weit reicht es' : 'So weit könnte es reichen'}</span>
+            <b>${v.einschaetzung.ausgeschoepft}%</b>
+          </div>
+          <div class="an-text">${esc(v.einschaetzung.text)}</div>
+          <div class="an-leiste"><i style="--ziel:${v.einschaetzung.ausgeschoepft}%
+            ;width:${v.einschaetzung.ausgeschoepft}%"></i></div>
+          <div class="an-fuss">der eigenen Anlage ausgeschöpft</div>
+        </div>` : ''}
 
         <div class="au-fakten">
           <span class="au-fakt ${vertrag.k}">${UI.ikone('stift', 14)} ${vertrag.t}</span>

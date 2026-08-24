@@ -63,11 +63,66 @@ const PUCKERO = (() => {
                     SVK:'CZE', GER:'DEL', SUI:'NL', AUT:'DEL', LAT:'DEL', DEN:'DEL', NOR:'SHL' };
 
   /* ---------------- Spieler anlegen ---------------- */
+  /* ----------------------------------------------------------------
+     Talent hat eine Decke
+
+     Fuenf Stufen, so verteilt, wie es sich in einem Draftjahrgang
+     zutraegt: die meisten kommen nie ueber die zweite Klasse hinaus,
+     einer von zwanzig traegt spaeter eine Liga.
+     ---------------------------------------------------------------- */
+  const GRENZEN = [
+    { bis: 0.20, von: 64, spanne: 10 },   // reicht selten fuer die erste Klasse
+    { bis: 0.54, von: 74, spanne:  8 },   // solider Profi
+    { bis: 0.82, von: 82, spanne:  6 },   // Stammkraft ganz oben
+    { bis: 0.95, von: 88, spanne:  5 },   // Star
+    { bis: 1.01, von: 93, spanne:  5 }    // Ausnahmespieler
+  ];
+
+  function zieheGrenze(r){
+    const w = r();
+    const stufe = GRENZEN.find(g => w < g.bis) || GRENZEN[1];
+    return Math.round(stufe.von + r() * stufe.spanne);
+  }
+
+  /* Ein Attribut anheben - aber nur so weit, wie die Grenze es
+     zulaesst. Dicht darunter bleibt von einem Sommer Training fast
+     nichts mehr uebrig; das ist der Punkt, an dem eine Laufbahn ihre
+     Form annimmt. Abzuege gelten immer voll. */
+  function attrHeben(player, k, v){
+    if (player.attrs[k] === undefined) return;
+    if (v <= 0){ player.attrs[k] = clamp(player.attrs[k] + v, 1, 99); return; }
+    player.attrs[k] = clamp(
+      player.attrs[k] + v * wachstumsAnteil(player) * talentTempo(player), 1, 99);
+  }
+
+  /* Wer mehr Anlage hat, lernt auch schneller.
+
+     Ohne das war die Grenze nur nach unten wirksam: die Begabten
+     hatten mehr Raum, aber dieselbe Zahl an Sommern, um ihn zu
+     fuellen - und kamen deshalb kaum hoeher heraus als die Soliden.
+     Gemessen lagen Gipfelwerte im Mittel bei 78 und im obersten
+     Zehntel bei 84, egal wie hoch die Decke lag. */
+  function talentTempo(player){
+    return clamp(0.72 + ((player.potenzial || 80) - 70) / 34, 0.6, 1.7);
+  }
+
+  /* 1 = voll, 0 = ausgewachsen. Die letzten zehn Basispunkte vor der
+     Grenze kosten ueberproportional viel. */
+  function wachstumsAnteil(player){
+    /* 1,28 aus devAttrs mal dem Scheitel der Alterskurve (1,02). */
+    const grenze = (player.potenzial || 99) / 1.31;
+    const jetzt = overall(player, player.attrs);
+    const naehe = clamp((jetzt - (grenze - 10)) / 10, 0, 1);
+    return clamp(1 - naehe * naehe * 0.94, 0.06, 1);
+  }
+
   function newPlayer(opt){
     const r = rng(opt.seed);
     const nat = nation(opt.nation);
     const attrs = {};
-    attrsOf(opt.pos).forEach(a => { attrs[a.k] = ri(r, 42, 56); });
+    /* Weiter unten als frueher (42 bis 56): der Abstand zur eigenen
+       Grenze ist der Weg, den die Laufbahn zurueckzulegen hat. */
+    attrsOf(opt.pos).forEach(a => { attrs[a.k] = ri(r, 33, 46); });
     Object.entries(nat.bonus || {}).forEach(([k, v]) => {
       if (attrs[k] !== undefined) attrs[k] = clamp(attrs[k] + v, 1, 99);
     });
@@ -75,6 +130,18 @@ const PUCKERO = (() => {
       name: opt.name, num: opt.num, nation: opt.nation, pos: opt.pos,
       mode: opt.mode || 'klassisch',
       seed: opt.seed,
+      /* Die Grenze, an die dieser Koerper heranwachsen kann.
+
+         Ohne sie wuchs jeder gleich weit: gemessen ueber 500
+         Laufbahnen lagen achtzig Prozent aller Gipfelwerte zwischen 80
+         und 91, und sechsundsiebzig Prozent endeten in der NHL. Das
+         Ziel war praktisch immer dasselbe.
+
+         Die Verteilung ist bewusst schief - die meisten Junioren
+         werden solide Profis, wenige werden Stars, ganz wenige
+         Ausnahmespieler. Die Grenze bleibt verborgen; spuerbar wird
+         sie daran, dass die Spruenge kleiner werden. */
+      potenzial: zieheGrenze(r),
       attrs,
       traits: { robust:0, langlebig:0, jung:0, playoff:0 },
       eigenschaften: [],
@@ -99,7 +166,7 @@ const PUCKERO = (() => {
 
   function wirkungNeu(player){
     const w = { moralStart:0, rufStart:0, training:0, ereignis:0,
-                heimbonus:0, natBonus:0, lernkurve:0 };
+                heimbonus:0, natBonus:0, lernkurve:0, grenze:0 };
     player.traits = { robust:0, langlebig:0, jung:0, playoff:0 };
     if (typeof DRAFT === 'undefined'){ player.wirkung = w; return player; }
     (player.eigenschaften || []).forEach(id => {
@@ -111,13 +178,18 @@ const PUCKERO = (() => {
       });
     });
     player.wirkung = w;
+    /* Die Grenze ist die wichtigste verborgene Zahl einer Laufbahn.
+       Ein Teil davon ist Veranlagung, ein Teil ist, was im Draft aus
+       dem Spieler gemacht wurde - sonst waere der erste und
+       folgenreichste Zug des Spiels reines Wuerfeln. */
+    if (player.grundGrenze === undefined) player.grundGrenze = player.potenzial;
+    player.potenzial = clamp(Math.round(player.grundGrenze + (w.grenze || 0)), 58, 99);
     return player;
   }
 
   function applyKarte(player, karte){
     Object.entries(karte.b || {}).forEach(([k, v]) => {
-      if (player.attrs[k] === undefined) return;   // Wert gilt nicht fuer diese Position
-      player.attrs[k] = clamp(player.attrs[k] + v, 1, 99);
+      attrHeben(player, k, v);   // Werte, die es auf dieser Position nicht gibt, prallen ab
     });
     player.eigenschaften = player.eigenschaften || [];
     (karte.eig || []).forEach(id => {
@@ -170,7 +242,13 @@ const PUCKERO = (() => {
     // Jeder Spieler hat seinen eigenen Scheitelpunkt – manche bluehen mit 24 auf,
     // andere erst mit 31. Das macht Laufbahnen spuerbar unterschiedlich.
     const peak = (scheitel || 27) - (t.jung || 0) * 0.06 + (t.langlebig || 0) * 0.05;
-    const early = 1 - Math.pow(clamp(peak - age, 0, 20) / 11, 2) * 0.55
+    /* Frueher trug allein diese Kurve den Aufstieg: mit achtzehn stand
+       ein Spieler bei 0,63 und mit siebenundzwanzig bei 1,0, ganz
+       gleich, was er dazwischen tat. Damit waren zweiundneunzig Prozent
+       der Anlage schon am ersten Tag ausgeschoepft und Training wie
+       Ereignisse aenderten kaum etwas. Jetzt ist die Kurve flach - der
+       Weg nach oben fuehrt ueber die Arbeit an den Werten. */
+    const early = 1 - Math.pow(clamp(peak - age, 0, 20) / 11, 2) * 0.22
                     + (t.jung || 0) * 0.004 * clamp(peak - age, 0, 20);
     const late  = 1 - Math.pow(clamp(age - peak, 0, 25) / 11, 1.9) * 0.62
                     + (t.langlebig || 0) * 0.004 * clamp(age - peak, 0, 25);
@@ -190,10 +268,12 @@ const PUCKERO = (() => {
      Nach jeder Saison darf der Spieler an einem Bereich arbeiten.
      Junge Spieler machen grosse Spruenge, aeltere halten nur noch. */
   function trainingsGewinn(age){
-    if (age <= 22) return 6;   // junge Spieler entwickeln sich sprunghaft
-    if (age <= 27) return 4;
-    if (age <= 31) return 2;
-    return 1;                  // spaete Jahre sind reines Halten
+    /* Angehoben, seit die Alterskurve flach ist: was der Spieler im
+       Sommer tut, ist jetzt der Hauptantrieb seiner Entwicklung. */
+    if (age <= 22) return 11;  // junge Spieler entwickeln sich sprunghaft
+    if (age <= 27) return 7;
+    if (age <= 31) return 4;
+    return 2;                  // spaete Jahre sind reines Halten
   }
 
   function trainingsOptionen(player, age, seed, zusatz){
@@ -229,7 +309,7 @@ const PUCKERO = (() => {
 
   function trainingAnwenden(player, option){
     if (option.art === 'attr'){
-      player.attrs[option.k] = clamp(player.attrs[option.k] + option.wert, 1, 99);
+      attrHeben(player, option.k, option.wert);
     } else {
       player.traits[option.art] = (player.traits[option.art] || 0) + option.wert;
     }
@@ -618,8 +698,7 @@ const PUCKERO = (() => {
       const merke = (t, gut) => folge.wirkungen.push({ t, gut });
 
       if (e.attr) Object.entries(e.attr).forEach(([k, v]) => {
-        if (player.attrs[k] === undefined) return;
-        player.attrs[k] = clamp(player.attrs[k] + v, 1, 99);
+        attrHeben(player, k, v);
         merke('+' + v + ' ' + k, true);
       });
       if (e.ruf){   st.ruf = clamp(st.ruf + e.ruf, 20, 99);
@@ -840,8 +919,7 @@ const PUCKERO = (() => {
       };
 
       if (e.attr) Object.entries(e.attr).forEach(([k, v]) => {
-        if (player.attrs[k] === undefined) return;
-        player.attrs[k] = clamp(player.attrs[k] + v, 1, 99);
+        attrHeben(player, k, v);
         merke('+' + v + ' ' + attrName(k), true);
       });
       if (e.trait) Object.entries(e.trait).forEach(([k, v]) =>
@@ -1149,6 +1227,7 @@ const PUCKERO = (() => {
         rollenStand: st.rollenStand,
         klubJahre: st.klubJahre,
         kapitaen: st.kapitaenSeit === st.club.n,
+        einschaetzung: einschaetzung(),
         ziele: setzeSaisonZiel(st.club)
       };
     }
@@ -1552,7 +1631,7 @@ const PUCKERO = (() => {
 
       if (w){
         if (w.attr) Object.entries(w.attr).forEach(([k, v]) => {
-          if (player.attrs[k] !== undefined) player.attrs[k] = clamp(player.attrs[k] + v, 1, 99);
+          attrHeben(player, k, v);
         });
         if (w.trait) Object.entries(w.trait).forEach(([k, v]) =>
           player.traits[k] = (player.traits[k] || 0) + v);
@@ -2119,8 +2198,14 @@ const PUCKERO = (() => {
 
       /* Entry Draft: einmalig im Sommer nach der Saison mit 18 */
       if (!st.entryDraft && st.age === 18){
-        const potenzial = overall(player, devAttrs(player.attrs,
-          formFactor(st.scheitel, player.traits, (player.wirkung || {}).lernkurve, st.scheitel)));
+        /* Was die Sichter sehen, ist die Anlage - nicht der
+           Achtzehnjaehrige von heute. Vorher wurde der aktuelle Stand
+           hochgerechnet; damit rutschten Spaetzuender durch und
+           fruehreife Talente wurden ueberschaetzt. */
+        const potenzial = (player.potenzial || 80) * 0.7
+          + overall(player, devAttrs(player.attrs,
+              formFactor(st.scheitel, player.traits,
+                         (player.wirkung || {}).lernkurve, st.scheitel))) * 0.3;
         const wert = potenzial + (season.p || season.wins || 0) * 0.10 + (r() - 0.5) * 12;
         let runde = 0, pick2 = 0, klub = null;
         if (wert > 70){
@@ -2204,8 +2289,17 @@ const PUCKERO = (() => {
         const anteil = (d.von - d.platz) / (d.von - 1);   // 1 = Spitze, 0 = letzter
         return round1((anteil - 0.5) * 4);
       })();
-      const bewertung = Math.max(naechsterOvr,
-                                 st.ruf * 0.5 + naechsterOvr * 0.5) + jgWert;
+      /* Ansehen oeffnet Tueren, ersetzt aber kein Koennen.
+
+         Vorher ging es zur Haelfte in die Bewertung ein - und weil das
+         Ansehen bis ueber hundert steigt, galt ein Spieler mit 78
+         Gesamtwert als 89 und stand damit in der NHL. Gemessen
+         erreichten so sechsundfuenfzig Prozent aller Laufbahnen die
+         beste Liga der Welt, unabhaengig davon, was der Koerper
+         hergab. Jetzt hebt ein grosser Name um hoechstens acht Punkte -
+         genug fuer eine Tuer, zu wenig fuer eine erfundene Karriere. */
+      const rufHilfe = clamp((st.ruf - naechsterOvr) * 0.35, -6, 8);
+      const bewertung = naechsterOvr + rufHilfe + jgWert;
       if (st.age >= 25 && bewertung < VERTRAG_MIN){ ende('vertraglos'); return; }
 
       /* Hoert der Spieler freiwillig auf? */
@@ -2528,6 +2622,45 @@ const PUCKERO = (() => {
       return true;
     }
 
+    /* ----------------------------------------------------------------
+       Wie weit es reichen kann
+
+       Die Grenze bleibt eine verborgene Zahl - sonst waere jede
+       Laufbahn ab dem ersten Tag ausgerechnet. Was der Spieler
+       bekommt, ist das, was ein Sichter auch bekaeme: eine Spanne, die
+       mit den Jahren enger wird. Mit achtzehn ist sie breit genug, um
+       zu hoffen; mit fuenfundzwanzig steht sie fest.
+       ---------------------------------------------------------------- */
+    const STUFEN = [
+      { ab: 92, n:'Ein Spieler für die Geschichtsbücher' },
+      { ab: 86, n:'Erste Reihe in der besten Liga der Welt' },
+      { ab: 80, n:'Stammkraft ganz oben' },
+      { ab: 74, n:'Fester Platz in einer starken Liga' },
+      { ab: 68, n:'Solider Profi in Europa' },
+      { ab:  0, n:'Zweite Reihe, zweite Liga' }
+    ];
+    const stufeFuer = w => (STUFEN.find(x => w >= x.ab) || STUFEN[STUFEN.length - 1]);
+
+    function einschaetzung(){
+      const grenze = player.potenzial || 80;
+      /* Das Rauschen faellt mit dem Alter - und schneller, wenn schon
+         viele Saisons als Beleg vorliegen. */
+      const jahre = st.age - 18;
+      const rausch = clamp(10 - jahre * 1.3 - st.seasons.length * 0.35, 0, 10);
+      const unten = stufeFuer(grenze - rausch);
+      const oben  = stufeFuer(grenze + rausch);
+      return {
+        sicher: unten.n === oben.n,
+        von: unten.n, bis: oben.n,
+        text: unten.n === oben.n ? unten.n : unten.n + ' bis ' + oben.n.charAt(0).toLowerCase() + oben.n.slice(1),
+        /* Wie weit die Anlage schon ausgeschoepft ist - das ist keine
+           Schaetzung, sondern messbar, und es ist die Zahl, an der die
+           eigenen Entscheidungen haengen. */
+        ausgeschoepft: Math.round(clamp(
+          overall(player, player.attrs) / (grenze / 1.31), 0, 1) * 100)
+      };
+    }
+
     /* ---- Rolle im Team festlegen ----
 
        Der Klub sagt nicht mehr zu allem ja. Jede Rolle traegt, was sie
@@ -2802,6 +2935,8 @@ const PUCKERO = (() => {
         natDebuet: st.natDebuet,
         entryDraft: st.entryDraft,
         rolle: st.rolle,
+        potenzial: player.potenzial,
+        ausgeschoepft: einschaetzung().ausgeschoepft,
         rollenStand: st.rollenStand,
         rollenLauf: st.rollenLauf,
         trainer: st.trainer,
@@ -2842,6 +2977,7 @@ const PUCKERO = (() => {
       /* Die Vorschau ist keine Entscheidung, sondern die Ruheansicht -
          sie wird bei Bedarf gerechnet und haelt den Ablauf nicht an. */
       get vorschau(){ return macheAuftakt(); },
+      get einschaetzung(){ return einschaetzung(); },
       get bericht(){ return st.bericht; },
       get kapitaensfrage(){ return st.kapitaensfrage; },
       get ruecktrittsfrage(){ return st.ruecktrittsfrage; },
@@ -2862,19 +2998,30 @@ const PUCKERO = (() => {
     return createCareer(player).runToEnd();
   }
 
-  /* ---------------- Einordnung ---------------- */
+  /* ---------------- Einordnung ----------------
+
+     Die Schwellen stammen aus den gemessenen Perzentilen von
+     siebenhundert Laufbahnen, die ohne Plan gespielt wurden: ein
+     Viertel bleibt Journeyman, einer von zwanzig kommt in die
+     Ruhmeshalle, einer von hundert darueber hinaus. Wer mit Verstand
+     spielt, liegt darueber - das ist der Sinn der Sache.
+
+     Vorher lagen sie hoeher, geeicht auf eine Zeit, in der jeder
+     Spieler auf denselben Gesamtwert zulief. Mit der individuellen
+     Grenze waeren zweiundvierzig Prozent aller Laufbahnen als
+     Journeyman geendet. */
   function legacyRank(v){
-    if (v >= 1700) return { n:'Unsterblich', c:'gold', d:'Ein Name, den man in hundert Jahren noch kennt.' };
-    if (v >= 1300) return { n:'Hall of Fame', c:'gold', d:'Trikot unter dem Hallendach, Platz in der Ruhmeshalle.' };
-    if (v >= 1050) return { n:'Franchise-Ikone', c:'', d:'Ein Klub hat eine Ära nach dir benannt.' };
-    if (v >= 870) return { n:'Topstar', c:'', d:'Jahrelang erste Reihe, erste Wahl, erste Schlagzeile.' };
-    if (v >= 700) return { n:'Leistungsträger', c:'', d:'Solide Karriere in starken Ligen.' };
-    if (v >= 540) return { n:'Profi', c:'', d:'Ein ehrliches Eishockeyleben.' };
+    if (v >= 1400) return { n:'Unsterblich', c:'gold', d:'Ein Name, den man in hundert Jahren noch kennt.' };
+    if (v >= 1115) return { n:'Hall of Fame', c:'gold', d:'Trikot unter dem Hallendach, Platz in der Ruhmeshalle.' };
+    if (v >= 905) return { n:'Franchise-Ikone', c:'', d:'Ein Klub hat eine Ära nach dir benannt.' };
+    if (v >= 710) return { n:'Topstar', c:'', d:'Jahrelang erste Reihe, erste Wahl, erste Schlagzeile.' };
+    if (v >= 525) return { n:'Leistungsträger', c:'', d:'Solide Karriere in starken Ligen.' };
+    if (v >= 270) return { n:'Profi', c:'', d:'Ein ehrliches Eishockeyleben.' };
     return { n:'Journeyman', c:'', d:'Viele Busfahrten, wenig Rampenlicht.' };
   }
   const RANG_SCHWELLEN = [
-    ['Unsterblich', 1700], ['Hall of Fame', 1300], ['Franchise-Ikone', 1050],
-    ['Topstar', 870], ['Leistungsträger', 700], ['Profi', 540]
+    ['Unsterblich', 1400], ['Hall of Fame', 1115], ['Franchise-Ikone', 905],
+    ['Topstar', 710], ['Leistungsträger', 525], ['Profi', 270]
   ];
 
   /* ---------------- Herausforderungen ---------------- */
