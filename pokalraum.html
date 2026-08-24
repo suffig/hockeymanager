@@ -156,8 +156,11 @@ function zeichne(){
     wechsler:'Wechsel', treue:'Treue', wortfuehrer:'Wortführer', ziehvater:'Ziehvater'
   };
 
+  const STAND_KURZ = { bewaehrung:'auf Bewährung', gesetzt:'gesetzt', saeule:'Säule' };
+
   function zusatz(k){
     const hatNeues = k.wahlen !== undefined || k.jgPlatz != null
+                  || k.rolle != null
                   || (k.straenge && k.straenge.length);
     if (!hatNeues) return '';
     const teile = [];
@@ -166,6 +169,11 @@ function zeichne(){
     if (k.klubs) teile.push(`<span>Stationen <b>${k.klubs}</b></span>`);
     if (k.wahlen) teile.push(`<span>Entscheidungen <b>${k.gelungen}</b>/${k.wahlen}</span>`);
     if (k.natKapitaen) teile.push('<span class="gold">Kapitän der Nationalmannschaft</span>');
+    /* Womit die Laufbahn geendet hat: die letzte Rolle und wie fest
+       der Spieler zuletzt darin sass. */
+    if (k.rolle) teile.push(`<span>Zuletzt <b>${esc(k.rolle.replace(/^Als /, ''))}</b>${
+      k.rollenStand ? ', ' + STAND_KURZ[k.rollenStand] : ''}</span>`);
+    if (k.umstellungen) teile.push(`<span>Umgestellt <b>${k.umstellungen}×</b></span>`);
 
     const str = (k.straenge || []).filter(x => STRANG_KURZ[x]);
     const wp = k.wendepunkt;

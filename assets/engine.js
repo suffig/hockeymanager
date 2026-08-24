@@ -320,6 +320,7 @@ const PUCKERO = (() => {
       rollenStand: null,      // wie fest du darin sitzt
       rollenPunkte: 0,        // Guthaben beim Trainer, -4 bis +4
       rollenJahre: 0,         // Saisons in dieser Rolle
+      rollenVorOvr: null,     // Wert der Vorsaison, fuer die Aufbaurolle
       rollenLauf: [],         // jede Aenderung, mit Grund
       verhandlung: null,      // offene Vertragsverhandlung
       klausel: false,         // Ausstiegsklausel im laufenden Vertrag
@@ -961,41 +962,110 @@ const PUCKERO = (() => {
       return S ? S.f : 1;
     }
 
-    /* Was der Trainer erwartet - gemessen am eigenen Niveau, nicht an
-       einer festen Zahl. Bei Passung null trifft ein Median-Jahr genau
-       die Erwartung; die Faktoren stammen aus gemessenen Verteilungen. */
-    function rollenErwartung(rolle, kante, posFactor, isG){
-      if (!rolle) return null;
-      if (isG) return { art: rolle.k === 'stamm' ? 'anteil'
-                          : rolle.k === 'teilung' ? 'quote' : 'aufbau' };
-      const grund = Math.max(0.12, kante * posFactor);
-      return rolle.k === 'offensiv' ? { art:'punkte', soll: grund * 1.30 }
-           : rolle.k === 'zweiweg'  ? { art:'beides', soll: grund * 1.02, plus: 25 }
-           : rolle.k === 'defensiv' ? { art:'plus',   plus: 31 }
-           :                          { art:'haerte', plus: 22, pim: 50 };
+    /* Was der Trainer erwartet.
+
+       Der erste Entwurf mass jede Rolle gegen die Form derselben Saison.
+       Damit sank die Latte mit dem Spieler: wer nachliess, senkte
+       zugleich die Erwartung und galt weiter als erfuellt. Bei den
+       Scorern kam so 91 Prozent "erfuellt" heraus, das Urteil war
+       praktisch beschlossen. Ausserdem hatte jede Rolle ihr eigenes
+       Mass - Punkte, Plus-Minus, Fangquote -, und dieselben Schwellen
+       bedeuteten je Rolle etwas anderes: 42 Prozent verfehlt beim
+       Anker, 11 Prozent beim Stammtorhueter.
+
+       Jetzt gilt beides einheitlich. Die Latte wird beim Vertrag
+       festgelegt, aus Werten ohne Zufall, und bleibt liegen. Und jedes
+       Mass wird auf dieselbe Skala gebracht:
+
+           quote = 1 + (ist - soll) / spanne
+
+       Die Spannen stammen aus den gemessenen Streuungen, damit ein
+       normales Jahr in allen Rollen gleich weit ausschlaegt. Wer
+       besser wird, uebertrifft; wer nachlaesst, altert oder in eine
+       staerkere Liga geht, verfehlt - genau das soll die Rolle
+       spuerbar machen. */
+    /* Die Latte: was dein Koennen hergibt, wenn nichts dazwischenkommt.
+       Dieselbe Rechnung wie in der Saison, nur ohne Tagesform.
+
+       Die kleinen Zuschlaege sind keine Willkuer, sondern gemessene
+       Korrekturen: ohne sie sagte die Vorhersage bei den Strafminuten
+       neun zu wenig und beim Einsatzanteil vier Prozentpunkte zu wenig
+       voraus, und die Rolle galt reihenweise als uebertroffen. */
+    function latteFuer(club, ovr, dev){
+      const lg = league(club ? club.lg : 'JUN');
+      const w = (st.rolle && st.rolle.w) || {};
+      const kante = clamp((ovr - lg.level * 0.58) / 32, -0.35, 1.7);
+      const pf = P.k === 'D' ? 0.62 : (P.k === 'C' ? 1.15 : 1.0);
+      return {
+        ppg:    clamp(kante * pf * (1 + (w.punkte || 0) * 1.9), 0.02, 2.4) * 1.04,
+        plus:   kante * 16 + ((club ? club.str : 76) - 76) * 0.5 + (w.plus || 0) + 0.3,
+        /* Strafminuten kommen aus ri(8, 12 + Zweikampf/2) - der
+           Mittelwert haengt also am Zweikampfwert, nicht an einer 20. */
+        pim:    (10 + (dev.zweikampf || 50) / 4) * (w.strafen || 1),
+        anteil: clamp(0.50 + (w.anteil || 0) * 1.6 + kante * 0.08, 0.12, 0.96),
+        sv:     clamp(0.885 + kante * 0.045, 0.868, 0.948) + 0.002
+      };
     }
 
     /* Nach der Saison: hat die Abmachung gehalten? */
     function werteRolle(season, kante, posFactor, isG, dev){
       if (!st.rolle) return;
       const rolle = st.rolle;
-      const e = rollenErwartung(rolle, kante, posFactor, isG);
+      /* Die Latte wird jede Saison neu aus dem Koennen gerechnet, nicht
+         aus der gespielten Form. Wuerde sie beim Vertrag festgelegt und
+         liegen bleiben, ueberrennt sie der normale Leistungszuwachs:
+         gemessen kamen dabei 68 Prozent "uebertroffen" heraus. Wuerde
+         sie dagegen aus der gespielten Form kommen, sinkt sie mit dem
+         Spieler mit und das Urteil waere schon beschlossen - so kamen
+         beim Scorer 91 Prozent "erfuellt" heraus. Dazwischen liegt die
+         Frage, um die es geht: hast du aus deinem Koennen etwas
+         gemacht? */
+      const L = latteFuer(st.club, season.ovr, dev);
       const vollGp = season.vollGp || season.gp || 1;
-      let quote;                       // 1.0 = genau erfuellt
+
+      /* Ein Mass auf die gemeinsame Skala bringen. Die Spannen stammen
+         aus den gemessenen Quartilen der Abweichung, damit ein normales
+         Jahr in jeder Rolle gleich weit ausschlaegt - vorher bedeuteten
+         dieselben Schwellen je Rolle etwas voellig anderes. */
+      const norm = (ist, soll, spanne) => 1 + (ist - soll) / spanne;
+      let quote;
 
       if (isG){
-        const anteil = season.gp / vollGp;
-        quote = e.art === 'anteil' ? anteil / 0.78
-              : e.art === 'quote'  ? (season.sv - 0.900) / (0.940 - 0.900)
-              : (season.ovrGewinn || 0) / 1.6;
+        /* Der Einsatzanteil haengt stark am Zweikampf mit dem zweiten
+           Mann - das ist Erzaehlung, aber als Massstab zu grob: mit
+           enger Spanne wurde daraus ein Muenzwurf in drei Richtungen
+           (34/33/32). Deshalb weite Spanne und mehr Gewicht auf die
+           Fangquote, die der Torwart selbst in der Hand hat. */
+        const qA = norm(season.gp / vollGp, L.anteil, 0.50);
+        const qS = norm(season.sv, L.sv, 0.017);
+        /* Ein Aufbautorwart liefert keine Zahlen, sondern Fortschritt.
+           Vorher stand hier ein Feld, das es nie gab - jeder
+           Aufbautorwart verfehlte damit jede einzelne Saison.
+
+           Wie viel Fortschritt normal ist, haengt am Alter: gemessen
+           sechs Punkte mit zwanzig, zwei mit achtundzwanzig, keiner mit
+           dreissig. Ohne diese Staffel waere die Rolle mit jungen
+           Torhuetern ein Freifahrtschein - und mit alten unmoeglich. */
+        const sollWachstum = clamp(5.4 - Math.max(0, st.age - 24) * 1.05, 0, 5.4);
+        const qW = norm(season.ovr - (st.rollenVorOvr === null
+                                      ? season.ovr - sollWachstum
+                                      : st.rollenVorOvr), sollWachstum, 10);
+        quote = rolle.k === 'stamm'   ? qA * 0.45 + qS * 0.55
+              : rolle.k === 'teilung' ? qS * 0.70 + qA * 0.30
+              :                         qW;
       } else {
         const ppg = season.p / Math.max(1, season.gp);
-        quote = e.art === 'punkte' ? ppg / Math.max(0.05, e.soll)
-              : e.art === 'beides' ? (ppg / Math.max(0.05, e.soll)) * 0.55
-                                   + (season.plus / e.plus) * 0.45
-              : e.art === 'plus'   ? season.plus / e.plus
-              : (season.plus / e.plus) * 0.45 + (season.pim / e.pim) * 0.55;
+        const qP = norm(ppg, L.ppg, Math.max(0.30, L.ppg * 0.85));
+        const qB = norm(season.plus, L.plus, 30);
+        /* Strafminuten streuen so breit, dass sie fuer sich genommen
+           kaum etwas aussagen - deshalb tragen sie nur ein Drittel. */
+        const qH = norm(season.pim, L.pim, 90);
+        quote = rolle.k === 'offensiv' ? qP
+              : rolle.k === 'zweiweg'  ? qP * 0.55 + qB * 0.45
+              : rolle.k === 'defensiv' ? qB
+              :                          qB * 0.65 + qH * 0.35;
       }
+      st.rollenVorOvr = season.ovr;
 
       /* Verletzungen zaehlen halb: wer nicht spielen konnte, hat nicht
          versagt - aber der Trainer plant trotzdem um. */
@@ -1048,6 +1118,7 @@ const PUCKERO = (() => {
         st.rollenStand = 'bewaehrung';
         st.rollenPunkte = 0;
         st.rollenJahre = 0;
+        st.rollenVorOvr = season.ovr;
         st.moral = clamp(st.moral - 9, 10, 100);
         st.rollenLauf.push({ jahr: st.year, rolle: neu.k, stand: 'bewaehrung',
                              grund: 'umgestellt', von: rolle.k });
@@ -2442,6 +2513,10 @@ const PUCKERO = (() => {
       st.rollenStand = gewaehlt.zusage === 'bewaehrung' || abgelehnt ? 'bewaehrung' : 'gesetzt';
       st.rollenPunkte = st.rollenStand === 'bewaehrung' ? -1 : 1;
       st.rollenJahre = 0;
+      /* Der Ausgangswert fuer die Aufbaurolle, die als einzige den
+         Fortschritt selbst misst. */
+      st.rollenVorOvr = overall(player, devAttrs(player.attrs,
+        formFactor(st.age, player.traits, (player.wirkung || {}).lernkurve, st.scheitel)));
       st.rollenLauf.push({ jahr: st.year, rolle: gewaehlt.k, stand: st.rollenStand,
                            grund: abgelehnt ? 'abgelehnt' : 'vereinbart',
                            /* Was du wolltest - sonst laese sich der Eintrag
