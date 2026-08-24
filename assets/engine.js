@@ -1669,7 +1669,16 @@ const PUCKERO = (() => {
       const gewicht = x => {
         let w = 1;
         if (x.gewicht)   w *= x.gewicht; // vom Autor gesetzter Vorrang
-        if (x.benoetigt) w *= 8;        // Folge einer eigenen Entscheidung
+        if (x.benoetigt){
+          /* Eine Folge einer eigenen Entscheidung - und je laenger der
+             Strang offen liegt, desto faelliger wird sie. Ohne das
+             blieb er oft bis zum Karriereende unbeantwortet, obwohl
+             das Spiel beim Oeffnen "davon wirst du spaeter hoeren"
+             versprochen hat. */
+          const auf = st.strangNamen[x.benoetigt];
+          const wartet = (auf && auf.jahr) ? clamp(st.year - auf.jahr, 0, 6) : 0;
+          w *= 8 + wartet * 2.5;
+        }
         if (x.nurEig)    w *= 3.5;      // passt zum Charakter
         if (x.nurPos)    w *= 2.5;      // passt zur Position
         /* Ereignisse, aus denen ein Erzaehlstrang erwachsen kann, sind
@@ -1684,7 +1693,10 @@ const PUCKERO = (() => {
            jeder sechzehnten Saison kam - und andere in keiner. Nur
            Folgeereignisse duerfen darueber: sie sind die Antwort auf
            eine eigene Entscheidung und muessen kommen. */
-        if (!x.benoetigt) w = Math.min(w, 4.2);
+        /* Kein einzelnes Ereignis soll das Feld beherrschen - auch
+           kein faelliges Folgeereignis. Ohne den zweiten Deckel stieg
+           eines davon auf sechs Prozent aller Feuerungen. */
+        w = Math.min(w, x.benoetigt ? 22 : 4.2);
         return w;
       };
       const summe = offen.reduce((a2, x) => a2 + gewicht(x), 0);

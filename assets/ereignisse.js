@@ -668,7 +668,7 @@ const EREIGNISSE = (() => {
       text:'Die Anmeldung liegt seit zwei Wochen auf dem Küchentisch. Dein Vertrag läuft '
          + 'noch ein Jahr, das Angebot aus dem Ausland liegt daneben, und im Nebenzimmer '
          + 'wird gerade ein Schulranzen anprobiert.',
-      bedingung: st => st.age >= 29,
+      bedingung: st => st.age >= 27,
       optionen:[
         { t:'Sesshaft werden', chance:75, hinweis:'Ruhe im Rücken',
           gut:{ moral:8, trait:{ langlebig:5 }, text:'Zum ersten Mal seit Jahren fühlt sich ein Ort wie zu Hause an.' },
@@ -828,7 +828,7 @@ const EREIGNISSE = (() => {
       text:'Er will, dass du in engen Spielen die Reihen selbst zusammenstellst. '
          + 'Kein anderer Trainer hat dir je so viel überlassen. Es ist ein Vertrauensbeweis '
          + 'und eine Bürde in einem.',
-      bedingung: st => st.age >= 25 && st.strangNamen && st.strangNamen.trainerpakt
+      bedingung: st => st.age >= 23 && st.strangNamen && st.strangNamen.trainerpakt
                     && st.club && st.club.n === st.strangNamen.trainerpakt.klub,
       optionen:[
         { t:'Die Verantwortung übernehmen', chance:65, hinweis:'Mehr Einfluss, mehr Schuld',
@@ -838,6 +838,146 @@ const EREIGNISSE = (() => {
         { t:'Dankend ablehnen', chance:75, hinweis:'Spieler bleiben, nicht Trainer werden',
           gut:{ form:0.05, text:'Kopf frei fürs eigene Spiel. Deine beste Ausbeute seit Jahren.' },
           schlecht:{ ruf:-3, text:'Er hatte auf mehr gehofft.' } }
+      ] },
+
+    /* Zweiter Beat: wenn der Trainer nicht mehr deiner ist. Vorher
+       konnte sich der Pakt nur einloesen, solange man beim selben Klub
+       blieb - und das bleibt fast niemand. */
+    { id:'tr_gegner', gewicht:3, kat:'trainer', szene:'eis', tag:'Alte Bekannte',
+      benoetigt:'trainerpakt',
+      titel:'{trainer} steht heute auf der anderen Bank',
+      text:'Er hat bei {damalsKlub} aufgehört und woanders angefangen. Vor dem Spiel '
+         + 'sucht er deinen Blick über das ganze Eis hinweg. Er kennt jede deiner '
+         + 'Bewegungen – und er hat sechzig Minuten Zeit, das zu nutzen.',
+      bedingung: st => st.age >= 24 && st.strangNamen && st.strangNamen.trainerpakt
+                    && st.club && st.club.n !== st.strangNamen.trainerpakt.klub,
+      optionen:[
+        { t:'Ihm zeigen, was er dir beigebracht hat', chance:58,
+          hinweis:'Sein Spiel gegen ihn selbst',
+          gut:{ ruf:9, moral:8, attr:{ uebersicht:3, nerven:3 },
+                text:'Zwei Tore aus genau den Situationen, die er dir eingetrichtert hat. Nach dem Schlusspfiff hebt er die Hand.' },
+          schlecht:{ moral:-7, text:'Er hat jede Bewegung vorher gesehen. Es war ein langer Abend.' } },
+        { t:'Vor dem Spiel zu ihm gehen', chance:82,
+          hinweis:'Zwei Minuten reden, dann Gegner sein',
+          gut:{ moral:9, ruf:3,
+                text:'Zwei Minuten in einem leeren Gang. Danach spielt ihr gegeneinander, als hätte es das nie gegeben – und beide wissen es besser.' },
+          schlecht:{ moral:-3, text:'Er nickt nur kurz. Es ist nicht mehr wie früher, und das tut mehr weh als erwartet.' } },
+        { t:'Es ignorieren', chance:70, hinweis:'Ein Gegner wie jeder andere',
+          gut:{ form:0.05, text:'Kein Blick, kein Wort, dafür das beste Spiel seit Wochen.' },
+          schlecht:{ ruf:-4, moral:-5,
+                text:'Er erzählt danach der Presse, er habe dich anders in Erinnerung. Das bleibt hängen.' } }
+      ] },
+
+    /* Zweiter Beat: der Freund, der noch da ist. Das Wiedersehen setzt
+       voraus, dass man getrennte Wege ging - dieser Fall ist der andere. */
+    { id:'mit_zusammen', gewicht:3, kat:'kabine', szene:'kabine', tag:'Noch immer zusammen',
+      benoetigt:'weggefaehrte',
+      titel:'{mitspieler} und du seid die letzten aus der alten Kabine',
+      text:'Alle anderen von damals sind weg, gewechselt oder aufgehört. Ihr zwei sitzt '
+         + 'immer noch nebeneinander, seit Jahren derselbe Platz. Der Trainer fragt euch '
+         + 'inzwischen, bevor er etwas ändert.',
+      bedingung: st => st.age >= 25 && st.klubJahre >= 2 && st.strangNamen
+                    && st.strangNamen.weggefaehrte && st.club
+                    && st.club.n === st.strangNamen.weggefaehrte.klub,
+      optionen:[
+        { t:'Gemeinsam vorangehen', chance:74, hinweis:'Zwei Stimmen wiegen mehr als eine',
+          gut:{ moral:12, rolle:2, ruf:5,
+                text:'Ihr redet vor dem Spiel abwechselnd. Die Mannschaft hört zu, weil ihr euch nicht widersprecht.' },
+          schlecht:{ moral:-6, text:'Zwei Wortführer sind einer zu viel. Es wird unübersichtlich.' } },
+        { t:'Ihn vorlassen', chance:80, hinweis:'Nicht jede Bühne muss deine sein',
+          gut:{ moral:7, attr:{ nerven:3 },
+                text:'Er wächst in die Rolle, und du hast den Kopf frei fürs Spiel. Beides zahlt sich aus.' },
+          schlecht:{ ruf:-4, text:'Man erwartet von dir mehr als ein Nicken aus der zweiten Reihe.' } }
+      ] },
+
+    /* Zweiter Beat: der Klub, den man am Ende doch verlaesst. */
+    { id:'wf_abschied', gewicht:3, kat:'privat', szene:'buero', tag:'Nach all den Jahren',
+      benoetigt:'treue',
+      titel:'{damalsKlub} lädt dich zurück – den Verein, für den du geblieben bist',
+      text:'Damals hast du dich entschieden zu bleiben, und man hat es dir hoch angerechnet. '
+         + 'Inzwischen spielst du woanders. Jetzt fragen sie an, ob du zum Jubiläum kommst '
+         + 'und ein paar Worte sagst. Die halbe Halle erinnert sich noch an die Saison, '
+         + 'in der du nicht gegangen bist.',
+      bedingung: st => st.age >= 26 && st.strangNamen && st.strangNamen.treue
+                    && st.club && st.club.n !== st.strangNamen.treue.klub,
+      optionen:[
+        { t:'Hinfahren und reden', chance:76, hinweis:'Zurück, wo es angefangen hat',
+          gut:{ ruf:8, moral:9,
+                text:'Zweitausend Leute stehen auf, als dein Name fällt. Auf der Rückfahrt bist du eine Stunde lang still.' },
+          schlecht:{ moral:-6, text:'Die Halle ist halb leer, und die meisten kennen dich nur vom Hörensagen. Es war ein langer Weg für wenig.' } },
+        { t:'Absagen', chance:70, hinweis:'Nach vorn schauen, nicht zurück',
+          gut:{ form:0.05, text:'Du bleibst im Training. Was vorbei ist, ist vorbei – und deine Beine danken es dir.' },
+          schlecht:{ ruf:-6, moral:-4,
+                text:'Man hatte fest mit dir gerechnet. Der Verein, dem du treu warst, schreibt nicht noch einmal.' } }
+      ] },
+
+    /* Zweiter Beat: was aus dem Wortfuehrer wird, wenn es eng wird. */
+    { id:'wf_ernstfall', gewicht:3, kat:'kabine', szene:'kabine', tag:'Jetzt zählt es',
+      benoetigt:'wortfuehrer',
+      titel:'Sieben Niederlagen – und alle schauen zu dir',
+      text:'Du hast damals das Wort ergriffen, und seitdem giltst du als der, der etwas '
+         + 'sagt, wenn etwas gesagt werden muss. Jetzt steht die Mannschaft nach sieben '
+         + 'Pleiten in der Kabine und wartet. Der Trainer sagt nichts. Er wartet auch.',
+      bedingung: st => st.age >= 24,
+      optionen:[
+        { t:'Die Mannschaft in die Pflicht nehmen', chance:56,
+          hinweis:'Deutlich werden, auch wenn es unbequem ist', wagnis:true,
+          gut:{ moral:14, ruf:9, rolle:2, trait:{ playoff:5 },
+                text:'Vier Sätze, keiner davon freundlich. Im nächsten Spiel läuft die Mannschaft, als hinge etwas davon ab.' },
+          schlecht:{ moral:-11, ruf:-6, rolle:-1,
+                text:'Es kippt. Zwei Mitspieler drehen sich weg, während du redest, und danach ist es schlimmer als vorher.' } },
+        { t:'Einzelne beiseitenehmen', chance:74, hinweis:'Leiser, aber langsamer',
+          gut:{ moral:8, attr:{ nerven:3 },
+                text:'Drei Gespräche unter vier Augen. Es dauert zwei Wochen, aber es hält.' },
+          schlecht:{ moral:-4, text:'Zu leise für einen Raum, in dem alle schreien wollen.' } },
+        { t:'Diesmal schweigen', chance:66, hinweis:'Nicht jede Krise gehört dir',
+          gut:{ form:0.06, text:'Du spielst dich aus der Krise, statt über sie zu reden. Das kommt auch an.' },
+          schlecht:{ ruf:-7, rolle:-1,
+                text:'Ausgerechnet du sagst nichts. Das merkt sich die Kabine länger als jede Niederlage.' } }
+      ] },
+
+    /* Zweiter Beat: der Zieh­vater am Ende der eigenen Laufbahn. */
+    { id:'st_erbe', gewicht:3, kat:'kabine', szene:'kabine', tag:'Das Erbe',
+      benoetigt:'ziehvater',
+      titel:'{mitspieler} trägt jetzt die Binde, die du getragen hast',
+      text:'Er stand als Junger neben dir und hat zugehört. Heute steht er vor der '
+         + 'Mannschaft, und du sitzt zwei Plätze weiter. Er macht es anders als du – '
+         + 'und in einigem besser.',
+      bedingung: st => st.age >= 31,
+      optionen:[
+        { t:'Ihm den Platz lassen', chance:80, hinweis:'Deine Zeit vorne ist vorbei',
+          gut:{ moral:10, ruf:6,
+                text:'Du sagst nichts und stehst hinter ihm. Die Jungen sehen genau das – und lernen daraus mehr als aus jeder Rede.' },
+          schlecht:{ moral:-4, text:'Loslassen klingt leichter, als es ist.' } },
+        { t:'Ihm reinreden, wenn es nötig ist', chance:54,
+          hinweis:'Erfahrung gegen Autorität', wagnis:true,
+          gut:{ ruf:7, rolle:1, attr:{ uebersicht:3 },
+                text:'Zweimal in der Saison widersprichst du ihm, beide Male hattest du recht. Er dankt es dir vor allen.' },
+          schlecht:{ moral:-9, rolle:-2,
+                text:'Zwei Autoritäten in einer Kabine sind keine. Der Trainer entscheidet sich für ihn.' } }
+      ] },
+
+    /* Zweiter Beat: das Heimspiel des Wechslers hat schon stattgefunden -
+       das hier ist, was Jahre spaeter davon uebrig ist. */
+    { id:'wf_bilanz', gewicht:3, kat:'presse', szene:'presse', tag:'Die alte Entscheidung',
+      benoetigt:'wechsler',
+      titel:'Ein Reporter rechnet dir vor, was der Wechsel damals gebracht hat',
+      text:'Er hat die Zahlen mitgebracht: was du seitdem gewonnen hast, was der alte '
+         + 'Klub ohne dich erreichte, was aus dem geworden ist, der deinen Platz bekam. '
+         + 'Dann schiebt er das Blatt über den Tisch und fragt, ob es das wert war.',
+      /* Nur wer wirklich Stationen hinter sich hat - sonst rechnet der
+         Reporter eine Bilanz vor, die es gar nicht gibt. */
+      bedingung: st => st.age >= 27 && (st.ehemalige || []).length >= 2,
+      optionen:[
+        { t:'Dazu stehen', chance:78, hinweis:'Es war deine Entscheidung',
+          gut:{ ruf:7, moral:6, attr:{ nerven:3 },
+                text:'„Ich würde es wieder tun." Der Satz steht am nächsten Tag über dem Artikel, und er stimmt.' },
+          schlecht:{ ruf:-4, text:'Es klingt trotziger, als du es gemeint hast.' } },
+        { t:'Zugeben, dass du zweifelst', chance:64, hinweis:'Ehrlich, aber angreifbar',
+          gut:{ moral:9, ruf:4,
+                text:'Ein ehrlicher Satz über eine alte Entscheidung. Die Leser mögen ihn mehr als jede Bilanz.' },
+          schlecht:{ moral:-7, ruf:-5,
+                text:'Aus einem Nebensatz wird eine Schlagzeile: „Er bereut den Wechsel."' } }
       ] },
 
     /* ==========================================================
@@ -870,7 +1010,7 @@ const EREIGNISSE = (() => {
       text:'Vor dem Bully nickt ihr euch zu wie früher in der Kabine von {damalsKlub}. '
          + 'Dann geht es los, und plötzlich ist er einfach ein Gegenspieler, der dir '
          + 'den Weg zum Tor versperrt.',
-      bedingung: st => st.age >= 26 && st.strangNamen && st.strangNamen.weggefaehrte
+      bedingung: st => st.age >= 22 && st.strangNamen && st.strangNamen.weggefaehrte
                     && st.club && st.club.n !== st.strangNamen.weggefaehrte.klub,
       optionen:[
         { t:'Freundschaft ruht für sechzig Minuten', chance:75, hinweis:'Profis verstehen das',
@@ -1070,7 +1210,7 @@ const EREIGNISSE = (() => {
       text:'Damals hättest du gehen können, und alle wussten es. '
          + 'Jetzt sitzt die Vereinsführung dir gegenüber und redet von Verlässlichkeit, '
          + 'von einem Gesicht für den Verein – und davon, dass so etwas seinen Preis hat.',
-      bedingung: st => st.age >= 24 && st.klubJahre >= 2,
+      bedingung: st => st.age >= 22 && st.klubJahre >= 2,
       optionen:[
         { t:'Den Preis benennen', chance:60, hinweis:'Treue darf etwas kosten',
           gut:{ ruf:8, moral:7,
