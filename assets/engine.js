@@ -514,6 +514,20 @@ const PUCKERO = (() => {
       jahrgangEreignis: null, // Ueberholvorgang der laufenden Saison
       jahrgangDelta: null,    // Abstand nach vorn und hinten
       ehemalige: [],          // frueher Klubs - Stoff fuer spaetere Wiedersehen
+      /* ----------------------------------------------------------------
+         Was du einem Verein bedeutest
+
+         Die Bilanz je Verein wurde bisher erst am Karriereende
+         zusammengerechnet - waehrend der Laufbahn wusste das Spiel
+         nicht, ob jemand im dritten oder im dreizehnten Jahr bei
+         seinem Klub steht. Damit fehlte das, was einen Spieler an
+         einen Ort bindet: dass er dort jemand geworden ist.
+
+         Gefuehrt wird deshalb mit: Saisons, Titel, Jahre mit dem C,
+         Jahre als Saeule. Daraus ergibt sich ein Rang, und der hat
+         Folgen, solange man dort spielt.
+         ---------------------------------------------------------------- */
+      klubKonto: {},
       wechselfrist: null,     // offene Entscheidung an der Transferfrist
       wechselGeprueft: false,
       ziele: null,            // Vorgaben des Klubs fuer die laufende Saison
@@ -1316,6 +1330,49 @@ const PUCKERO = (() => {
       return echt;
     }
 
+    /* ----------------------------------------------------------------
+       Vom Zugang zur Legende
+
+       Vier Stufen, und die Schwellen sind an der gemessenen Verteilung
+       geeicht statt geraten (scratchpad/legende_pruef.js). Titel wiegen
+       schwerer als Jahre, aber Jahre allein reichen auch: wer zwoelf
+       Saisons bei einem Verein bleibt, ohne je etwas zu gewinnen, ist
+       dort trotzdem eine Figur.
+       ---------------------------------------------------------------- */
+    const KLUBRANG = [
+      { k:'legende',   n:'Vereinslegende', ab: 22 },
+      { k:'gesicht',   n:'Gesicht des Vereins', ab: 13 },
+      { k:'stammkraft',n:'Stammkraft',     ab: 6 },
+      { k:'zugang',    n:'Zugang',         ab: 0 }
+    ];
+
+    function klubKonto(name){
+      if (!name) return null;
+      if (!st.klubKonto[name])
+        st.klubKonto[name] = { saisons: 0, titel: 0, kapitaen: 0, saeule: 0,
+                               punkte: 0, rang: 'zugang' };
+      return st.klubKonto[name];
+    }
+
+    function klubPunkte(k){
+      return k.saisons * 1.6 + k.titel * 5 + k.kapitaen * 1.4 + k.saeule * 0.9;
+    }
+
+    function klubRangVon(punkte){
+      return (KLUBRANG.find(x => punkte >= x.ab) || KLUBRANG[KLUBRANG.length - 1]).k;
+    }
+
+    /* Wie fest der aktuelle Verein zu dir steht - 0 bis 1. Wird an
+       mehreren Stellen gebraucht, deshalb eine Zahl statt vier
+       Abfragen auf den Rang. */
+    function klubBindung(){
+      if (!st.club) return 0;
+      const k = st.klubKonto[st.club.n];
+      if (!k) return 0;
+      return k.rang === 'legende' ? 1 : k.rang === 'gesicht' ? 0.6
+           : k.rang === 'stammkraft' ? 0.25 : 0;
+    }
+
     function standFaktor(){
       const S = (D.ROLLENSTAND || {})[st.rollenStand || 'gesetzt'];
       return S ? S.f : 1;
@@ -1521,6 +1578,9 @@ const PUCKERO = (() => {
                             soll: st.rolle.soll } : null,
         rollenStand: st.rollenStand,
         klubJahre: st.klubJahre,
+        klubRang: (st.klubKonto[st.club.n] || {}).rang || 'zugang',
+        klubRangName: (KLUBRANG.find(x =>
+          x.k === ((st.klubKonto[st.club.n] || {}).rang || 'zugang')) || {}).n,
         kapitaen: st.kapitaenSeit === st.club.n,
         einschaetzung: einschaetzung(),
         trainer: st.trainer || null,
@@ -1557,11 +1617,12 @@ const PUCKERO = (() => {
                           : Math.min(0.055, 0.02 + st.klubJahre * 0.008);
       const mitspieler = clamp(
         (klubStaerke(st.club) - ligaSchnittJetzt(st.club.lg)) * 0.006, -0.06, 0.07);
+      const bindung = klubBindung() * 0.022;
       return {
         moral:  Math.round(moral * 1000) / 10,
         stand:  Math.round(stand * 1000) / 10,
         form:   Math.round(st.formzustand * 0.055 * 1000) / 10,
-        umfeld: Math.round((eingewoehnung + mitspieler) * 1000) / 10
+        umfeld: Math.round((eingewoehnung + mitspieler + bindung) * 1000) / 10
       };
     }
 
@@ -2195,17 +2256,25 @@ const PUCKERO = (() => {
       const standWirkung = st.rollenStand === 'saeule' ? 0.030
                          : st.rollenStand === 'bewaehrung' ? -0.045 : 0;
 
+      /* ---- Was der Verein von dir haelt ----
+         Bewusst kleiner als die Eingewoehnung, die lange Treue schon
+         belohnt - sonst zaehlt dasselbe Jahr zweimal. Es geht um den
+         Unterschied zwischen einem, der lange da ist, und einem, den
+         die Halle beim Namen ruft. */
+      const bindung = klubBindung();
+      const bindungsWirkung = bindung * 0.022;
+
       /* Klassenunterschied zur Liga */
       const tagesform = 0.97 + r() * 0.04
                       + st.formzustand * 0.055
                       + eingewoehnung + mitspieler
-                      + moralWirkung + standWirkung
+                      + moralWirkung + standWirkung + bindungsWirkung
                       + (season.sternstunde ? 0.10 : 0) + st.formBonus;
       season.einfluesse = {
         moral: Math.round(moralWirkung * 1000) / 10,
         stand: Math.round(standWirkung * 1000) / 10,
         form:  Math.round(st.formzustand * 0.055 * 1000) / 10,
-        umfeld: Math.round((eingewoehnung + mitspieler) * 1000) / 10
+        umfeld: Math.round((eingewoehnung + mitspieler + bindungsWirkung) * 1000) / 10
       };
       const kante = clamp((ovr * tagesform - lg.level * 0.58) / 32, -0.35, 1.7);
       season.kante = Math.round(kante * 100) / 100;
@@ -2649,7 +2718,8 @@ const PUCKERO = (() => {
       /* Das C bekommt niemand, dessen Rolle gerade zur Debatte steht -
          die Mannschaft folgt keinem, den der Trainer selbst infrage
          stellt. Wer seine Rolle traegt, wird eher gefragt. */
-      if (!st.kapitaenSeit && !st.kapitaenGefragt && st.klubJahre >= 2 && st.age >= 25
+      if (!st.kapitaenSeit && !st.kapitaenGefragt
+          && st.klubJahre >= (klubBindung() >= 0.6 ? 1 : 2) && st.age >= 25
           && kante > 0.65 && !istJugend(lg.k) && st.rollenStand !== 'bewaehrung'
           && r() < (st.rollenStand === 'saeule' ? 0.72 : 0.50)){
         st.kapitaensfrage = { klub: club.n, jahr: st.year };
@@ -2686,6 +2756,31 @@ const PUCKERO = (() => {
          der Dauereuphorie die Spitze. */
       st.moral = clamp(Math.round(st.moral + (st.grundstimmung - st.moral) * 0.25),
                        10, 100);
+
+      /* Die Vereinsbilanz fortschreiben - vor allem anderen, damit
+         alles Folgende schon den neuen Rang sieht. */
+      (() => {
+        const k = klubKonto(st.club && st.club.n);
+        if (!k) return;
+        k.saisons++;
+        if (season.title) k.titel++;
+        if (st.kapitaenSeit === st.club.n) k.kapitaen++;
+        if (st.rollenStand === 'saeule') k.saeule++;
+        k.punkte = Math.round(klubPunkte(k) * 10) / 10;
+        const vorher = k.rang;
+        k.rang = klubRangVon(k.punkte);
+        if (k.rang !== vorher && k.rang !== 'zugang'){
+          const R = KLUBRANG.find(x => x.k === k.rang);
+          season.events.push({ t: 'Bei ' + st.club.n + ': ' + R.n, c: 'good' });
+          moralAendern(k.rang === 'legende' ? 9 : k.rang === 'gesicht' ? 6 : 3);
+          if (k.rang === 'legende')
+            st.verlauf.push({ jahr: st.year, alter: st.age, art: 'legende',
+              tag: 'Verein', titel: 'Vereinslegende bei ' + st.club.n,
+              wahl: k.saisons + ' Saisons', gelungen: true, chance: null, wagnis: false });
+        }
+        season.klubRang = k.rang;
+        season.klubPunkte = k.punkte;
+      })();
 
       werteLeben(season);
       werteKlausel(season);
@@ -2727,8 +2822,14 @@ const PUCKERO = (() => {
           /* Der Neue kennt dich nicht. Wer Saeule war, ist erst einmal
              wieder gesetzt; wer schon wackelte, steht ganz unten. */
           if (st.rolle){
-            st.rollenStand = st.rollenStand === 'bewaehrung' ? 'bewaehrung' : 'gesetzt';
-            st.rollenPunkte = st.rollenStand === 'bewaehrung' ? -1 : 0;
+            /* Wer beim Verein eine Figur ist, faellt nicht auf null
+               zurueck - der Neue kennt zwar ihn nicht, aber die
+               Kabine und die Halle kennen ihn. */
+            const halt = klubBindung();
+            st.rollenStand = st.rollenStand === 'bewaehrung' ? 'bewaehrung'
+                           : halt >= 1 ? 'saeule' : 'gesetzt';
+            st.rollenPunkte = st.rollenStand === 'bewaehrung' ? -1
+                            : st.rollenStand === 'saeule' ? 3 : (halt >= 0.6 ? 1 : 0);
             st.rollenLauf.push({ jahr: st.year, rolle: st.rolle.k,
                                  stand: st.rollenStand, grund: 'neuerTrainer' });
           }
@@ -2913,7 +3014,10 @@ const PUCKERO = (() => {
       /* Wann kommt der Spieler überhaupt auf den Markt? */
       st.vertragJahre--;
       const aktuelleLiga = league(st.club.lg);
-      const zuSchwach = bewertung < LG_MIN[st.club.lg] - 6;
+      /* Ein Verein wirft seine Legende nicht raus, weil sie ein Jahr
+         schwach war - er gibt ihr die Saison, die er einem Zugang
+         nicht gibt. */
+      const zuSchwach = bewertung < LG_MIN[st.club.lg] - 6 - klubBindung() * 5;
       const zuGross = D.LEAGUES.some(l =>
         !istJugend(l.k) && l.prestige >= aktuelleLiga.prestige + 30 && bewertung >= LG_MIN[l.k]);
       const juniorEnde = istJugend(st.club.lg) && st.age > 20;
@@ -3074,16 +3178,24 @@ const PUCKERO = (() => {
         else if (st.age >= 31) jahre = ri(r, 1, 2);
         else if (st.age <= 21) jahre = ri(r, 2, 3);
         else                   jahre = ri(r, 2, 4);
+        /* Einer Legende bietet der Verein laenger an - auch spaet. */
+        if (bleibt && klubBindung() >= 0.6) jahre = Math.min(5, jahre + 1);
         angebote.push({
           club, lgKey: club.lg, lgName: lg.n, bleibt: !!bleibt, rolle,
           staerke: Math.round(staerke), trend: klubTrend(club), jahre,
-          gehalt: round1(clamp((bewertung - 58) * 0.5, 0.05, 15) * lg.salary * (bleibt ? 1.05 : 1) + 0.05),
+          gehalt: round1(clamp((bewertung - 58) * 0.5, 0.05, 15) * lg.salary
+                         * (bleibt ? 1.05 + klubBindung() * 0.16 : 1) + 0.05),
+          bindung: bleibt ? klubBindung() : 0,
+          klubRang: bleibt && st.klubKonto[club.n] ? st.klubKonto[club.n].rang : null,
           prestige: lg.prestige
         });
       };
 
       // 1. Verbleib, sofern die aktuelle Liga noch reicht
-      const bleibtMoeglich = moeglicheLigen.some(l => l.k === aktuell.lg) && r() < 0.85;
+      /* Wer beim Verein etwas bedeutet, bekommt praktisch immer ein
+         Angebot zu bleiben - und ein besseres. */
+      const bleibtMoeglich = moeglicheLigen.some(l => l.k === aktuell.lg)
+                          && r() < 0.85 + klubBindung() * 0.14;
       if (bleibtMoeglich) nimm(aktuell, true);
 
       // 2. Zwei bis drei Angebote aus den erreichbaren Ligen
@@ -3778,6 +3890,14 @@ const PUCKERO = (() => {
         else { k.g += x.g || 0; k.a += x.a || 0; k.p += x.p || 0; }
         if (x.title) k.titel++;
       });
+      /* Was du dem Verein bedeutet hast - waehrend der Laufbahn
+         gefuehrt, hier nur angehaengt. */
+      klubs.forEach(k => {
+        const konto = (st.klubKonto || {})[k.n];
+        k.rang = konto ? konto.rang : 'zugang';
+        k.rangName = konto ? (KLUBRANG.find(x => x.k === konto.rang) || {}).n : 'Zugang';
+        k.klubPunkte = konto ? konto.punkte : 0;
+      });
 
       /* Bilanz je Liga – zeigt, wo eine Laufbahn wirklich stattgefunden hat */
       const ligen = [];
@@ -3813,7 +3933,20 @@ const PUCKERO = (() => {
       const prodPts = isG
         ? profi.reduce((s, x) => s + (x.wins || 0), 0) * 0.20 + profi.reduce((s, x) => s + (x.so || 0), 0) * 1.2
         : profi.reduce((s, x) => s + (x.p || 0), 0) * 0.15;
-      const legacy = Math.round(trophyPts + prodPts + Math.max(0, st.peak - 60) * 3.2 + profi.length * 2);
+      /* ----------------------------------------------------------------
+         Was ein Verein dir wert ist
+
+         Die Legendenwertung kannte bisher nur Titel, Zahlen und die
+         Hoehe der eigenen Wertung - also das, was in einer Tabelle
+         steht. Was fehlte, war die andere Art von Groesse: dass
+         irgendwo ein Trikot unter dem Hallendach haengt. Zwoelf Jahre
+         bei einem Verein ohne Titel sind eine Laufbahn, die zaehlt.
+         ---------------------------------------------------------------- */
+      const bindungsPunkte = klubs.reduce((a, k) =>
+        a + (k.rang === 'legende' ? 90 : k.rang === 'gesicht' ? 35
+           : k.rang === 'stammkraft' ? 8 : 0), 0);
+      const legacy = Math.round(trophyPts + prodPts + Math.max(0, st.peak - 60) * 3.2
+                                + profi.length * 2 + bindungsPunkte);
 
       /* Was von dieser Laufbahn bleibt */
       const vermaechtnis = [];
@@ -3824,7 +3957,13 @@ const PUCKERO = (() => {
       const hauptklub = klubs.slice().sort((a, b) => b.saisons - a.saisons)[0];
       if (legacy >= 1700) nimm('statue');
       if (legacy >= 1300) nimm('hof');
-      if (hauptklub && hauptklub.saisons >= 7 && (hauptklub.titel > 0 || legacy >= 1050)) nimm('nummer');
+      /* Frueher eine Faustregel: sieben Saisons beim Hauptverein und
+         entweder ein Titel oder 1050 Legendenpunkte. Seit die Bindung
+         an jeden Verein waehrend der Laufbahn gefuehrt wird, gibt es
+         dafuer eine gemessene Groesse - und sie haengt am Verein, wo
+         die Nummer haengen wuerde, nicht an der Gesamtwertung. */
+      const legendenKlubs = klubs.filter(k => k.rang === 'legende');
+      if (legendenKlubs.length) nimm('nummer');
       if (st.kapitaenSeit && legacy >= 870) nimm('kapitaen');
       if (legacy >= 870 && st.peak >= 84) nimm('legende');
       if (seasons.length >= 14 && legacy >= 700) nimm('trainer');
@@ -3839,6 +3978,10 @@ const PUCKERO = (() => {
         trophies: trophyList,
         peak: st.peak, peakAttrs: st.peakAttrs || player.attrs,
         besteSaison, rekorde, klubs, ligen, vermaechtnis,
+        /* Die Vereine, bei denen es zu etwas gereicht hat - fuer die
+           Ehrung in der Abschlussbilanz. */
+        klubEhrungen: klubs.filter(k => k.rang === 'legende' || k.rang === 'gesicht')
+          .sort((a, b) => b.klubPunkte - a.klubPunkte),
         rivale: st.rivale,
         jahrgang: st.jahrgang,
         jahrgangStand: st.jahrgangStand,
@@ -3853,6 +3996,7 @@ const PUCKERO = (() => {
         bonusBilanz: st.bonusBilanz,
         leben: st.leben,
         grundstimmung: st.grundstimmung,
+        klubKonto: st.klubKonto,
         zielBilanz: st.zielBilanz,
         hauptklub: klubs.slice().sort((a, b) => b.saisons - a.saisons)[0] || null,
         entscheidungen: st.entscheidungen,

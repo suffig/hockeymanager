@@ -1148,8 +1148,12 @@ function CareerGame(root, cfg){
             Wechselsperre</span>` : ''}
           ${v.klausel ? `<span class="au-fakt gut">${UI.ikone('flug', 14)}
             Ausstiegsklausel</span>` : ''}
-          <span class="au-fakt">${UI.ikone('kalender', 14)} ${v.klubJahre === 0
-            ? 'Erstes Jahr hier' : v.klubJahre + '. Jahr hier'}</span>
+          <span class="au-fakt ${v.klubRang === 'legende' ? 'legende'
+              : v.klubRang === 'gesicht' ? 'gut' : ''}">
+            ${UI.ikone(v.klubRang === 'legende' ? 'krone' : 'kalender', 14)}
+            ${v.klubRang === 'zugang'
+              ? (v.klubJahre === 0 ? 'Erstes Jahr hier' : v.klubJahre + '. Jahr hier')
+              : esc(v.klubRangName) + ' · ' + (v.klubJahre + 1) + '. Jahr'}</span>
           ${v.rolle ? `<span class="au-fakt">${v.rolle.icon}
             ${esc(v.rolle.kurz || v.rolle.n.replace(/^Als /, ''))}</span>` : ''}
         </div>
@@ -1921,6 +1925,27 @@ function CareerGame(root, cfg){
             <div class="attrs" style="grid-template-columns:1fr">${UI.attrRows(p, res.peakAttrs)}</div>
           </div>
           ${alsApp ? zu() + auf('vitrine') : ''}
+          ${(res.klubEhrungen && res.klubEhrungen.length) ? `
+            <div class="card ${alsApp ? 'mt' : ''}">
+              <h3>Was du deinen Vereinen bedeutet hast</h3>
+              <div class="ehrungen">
+                ${res.klubEhrungen.map(k => `
+                  <div class="ehrung ${k.rang}">
+                    <div class="eh-wappen">${UI.wappenBild(k.n, 40)}</div>
+                    <div class="eh-text">
+                      <b>${esc(k.n)}</b>
+                      <span>${esc(k.rangName)} · ${k.saisons}
+                        ${k.saisons === 1 ? 'Saison' : 'Saisons'}${k.titel
+                          ? ' · ' + k.titel + (k.titel === 1 ? ' Titel' : ' Titel') : ''}</span>
+                    </div>
+                    ${k.rang === 'legende'
+                      ? `<span class="eh-nummer">#${res.player.num}</span>` : ''}
+                  </div>`).join('')}
+              </div>
+              ${res.klubEhrungen.some(k => k.rang === 'legende') ? `
+                <p class="small mt mb0">Deine Nummer wird nicht mehr vergeben.</p>` : ''}
+            </div>` : ''}
+
           ${res.leben ? `<div class="card ${alsApp ? 'mt' : ''}">
             <h3>Das Leben daneben</h3>
             ${UI.lebenKarte(Object.assign({}, res.leben,
