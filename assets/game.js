@@ -898,6 +898,7 @@ function CareerGame(root, cfg){
             <b class="klubname">${esc(v.klub)}</b>
             <span class="au-liga">${esc(v.ligaName)} · ${esc(v.erwartung)}
               ${v.kapitaen ? '<span class="kapitaen-c">C</span>' : ''}</span>
+            ${v.trend ? trendChip(v.trend) : ''}
           </div>
           <div class="au-alter"><b>${v.alter}</b><span>Jahre</span></div>
         </div>
@@ -1062,6 +1063,19 @@ function CareerGame(root, cfg){
 
   /* ---------- Bausteine der mittleren Spalte ---------- */
   /* Rolle im Team – direkt nach der Vertragsunterschrift */
+  /* Wohin ein Klub sich bewegt. Ein Titelkandidat im Zerfall ist ein
+     anderes Angebot als ein Aufbauteam im Aufwind - vorher stand beides
+     als dieselbe Zahl da. */
+  const TREND = {
+    auf:    { n:'im Aufwind',  ik:'hoch',  k:'tr-auf' },
+    ab:     { n:'im Umbruch',  ik:'runter',k:'tr-ab' },
+    stabil: { n:'gefestigt',   ik:'waage', k:'' }
+  };
+  const trendChip = t => {
+    const x = TREND[t]; if (!x) return '';
+    return `<span class="klubtrend ${x.k}">${UI.ikone(x.ik, 12)} ${x.n}</span>`;
+  };
+
   const ZUSAGE = {
     sicher:     { n:'Zugesagt',      k:'zu-sicher' },
     bewaehrung: { n:'Auf Bewährung', k:'zu-probe' },
@@ -1441,7 +1455,8 @@ function CareerGame(root, cfg){
               <div class="jk-liga">${a.bleibt ? 'Verbleib' : a.rolle} · ${esc(a.lgName)}</div>
               <div class="jk-wappen">${UI.wappenBild(a.club.n, 58)}</div>
               <div class="jk-name">${esc(a.club.n)}</div>
-              <div class="jk-land">Teamstärke <b style="color:var(--accent)">${a.staerke}</b></div>
+              <div class="jk-land">Teamstärke <b style="color:var(--accent)">${a.staerke}</b>
+                ${a.trend ? trendChip(a.trend) : ''}</div>
               <div class="jk-minuten">${a.gehalt.toFixed(1)} Mio/Jahr · ${a.jahre}
                 ${a.jahre === 1 ? 'Jahr' : 'Jahre'}</div>
             </button>`).join('')}

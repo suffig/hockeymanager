@@ -502,7 +502,7 @@ const PUCKERO = (() => {
     function baueTabelle(clubLg, eigenerKlub, einfluss){
       const spiele = clubLg === 'NHL' ? 82 : 52;
       const teams = clubsOf(clubLg).map(c => {
-        const kraft = c.str + (c.n === eigenerKlub ? einfluss : 0) + (r() - 0.5) * 13;
+        const kraft = klubStaerke(c) + (c.n === eigenerKlub ? einfluss : 0) + (r() - 0.5) * 13;
         const punkte = Math.round(clamp((kraft - 45) / 50, 0.15, 0.85) * spiele * 2);
         return { n: c.n, punkte, eigen: c.n === eigenerKlub };
       });
@@ -742,9 +742,9 @@ const PUCKERO = (() => {
       if (r() > 0.34) return null;                     // nicht jede Saison
 
       const schnitt = lgAvgStr(st.club.lg);
-      const diff = st.club.str - schnitt;
+      const diff = klubStaerke(st.club) - schnitt;
       const stark = clubsOf(st.club.lg)
-        .filter(c => c.n !== st.club.n && c.str > schnitt + 5);
+        .filter(c => c.n !== st.club.n && klubStaerke(c) > schnitt + 5);
 
       /* Der seltenste und groesste Moment: ein Anruf aus einer staerkeren
          Liga, mitten in der laufenden Saison. Gemessen wird an derselben
@@ -971,6 +971,60 @@ const PUCKERO = (() => {
        an die Mannschaft und eine an dich persoenlich. Beide werden am
        Ende abgerechnet – das gibt jedem Jahr einen eigenen Einsatz.
        --------------------------------------------------------------- */
+    /* ----------------------------------------------------------------
+       Klubs verändern sich
+
+       Bisher war die Staerke eines Klubs eine feste Zahl aus der
+       Datendatei: Florida stand 2026 bei 91 und 2045 immer noch. Kein
+       Klub baute je um, keiner zerfiel, keiner stieg auf. Damit war
+       "Titelkandidat" eine Eigenschaft statt eines Zustands - und die
+       Frage, ob man einen Verein verlaesst, hatte nie einen Grund
+       ausser dem eigenen Ehrgeiz.
+
+       Jeder Klub hat jetzt seinen eigenen Zyklus: sechs bis zehn
+       Jahre von der Spitze in den Umbruch und zurueck, mit einem
+       Ausschlag von fuenf bis zehn Punkten. Gerechnet wird das aus
+       Klubname und Jahr, ohne gespeicherten Zustand - dieselbe
+       Laufbahn ergibt damit immer dieselbe Liga, und zwei Laufbahnen
+       treffen andere Verhaeltnisse an.
+       ---------------------------------------------------------------- */
+    const _zyklus = {};
+    function klubZyklus(name){
+      if (_zyklus[name]) return _zyklus[name];
+      const h = hashSeed(player.seed + ':klub:' + name);
+      const z = {
+        phase: (h % 997) / 997 * Math.PI * 2,
+        laenge: 6 + (h >> 4) % 5,          // 6 bis 10 Jahre
+        weite: 5 + (h >> 9) % 6            // 5 bis 10 Punkte
+      };
+      _zyklus[name] = z;
+      return z;
+    }
+
+    /* Die Staerke eines Klubs in einem bestimmten Jahr. */
+    function klubStaerke(club, jahr){
+      if (!club) return 76;
+      const z = klubZyklus(club.n);
+      const t = ((jahr === undefined ? st.year : jahr) - 2026) / z.laenge * Math.PI * 2;
+      return clamp(club.str + Math.sin(z.phase + t) * z.weite, 42, 97);
+    }
+
+    /* Wohin es geht - fuer die Anzeige, damit man vor einer
+       Unterschrift sieht, ob ein Klub aufsteigt oder zerfaellt. */
+    function klubTrend(club, jahr){
+      const j = jahr === undefined ? st.year : jahr;
+      const d = klubStaerke(club, j + 2) - klubStaerke(club, j);
+      return d > 2.5 ? 'auf' : d < -2.5 ? 'ab' : 'stabil';
+    }
+
+    /* Der Ligaschnitt schwankt mit - sonst waere ein Klub in einem
+       schwachen Jahrgang der ganzen Liga automatisch Titelkandidat. */
+    function ligaSchnittJetzt(lgKey, jahr){
+      const alle = clubsOf(lgKey);
+      if (!alle.length) return 76;
+      return alle.reduce((a, c) => a + klubStaerke(c, jahr), 0) / alle.length;
+    }
+
     /* ---------------------------------------------------------------
        Die Rolle im Verein
 
@@ -996,7 +1050,7 @@ const PUCKERO = (() => {
        derselbe Spieler ist beim Aufsteiger eine Saeule und beim
        Spitzenklub der vierte Stuermer. */
     function klubRang(club, ovr){
-      const abstand = ovr - (club ? club.str : 76);
+      const abstand = ovr - (club ? klubStaerke(club) : 76);
       const rufTeil = (st.ruf - 70) / 22;
       const jung = st.age <= 20 ? -0.6 : 0;
       const punkte = abstand / 3.4 + rufTeil + jung
@@ -1077,7 +1131,7 @@ const PUCKERO = (() => {
       const pf = P.k === 'D' ? 0.62 : (P.k === 'C' ? 1.15 : 1.0);
       return {
         ppg:    clamp(kante * pf * (1 + (w.punkte || 0) * 1.9), 0.02, 2.4) * 1.04,
-        plus:   kante * 16 + ((club ? club.str : 76) - 76) * 0.5 + (w.plus || 0) + 0.3,
+        plus:   kante * 16 + ((club ? klubStaerke(club) : 76) - 76) * 0.5 + (w.plus || 0) + 0.3,
         /* Strafminuten kommen aus ri(8, 12 + Zweikampf/2) - der
            Mittelwert haengt also am Zweikampfwert, nicht an einer 20. */
         pim:    (10 + (dev.zweikampf || 50) / 4) * (w.strafen || 1),
@@ -1209,14 +1263,19 @@ const PUCKERO = (() => {
     function macheAuftakt(){
       if (!st.club) return null;
       const lg = league(st.club.lg);
-      const schnitt = lgAvgStr(st.club.lg);
+      const schnitt = ligaSchnittJetzt(st.club.lg);
+      const staerke = klubStaerke(st.club);
       return {
         jahr: st.year, alter: st.age,
         klub: st.club.n, liga: st.club.lg, ligaName: lg.n,
-        staerke: Math.round(st.club.str - schnitt),
-        erwartung: st.club.str >= schnitt + 6 ? 'Titelkandidat'
-                 : st.club.str >= schnitt ? 'Playoff-Team'
-                 : st.club.str >= schnitt - 6 ? 'Mittelfeld' : 'Aufbauteam',
+        staerke: Math.round(staerke - schnitt),
+        erwartung: staerke >= schnitt + 6 ? 'Titelkandidat'
+                 : staerke >= schnitt ? 'Playoff-Team'
+                 : staerke >= schnitt - 6 ? 'Mittelfeld' : 'Aufbauteam',
+        /* Wohin der Klub sich bewegt - das ist die Zahl, die vor einer
+           Unterschrift fehlt: ein Titelkandidat im Zerfall ist ein
+           anderes Angebot als ein Aufbauteam im Aufwind. */
+        trend: klubTrend(st.club),
         /* Die Restlaufzeit stand bisher nur als Randnotiz in der
            Saisonbilanz - dabei haengt an ihr, ob man sich einen
            schwachen Jahrgang leisten kann. */
@@ -1242,7 +1301,7 @@ const PUCKERO = (() => {
       /* Die Schwellen sind an der gemessenen Verteilung der Kaderstaerken
          geeicht: Titel fordert nur die Spitze, sonst waere jede Saison
          eine Enttaeuschung. */
-      const diff = club.str - lgAvgStr(club.lg);
+      const diff = klubStaerke(club) - ligaSchnittJetzt(club.lg);
       let team;
       if (diff > 10.8)      team = { art:'titel',    n:'Den Titel holen',
                                      d:'Alles andere gilt hier als verpasste Saison.' };
@@ -1770,7 +1829,7 @@ const PUCKERO = (() => {
 
       /* ---- Mitspieler ----
          In einer starken Mannschaft faellt es leichter zu punkten. */
-      const mitspieler = clamp((club.str - lgAvgStr(club.lg)) * 0.006, -0.06, 0.07);
+      const mitspieler = clamp((klubStaerke(club) - ligaSchnittJetzt(club.lg)) * 0.006, -0.06, 0.07);
 
       /* Klassenunterschied zur Liga */
       const tagesform = 0.97 + r() * 0.04
@@ -1815,7 +1874,8 @@ const PUCKERO = (() => {
                           + (r() - 0.5) * 0.007, 0.868, 0.948);
         season.gaa = clamp(3.40 - kante * 1.55 + (r() - 0.5) * 0.30, 1.42, 4.3);
         season.so = Math.max(0, Math.round((season.sv - 0.902) * 130 * (gp / 50) + (r() - 0.65)));
-        season.wins = Math.round(gp * clamp(0.32 + kante * 0.22 + (club.str - 74) * 0.007, 0.18, 0.78));
+        season.wins = Math.round(gp * clamp(0.32 + kante * 0.22
+                                            + (klubStaerke(club) - 74) * 0.007, 0.18, 0.78));
         season.otl = Math.round((gp - season.wins) * (0.15 + r() * 0.12));
         season.losses = Math.max(0, gp - season.wins - season.otl);
         // Schüsse und Paraden aus Fangquote und Gegentorschnitt ableiten
@@ -1889,7 +1949,7 @@ const PUCKERO = (() => {
       const moralBonus = clamp((st.moral - 70) * 0.20, -9, 5);
       /* Wer das C traegt, hebt die Mannschaft - nicht nur die Vitrine. */
       const kapitaensBonus = st.kapitaenSeit === club.n ? 2.2 : 0;
-      const teamPower = club.str + einfluss + moralBonus + kapitaensBonus
+      const teamPower = klubStaerke(club) + einfluss + moralBonus + kapitaensBonus
                       + (r() - 0.5) * 15;
       season.moral = Math.round(st.moral);
       st.tabelle = baueTabelle(club.lg, club.n, einfluss + moralBonus + kapitaensBonus);
@@ -1913,13 +1973,15 @@ const PUCKERO = (() => {
         for (let i = 0; i < rundenNamen.length && weiter; i++){
           // Spaetere Runden bringen staerkere Gegner
           const stufe = i / Math.max(1, rundenNamen.length - 1);
-          const kandidaten = gegnerPool.slice().sort((a, b) => b.str - a.str);
+          const kandidaten = gegnerPool.slice()
+            .sort((a, b) => klubStaerke(b) - klubStaerke(a));
           const index = clamp(Math.round(kandidaten.length * (0.62 - stufe * 0.55))
                               + ri(r, -2, 2), 0, kandidaten.length - 1);
           const gegner = kandidaten[index];
           gegnerPool.splice(gegnerPool.indexOf(gegner), 1);
 
-          const chance = clamp(0.42 + (teamPower - gegner.str) * 0.018 + poBoost / 300, 0.14, 0.72);
+          const chance = clamp(0.42 + (teamPower - klubStaerke(gegner)) * 0.018
+                               + poBoost / 300, 0.14, 0.72);
           const gewonnen = r() < chance;
           const eigene = gewonnen ? 4 : ri(r, 1, 3);
           const fremde = gewonnen ? ri(r, 1, 3) : 4;
@@ -2398,10 +2460,11 @@ const PUCKERO = (() => {
       const nimm = (club, bleibt) => {
         if (angebote.some(a => a.club.n === club.n)) return;
         const lg = league(club.lg);
-        const schnitt = lgAvgStr(club.lg);
-        const rolle = club.str >= schnitt + 6 ? 'Titelkandidat'
-                    : club.str >= schnitt ? 'Playoff-Team'
-                    : club.str >= schnitt - 6 ? 'Mittelfeld' : 'Aufbauteam';
+        const schnitt = ligaSchnittJetzt(club.lg);
+        const staerke = klubStaerke(club);
+        const rolle = staerke >= schnitt + 6 ? 'Titelkandidat'
+                    : staerke >= schnitt ? 'Playoff-Team'
+                    : staerke >= schnitt - 6 ? 'Mittelfeld' : 'Aufbauteam';
         // Laufzeit: junge und starke Spieler bekommen längere Vertraege
         let jahre;
         if (st.age >= 34)      jahre = 1;
@@ -2410,7 +2473,7 @@ const PUCKERO = (() => {
         else                   jahre = ri(r, 2, 4);
         angebote.push({
           club, lgKey: club.lg, lgName: lg.n, bleibt: !!bleibt, rolle,
-          staerke: club.str, jahre,
+          staerke: Math.round(staerke), trend: klubTrend(club), jahre,
           gehalt: round1(clamp((bewertung - 58) * 0.5, 0.05, 15) * lg.salary * (bleibt ? 1.05 : 1) + 0.05),
           prestige: lg.prestige
         });
