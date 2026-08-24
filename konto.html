@@ -10,6 +10,15 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/style.css">
+
+<!-- Als App auf dem Startbildschirm -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b1220">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Eiszeit">
+<link rel="apple-touch-icon" href="assets/app/apple-touch-icon.png">
 <script>
 /* Gespeichertes Thema sofort anwenden, damit nichts aufblitzt */
 try{var t=localStorage.getItem('eiszeit.thema')||localStorage.getItem('puckero.thema');

@@ -159,9 +159,67 @@ const UI = (() => {
     if (f) f.outerHTML = footer();
     themaBinden();
     kopfhoeheSetzen();
+    appVorbereiten();
   }
 
   /* ---------- Themenumschaltung ---------- */
+  /* ----------------------------------------------------------------
+     Als App auf dem Startbildschirm
+
+     Der Offlinespeicher macht aus dem Versprechen "funktioniert
+     offline" eine Tatsache. Er laeuft nur ueber https oder localhost -
+     anderswo meldet der Browser ihn gar nicht erst an, und das Spiel
+     laeuft trotzdem.
+     ---------------------------------------------------------------- */
+  let installEinladung = null;
+
+  function appVorbereiten(){
+    if ('serviceWorker' in navigator){
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
+    }
+    themaFarbeSetzen();
+
+    window.addEventListener('beforeinstallprompt', e => {
+      e.preventDefault();
+      installEinladung = e;
+      installKnopfZeigen();
+    });
+    window.addEventListener('appinstalled', () => {
+      installEinladung = null;
+      const k = document.querySelector('.install-knopf');
+      if (k) k.remove();
+    });
+  }
+
+  /* Die Leistenfarbe des Betriebssystems folgt dem gewaehlten Thema -
+     sonst steht ein dunkler Balken ueber der hellen Retro-Fassung. */
+  function themaFarbeSetzen(){
+    const m = document.querySelector('meta[name="theme-color"]');
+    if (!m) return;
+    const t = document.documentElement.getAttribute('data-thema');
+    m.setAttribute('content',
+      t === 'retro' ? '#e9dfcb' : t === 'verspielt' ? '#140f2e' : '#0b1220');
+  }
+
+  function installKnopfZeigen(){
+    if (document.querySelector('.install-knopf')) return;
+    const k = document.createElement('button');
+    k.className = 'install-knopf';
+    k.type = 'button';
+    k.innerHTML = ikone('flug', 15) + '<span>Als App installieren</span>';
+    k.onclick = async () => {
+      if (!installEinladung) return;
+      k.disabled = true;
+      installEinladung.prompt();
+      const { outcome } = await installEinladung.userChoice;
+      installEinladung = null;
+      if (outcome === 'accepted') k.remove(); else k.disabled = false;
+    };
+    document.body.appendChild(k);
+  }
+
   /* Die Kopfleiste bleibt beim Scrollen stehen. Ihre Hoehe geht in die
      Rechnung des mobilen App-Rahmens ein - wird sie nicht gesetzt,
      greift ein Ersatzwert und die Seite ragt um wenige Pixel ueber. */
@@ -190,6 +248,7 @@ const UI = (() => {
     else document.documentElement.setAttribute('data-thema', t);
     try { localStorage.setItem(THEMA_KEY, t); } catch(e){}
     themaMarkieren();
+    themaFarbeSetzen();
   }
   function themaMarkieren(){
     const jetzt = themaLesen();
