@@ -863,6 +863,7 @@ const PUCKERO = (() => {
       if (!st.natDebuet || !st.club) return null;      // erst nach dem Debuet
       if (st.age < 22 || st.age > 35) return null;
       if (r() > 0.45) return null;                     // nicht jedes Jahr
+      if (!verbandFragtAn()) return null;              // wer absagt, wird seltener gefragt
 
       const nat = nation(player.nation);
       const ctx = ereignisKontext();
@@ -872,8 +873,10 @@ const PUCKERO = (() => {
          95 Prozent haben mindestens 80 - als Filter taugt es allein nicht.
          Das C bekommt nur, wer obendrein Turniererfahrung und das Alter
          dafuer hat und es nicht schon traegt. */
+      /* Wer zweimal abgesagt hat, bekommt das C nicht - dafuer muss
+         man dagewesen sein. */
       const angesehen = st.ruf >= 97 && !st.natKapitaen && st.age >= 27
-                     && st.laenderBilanz.turniere >= 3;
+                     && st.laenderBilanz.turniere >= 3 && st.natAbsagen === 0;
 
       const optionen = [
         { t: 'Zusagen', ikone: 'schild', chance: 88,
@@ -885,7 +888,12 @@ const PUCKERO = (() => {
                  text: 'Du sagst zu, aber die Saison steckt dir in den Knochen. Der Sommer wird kurz.' } },
 
         { t: 'Absagen und den Sommer nutzen', ikone: 'herz', chance: 70,
-          hinweis: 'Erholung für den Klub – der Verband merkt es sich',
+          /* Der Hinweis versprach schon immer, der Verband merke es
+             sich - nur tat er es nicht. Jetzt steht dahinter, was es
+             wirklich heisst. */
+          hinweis: st.natAbsagen >= 1
+            ? 'Die zweite Absage – danach fragen sie eine Weile nicht mehr'
+            : 'Erholung für den Klub – der Verband merkt es sich',
           zusage: false,
           gut: { form: 0.09, moral: 5,
                  text: 'Sechs Wochen ohne Eis. Du startest frischer in die neue Saison als seit Jahren.' },
@@ -916,6 +924,25 @@ const PUCKERO = (() => {
         stand: { klub: st.club.n, nation: nat.n, turnier: T.n, absagen: st.natAbsagen },
         optionen
       };
+    }
+
+    /* ----------------------------------------------------------------
+       Ob der Verband ueberhaupt noch anruft
+
+       Absagen wurden gezaehlt und im Text erwaehnt ("Beim letzten Mal
+       hast du abgesagt; das steht im Raum") - Folgen hatten sie
+       keine. Man konnte jedes Jahr absagen und wurde jedes Jahr
+       wieder gefragt. Jetzt zieht sich der Verband zurueck, und zwar
+       vorruebergehend: nach ein paar Jahren ist Gras darueber
+       gewachsen, wenn man in der Zwischenzeit geliefert hat.
+       ---------------------------------------------------------------- */
+    function verbandFragtAn(){
+      if (!st.natAbsagen) return true;
+      /* Je Absage sinkt die Wahrscheinlichkeit, aber nie auf null -
+         eine starke Saison holt einen zurueck ins Aufgebot. */
+      const zurueckhaltung = Math.min(0.75, st.natAbsagen * 0.30);
+      const gutGespielt = st.ruf >= 92 ? 0.25 : 0;
+      return r() > (zurueckhaltung - gutGespielt);
     }
 
     /* Kleine Absicherung: In Ereignistexten steht nichts als Markup. */
@@ -2825,6 +2852,59 @@ const PUCKERO = (() => {
          der Dauereuphorie die Spitze. */
       st.moral = clamp(Math.round(st.moral + (st.grundstimmung - st.moral) * 0.25),
                        10, 100);
+
+      /* ----------------------------------------------------------------
+         Das C ist keine Lebensstellung
+
+         Es war eines: einmal vergeben, blieb es bis zum naechsten
+         Vereinswechsel, ganz gleich was danach kam. Ein Kapitaen
+         konnte zwei Jahre lang in der vierten Reihe stehen und trug
+         die Binde weiter - und ein neuer Trainer, der sonst alles
+         umwirft, ruehrte sie nicht an.
+
+         Jetzt haengt sie an denselben Groessen wie alles andere: am
+         Vertrauen des Trainers, an der Verfassung, an dem, was man
+         dem Verein bedeutet. Eine Vereinslegende behaelt sie auch in
+         einem schlechten Jahr; wer auf Bewaehrung steht, nicht.
+         ---------------------------------------------------------------- */
+      if (st.kapitaenSeit === (st.club && st.club.n)){
+        const bindung = klubBindung();
+        const schwach = st.rollenStand === 'bewaehrung';
+        /* Der erste Entwurf traf einen Kapitaen fast nie: sieben
+           Verluste in 2065 Kapitaenssaisons. Kein Wunder - wer die
+           Binde bekommt, steht selten auf Bewaehrung und hat selten
+           schlechte Moral. Was einen Kapitaen wirklich kostet, ist
+           etwas anderes: eine Mannschaft, die ihre Ziele verfehlt,
+           und ein Anfuehrer, der selbst nachlaesst. */
+        const zielVerfehlt = season.ziele && season.ziele.team
+                          && season.ziele.team.erfuellt === false;
+        const nachgelassen = season.ovrGewinn !== undefined && season.ovrGewinn <= -2;
+        /* Der Schutz durch die Vereinsbindung wirkt multiplikativ.
+           Abgezogen loeschte er die Grundgefahr rechnerisch aus - eine
+           Stammkraft kam auf 0,025 minus 0,06, also null, und damit war
+           die Binde fuer fast jeden wieder eine Lebensstellung. Eine
+           Legende soll sie schwer verlieren, nicht unmoeglich. */
+        const gefahr = 0.05                              // nichts haelt ewig
+          + (schwach ? 0.34 : 0)
+          + (st.moral < 50 ? 0.14 : 0)
+          + (st.trainerNeu ? 0.16 : 0)
+          + (zielVerfehlt ? 0.09 : 0)
+          + (nachgelassen ? 0.09 : 0)
+          + (season.gp && season.gp < (season.vollGp || 52) * 0.55 ? 0.14 : 0);
+        const risiko = clamp(gefahr * (1 - bindung * 0.55), 0, 0.55);
+        if (risiko > 0 && r() < risiko){
+          st.kapitaenSeit = null;
+          st.kapitaenGefragt = false;      // spaeter wieder moeglich
+          season.events.push({ t: 'Das C geht an einen anderen', c: 'bad' });
+          moralAendern(-8);
+          st.ruf = clamp(st.ruf - 3, 20, 99);
+          st.verlauf.push({ jahr: st.year, alter: st.age, art: 'kapitaen',
+            tag: 'Kabine', titel: 'Die Binde abgegeben',
+            wahl: schwach ? 'Der Trainer traut es dir nicht mehr zu'
+                          : 'Ein anderer übernimmt',
+            gelungen: false, chance: null, wagnis: false });
+        }
+      }
 
       /* ---- Was der Koerper wieder hergibt ----
          Ohne Gegenbewegung waere Verschleiss eine Einbahnstrasse und

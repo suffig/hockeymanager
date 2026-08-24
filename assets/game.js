@@ -837,10 +837,12 @@ function CareerGame(root, cfg){
         </div>
 
         ${folge.chance !== undefined ? `
-          <div class="fb-wurf" title="Der Wurf musste unter ${folge.chance} liegen">
+          <div class="fb-wurf ${folge.gelungen ? 'traf' : 'daneben'}"
+               title="Der Wurf musste unter ${folge.chance} liegen">
             <span class="fb-bahn"><i style="width:${folge.chance}%"></i></span>
-            ${folge.wurf !== undefined
-              ? `<span class="fb-nadel" style="left:${Math.min(98, folge.wurf)}%"></span>` : ''}
+            ${folge.wurf !== undefined ? `
+              <span class="fb-einschlag" style="left:${Math.min(98, folge.wurf)}%"></span>
+              <span class="fb-nadel" style="left:${Math.min(98, folge.wurf)}%"></span>` : ''}
           </div>` : ''}
 
         ${folge.wahl ? `<div class="fb-wahl">${esc(folge.wahl)}</div>` : ''}
@@ -869,6 +871,17 @@ function CareerGame(root, cfg){
          so sieht man, wo der Wurf gelandet ist. */
       const nadel = w.querySelector('.fb-nadel');
       if (nadel) setTimeout(() => nadel.classList.add('an'), 90);
+      /* ----------------------------------------------------------------
+         Der Einschlag
+
+         Die Nadel fuhr an ihre Stelle und blieb dort stehen - der
+         Moment, um den es bei einer Entscheidung geht, verpuffte
+         also. Jetzt schlaegt sie ein: innerhalb der Zone gruen und
+         auf dem Balken, ausserhalb rot und daneben. Erst wenn die
+         Fahrt vorbei ist, sonst schlaegt es dort ein, wo die Nadel
+         gerade vorbeikommt, statt dort, wo sie landet. */
+      const einschlag = w.querySelector('.fb-einschlag');
+      if (einschlag) setTimeout(() => einschlag.classList.add('an'), 90 + 560);
       if (knapp && typeof UI.konfetti === 'function') setTimeout(() => UI.konfetti(28), 260);
     });
   }

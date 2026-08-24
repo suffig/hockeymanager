@@ -3498,3 +3498,69 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
 }
 .koerper.schwer>svg{color:var(--red)}
 @media (prefers-reduced-motion:reduce){ .koerper{animation:none} }
+
+
+/* ------------------------------------------------------------------
+   Der Einschlag der Nadel
+
+   Sie fuhr bisher an ihre Stelle und blieb stehen. Damit verpuffte
+   genau der Moment, um den es bei einer Entscheidung geht. Jetzt
+   schlaegt sie ein - innerhalb der Erfolgszone gruen und auf dem
+   Balken, ausserhalb rot und daneben.
+
+   Der Ring liegt hinter der Nadel und geht von ihrer Spitze aus, der
+   Balken selbst antwortet mit einem kurzen Leuchten. Beides erst,
+   wenn die Fahrt vorbei ist.
+   ------------------------------------------------------------------ */
+.fb-einschlag{
+  position:absolute;top:50%;left:0;width:10px;height:10px;
+  margin:-5px 0 0 -5px;border-radius:50%;
+  opacity:0;pointer-events:none;
+  transition:left .55s cubic-bezier(.2,.9,.25,1.05);
+}
+.fb-einschlag.an{ animation:einschlagRing .62s cubic-bezier(.2,.7,.3,1) both }
+.fb-wurf.traf    .fb-einschlag{ box-shadow:0 0 0 0 var(--green) }
+.fb-wurf.daneben .fb-einschlag{ box-shadow:0 0 0 0 var(--red) }
+@keyframes einschlagRing{
+  0%  { opacity:1; transform:scale(.35); }
+  55% { opacity:.85; }
+  100%{ opacity:0; transform:scale(3.6); }
+}
+/* Der Ring wird waehrend des Aufgehens duenner - sonst wirkt er wie
+   ein Fleck statt wie ein Aufschlag. */
+.fb-wurf.traf    .fb-einschlag.an{ animation-name:einschlagGruen }
+.fb-wurf.daneben .fb-einschlag.an{ animation-name:einschlagRot }
+@keyframes einschlagGruen{
+  0%  { opacity:1; transform:scale(.3); box-shadow:0 0 0 3px var(--green) }
+  100%{ opacity:0; transform:scale(3.8); box-shadow:0 0 0 0 var(--green) }
+}
+@keyframes einschlagRot{
+  0%  { opacity:1; transform:scale(.3); box-shadow:0 0 0 3px var(--red) }
+  100%{ opacity:0; transform:scale(3.8); box-shadow:0 0 0 0 var(--red) }
+}
+
+/* Die Antwort des Balkens: bei einem Treffer leuchtet die Erfolgszone
+   kurz auf, bei einem Fehlschlag der Teil dahinter - also genau der
+   Bereich, in dem der Wurf gelandet ist. */
+.fb-wurf.traf .fb-bahn i{ animation:fbBahn .5s cubic-bezier(.2,.9,.3,1) .12s both,
+                                    zoneTrifft .5s ease .65s }
+@keyframes zoneTrifft{
+  0%,100%{ filter:none }
+  40%    { filter:brightness(1.5) saturate(1.25) }
+}
+.fb-wurf.daneben .fb-bahn::after{
+  content:'';position:absolute;inset:0;border-radius:99px;
+  background:var(--red);opacity:0;
+  animation:zoneDaneben .5s ease .65s;
+}
+@keyframes zoneDaneben{
+  0%,100%{ opacity:0 }
+  40%    { opacity:.22 }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .fb-einschlag,.fb-einschlag.an,
+  .fb-wurf.traf .fb-bahn i,.fb-wurf.daneben .fb-bahn::after{
+    animation:none;transition:none;opacity:0;
+  }
+}
