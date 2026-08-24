@@ -1837,6 +1837,158 @@ const EREIGNISSE = (() => {
     if (w) e.optionen.push(Object.assign({ wagnis:true }, w));
   });
 
+  /* ==================================================================
+     Leben neben dem Eis
+
+     Der Lebensstrang laeuft sonst still im Hintergrund mit - Heimweh
+     waechst, Wurzeln schlagen an, eine Familie entsteht. Diese
+     Ereignisse sind die Stellen, an denen man eingreifen kann. Ihre
+     Bedingungen greifen bewusst eng: sie sollen sich anfuehlen, als
+     kaemen sie aus der eigenen Lage, nicht aus einem Topf.
+     ================================================================== */
+
+  LISTE.push(
+    { id:'lb_zurueck', kat:'privat', szene:'stadt', tag:'Zuhause',
+      gewicht: 4.2,
+      titel:'Zu Hause fragen sie, wann du zur\u00fcckkommst',
+      text:'Am Telefon wird es still, wenn du sagst, dass es noch ein Jahr wird. '
+         + 'Deine Mutter z\u00e4hlt die Weihnachten, die du nicht da warst, nicht laut mit, '
+         + 'aber du wei\u00dft, dass sie z\u00e4hlt.',
+      bedingung: st => st.leben && st.leben.heimweh >= 45
+                    && st.club && st.club.lg !== st.heimLiga,
+      optionen:[
+        { t:'Dem Berater sagen, dass du heim willst', chance:62,
+          hinweis:'Das n\u00e4chste Angebot von daheim wiegt schwerer',
+          gut:{ leben:{ heimweh:-30 }, moral:8,
+                text:'Er versteht es schneller, als du gedacht h\u00e4ttest. Es f\u00fchlt sich an, als w\u00e4re schon etwas entschieden.' },
+          schlecht:{ leben:{ heimweh:-10 }, moral:-3,
+                text:'Er h\u00f6rt zu und redet dann \u00fcber Marktwert. Du legst auf und bist genauso weit wie vorher.' } },
+        { t:'Die Familie herholen', chance:55,
+          hinweis:'Das Zuhause zieht um, statt zu warten',
+          gut:{ leben:{ heimweh:-24, wurzeln:14, partnerMit:true }, moral:6,
+                text:'Ein halbes Jahr sp\u00e4ter steht in der fremden Stadt eine Wohnung, in der es riecht wie fr\u00fcher.' },
+          schlecht:{ leben:{ heimweh:6 }, moral:-5,
+                text:'Sie kommen f\u00fcr zwei Wochen und fahren wieder. Danach ist es leerer als vorher.' } },
+        { t:'Durchhalten, das ist der Beruf', chance:70, wagnis:true,
+          hinweis:'H\u00e4rte gegen sich selbst \u2013 sie kostet',
+          gut:{ leben:{ heimweh:-8 }, attr:{ nerven:3 },
+                text:'Du legst auf und gehst aufs Eis. Es ist der Beruf, und du bist gut darin.' },
+          schlecht:{ leben:{ heimweh:12 }, moral:-9,
+                text:'Es wird nicht weniger, es wird nur leiser. Das ist nicht dasselbe.' } }
+      ] },
+
+    { id:'lb_getrennt', kat:'privat', szene:'stadt', tag:'Zwei Wohnungen',
+      gewicht: 4.2,
+      titel:'Zwei Wohnungen, zwei L\u00e4nder, ein Leben',
+      text:'Die Kinder gehen dort zur Schule, du spielst hier. '
+         + 'Ihr rechnet in Flugstunden und Schulferien, und jedes Gespr\u00e4ch endet damit, '
+         + 'dass ihr beide sagt, es geht schon.',
+      bedingung: st => st.leben && !st.leben.partnerMit && st.leben.familie !== 'allein',
+      optionen:[
+        { t:'Sie kommen nach', chance:48,
+          hinweis:'Ein Schnitt \u2013 aber alle am selben Ort',
+          gut:{ leben:{ heimweh:-26, wurzeln:16, partnerMit:true }, moral:11,
+                text:'Der erste Schultag in der fremden Sprache ist schrecklich. Der dreissigste nicht mehr.' },
+          schlecht:{ leben:{ heimweh:10 }, moral:-8,
+                text:'Nach vier Monaten fahren sie zur\u00fcck. Man kann so etwas nicht erzwingen.' } },
+        { t:'Du gehst zur\u00fcck, sobald es geht', chance:66,
+          hinweis:'Die Laufbahn ordnet sich unter',
+          gut:{ leben:{ heimweh:-18 }, moral:7, ruf:-3,
+                text:'Du sagst dem Berater, welche Ligen nicht mehr in Frage kommen. Die Liste ist lang.' },
+          schlecht:{ leben:{ heimweh:4 }, moral:-4,
+                text:'Es bleibt ein Vorsatz. Vors\u00e4tze halten schlecht gegen Vertr\u00e4ge.' } },
+        { t:'So weitermachen', chance:52, wagnis:true,
+          hinweis:'Funktioniert \u2013 bis es das nicht mehr tut',
+          gut:{ leben:{ heimweh:4 }, moral:2,
+                text:'Ihr habt euch eingerichtet. Es ist nicht sch\u00f6n, aber es tr\u00e4gt.' },
+          schlecht:{ leben:{ heimweh:18 }, moral:-12,
+                text:'Irgendwann merkst du, dass du bei den Anrufen nicht mehr fragst, wie der Tag war.' } }
+      ] },
+
+    { id:'lb_haus', kat:'privat', szene:'stadt', tag:'Ein Haus',
+      gewicht: 3.4,
+      titel:'Ein Grundst\u00fcck, zehn Minuten von der Halle',
+      text:'Es ist mehr Geld, als deine Eltern in ihrem Leben zusammen verdient haben, '
+         + 'und der Makler redet, als w\u00e4re das eine Kleinigkeit. '
+         + 'Auf dem Weg zur\u00fcck f\u00e4hrst du zweimal daran vorbei.',
+      bedingung: st => st.leben && st.leben.wurzeln >= 55 && st.klubJahre >= 3
+                    && st.leben.vermoegen >= 6,
+      optionen:[
+        { t:'Kaufen und bauen', chance:78,
+          hinweis:'Hier bleibst du \u2013 daf\u00fcr ist ein Teil des Geldes weg',
+          gut:{ leben:{ wurzeln:22, heimweh:-14, vermoegen:-5 }, moral:10,
+                trait:{ langlebig:3 },
+                text:'Im zweiten Sommer steht es. Du sitzt abends drau\u00dfen und h\u00f6rst die Stra\u00dfenbahn zur Halle fahren.' },
+          schlecht:{ leben:{ vermoegen:-4 }, moral:-4,
+                text:'Der Bau zieht sich \u00fcber drei Jahre und du wohnst die meiste Zeit davon woanders.' } },
+        { t:'Das Geld anlegen', chance:58,
+          hinweis:'Beweglich bleiben und etwas daraus machen',
+          gut:{ leben:{ vermoegen:9 },
+                text:'Dein Berater hatte recht. Das passiert selten genug, dass du es dir merkst.' },
+          schlecht:{ leben:{ vermoegen:-6 }, moral:-5,
+                text:'Zwei Jahre sp\u00e4ter erkl\u00e4rt dir jemand am Telefon, warum das niemand vorhersehen konnte.' } },
+        { t:'Nichts davon', chance:88,
+          hinweis:'Nichts festlegen, was dich halten k\u00f6nnte',
+          gut:{ text:'Du sagst ab. Zwei Jahre sp\u00e4ter wechselst du die Liga und denkst kurz daran zur\u00fcck.' },
+          schlecht:{ moral:-2, text:'Es bleibt das Gef\u00fchl, an nichts festzuhalten.' } }
+      ] },
+
+    { id:'lb_erste_saison_vater', kat:'privat', szene:'stadt', tag:'Vater',
+      gewicht: 4.2,
+      titel:'Der erste Ausw\u00e4rtstrip, seit es das Kind gibt',
+      text:'Elf Tage, sechs Spiele, zwei Zeitzonen. '
+         + 'Du siehst das erste Umdrehen auf einem Video, das um vier Uhr morgens ankommt, '
+         + 'und schaust es dir dreimal an, bevor du zum Fr\u00fchst\u00fcck gehst.',
+      bedingung: st => st.leben && st.leben.familie === 'kinder' && st.leben.kinder >= 1,
+      optionen:[
+        { t:'Weniger reisen, wo es geht', chance:52,
+          hinweis:'Der Trainer merkt so etwas',
+          gut:{ leben:{ wurzeln:12 }, moral:9,
+                text:'Er hat selbst Kinder. Zwei Reisen im Jahr nimmt er dich aus dem Kader, und niemand redet dar\u00fcber.' },
+          schlecht:{ moral:-6, rolle:-1,
+                text:'Er sagt nichts, aber im n\u00e4chsten Spiel stehst du in der dritten Reihe.' } },
+        { t:'Nichts \u00e4ndern', chance:74,
+          hinweis:'Der Beruf bleibt der Beruf',
+          gut:{ attr:{ nerven:2 }, rolle:1,
+                text:'Du machst es wie immer. Es geht, weil zu Hause jemand ist, der das tr\u00e4gt.' },
+          schlecht:{ leben:{ heimweh:10 }, moral:-7,
+                text:'Du bist da und doch nicht. Am Ende der Saison f\u00e4llt dir auf, wie viel du verpasst hast.' } },
+        { t:'Die Familie mitnehmen, wo es geht', chance:60,
+          hinweis:'Teuer, aber ihr seid zusammen',
+          gut:{ leben:{ heimweh:-16, vermoegen:-3, partnerMit:true }, moral:8,
+                text:'Ein Kinderwagen im Hotelfoyer sieht falsch aus und f\u00fchlt sich richtig an.' },
+          schlecht:{ leben:{ vermoegen:-3 }, moral:-4,
+                text:'Nach dem zweiten Versuch lasst ihr es. Es war f\u00fcr alle anstrengender als allein.' } }
+      ] },
+
+    { id:'lb_geld', kat:'privat', szene:'buero', tag:'Das Geld',
+      gewicht: 2.6, mehrfach: true,
+      titel:'Jemand will dir erkl\u00e4ren, was mit dem Geld passieren soll',
+      text:'Er hat eine Mappe dabei und nennt dich beim Vornamen. '
+         + 'Zwei aus der Kabine haben schon unterschrieben, sagt er. '
+         + 'Die Zahl unten rechts ist gr\u00f6\u00dfer als alles, was du je auf einem Kontoauszug gesehen hast.',
+      bedingung: st => st.leben && st.leben.vermoegen >= 12,
+      optionen:[
+        { t:'Einsteigen', chance:44, wagnis:true,
+          hinweis:'Es kann sich verdoppeln \u2013 oder weg sein',
+          gut:{ leben:{ vermoegen:16 }, moral:5,
+                text:'Es geht auf. Du erz\u00e4hlst es niemandem, weil du wei\u00dft, wie knapp das war.' },
+          schlecht:{ leben:{ vermoegen:-14 }, moral:-9,
+                text:'Ein Jahr sp\u00e4ter ist er nicht mehr erreichbar. Die zwei aus der Kabine auch nicht mehr im Verein.' } },
+        { t:'Einen kleinen Teil', chance:66,
+          hinweis:'Mitmachen, ohne alles zu riskieren',
+          gut:{ leben:{ vermoegen:5 },
+                text:'Ein bisschen mehr, als auf dem Sparbuch gewesen w\u00e4re. Mehr wolltest du nicht.' },
+          schlecht:{ leben:{ vermoegen:-3 },
+                text:'Weg, aber es tut nicht weh. Genau deshalb war es nur ein Teil.' } },
+        { t:'Absagen', chance:90,
+          hinweis:'Nichts riskieren',
+          gut:{ leben:{ vermoegen:2 },
+                text:'Du legst es an, wie es dir dein Vater erkl\u00e4rt h\u00e4tte. Langweilig, und es bleibt.' },
+          schlecht:{ text:'Du sagst ab und liest zwei Jahre sp\u00e4ter, was daraus geworden ist.' } }
+      ] }
+  );
+
   return { LISTE, WAGNISSE };
 })();
 

@@ -1607,7 +1607,62 @@ const UI = (() => {
     document.body.removeChild(ta);
   }
 
-  return { header, footer, mount, themaSetzen, themaLesen, attrRows, ovrBadge, seasonCard, statsTable,
+  /* ------------------------------------------------------------------
+     Das Leben daneben
+
+     Der Strang laeuft jede Saison mit, egal ob ein Ereignis dazu
+     kommt - deshalb braucht er eine feste Anzeige und nicht nur
+     gelegentliche Meldungen. Drei Zahlen und ein Satz: wo du zu Hause
+     bist, wie fest du stehst, wie sehr es dich zurueckzieht.
+     ------------------------------------------------------------------ */
+  const FAMILIE_TEXT = {
+    allein:  { n:'Allein',        ik:'schlaeger' },
+    partner: { n:'Zu zweit',      ik:'herz' },
+    kinder:  { n:'Familie',       ik:'herz' }
+  };
+
+  function lebenKarte(L, opt){
+    if (!L) return '';
+    const o = opt || {};
+    const fam = FAMILIE_TEXT[L.familie] || FAMILIE_TEXT.allein;
+    const famText = L.familie === 'kinder'
+      ? (L.kinder === 1 ? 'Familie, ein Kind' : 'Familie, ' + L.kinder + ' Kinder')
+      : fam.n;
+
+    /* Ein Satz statt drei Zahlen - die Zahlen stehen darunter. */
+    const satz = L.heimweh >= 65 ? 'Du willst nach Hause.'
+               : L.heimweh >= 40 ? 'Die Heimat zieht.'
+               : L.daheim        ? 'Du spielst da, wo du herkommst.'
+               : L.wurzeln >= 70 ? 'Hier bist du zu Hause geworden.'
+               : L.wurzeln >= 40 ? 'Du hast dich eingelebt.'
+               : 'Noch alles neu.';
+
+    const messwert = (n, wert, farbe) => `
+      <div class="lb-wert">
+        <span class="lb-n">${n}</span>
+        <div class="lb-leiste"><i class="${farbe}" style="width:${clampP(wert)}%"></i></div>
+      </div>`;
+
+    return `<div class="lebenkarte${o.gross ? ' gross' : ''}">
+      <div class="lb-kopf">
+        <span class="lb-satz">${satz}</span>
+        <span class="lb-fam">${ikone(fam.ik, 13)} ${esc(famText)}</span>
+      </div>
+      <div class="lb-werte">
+        ${messwert('Verwurzelt', L.wurzeln, 'ruhig')}
+        ${messwert('Heimweh', L.heimweh, 'warm')}
+      </div>
+      ${L.partnerMit === false ? `<div class="lb-hinweis">
+        ${ikone('flug', 12)} Die Familie lebt nicht dort, wo du spielst.</div>` : ''}
+      ${o.vermoegen != null ? `<div class="lb-geld">
+        ${ikone('stern', 12)} <b>${o.vermoegen.toFixed(1)} Mio</b> zurückgelegt</div>` : ''}
+    </div>`;
+  }
+  const clampP = v => Math.max(0, Math.min(100, Math.round(v || 0)));
+
+  return {
+    lebenKarte,
+ header, footer, mount, themaSetzen, themaLesen, attrRows, ovrBadge, seasonCard, statsTable,
            wappenBild, pokalBild,
            trophyList, klubKarten, natKarte, ligaBilanz, shareText, rankLeiste, karriereKarte,
            statBoxen, natTabelle, rivaleKarte, vermaechtnisKarte, zeremonie, formKurve,

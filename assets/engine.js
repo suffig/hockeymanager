@@ -403,6 +403,44 @@ const PUCKERO = (() => {
       rollenJahre: 0,         // Saisons in dieser Rolle
       rollenVorOvr: null,     // Wert der Vorsaison, fuer die Aufbaurolle
       startVerpasst: 0,       // Spiele, die die Reha den Saisonstart kostet
+      /* ----------------------------------------------------------------
+         Leben neben dem Eis
+
+         Familie und Heimkehr gab es schon - aber nur als Wuerfel im
+         letzten Moment: mit 34 beendete r() < 0.06 die Laufbahn "aus
+         familiaeren Gruenden", ohne dass es je eine Familie gegeben
+         haette. Das war kein Leben, das war ein Zufallsgenerator mit
+         einer ruehrenden Beschriftung.
+
+         Jetzt laeuft daneben ein zweiter Strang mit vier Zahlen, die
+         sich aus dem ergeben, was auf dem Eis entschieden wird:
+
+           heimweh    steigt mit jeder Saison in der Fremde, faellt
+                      daheim - und macht ein Angebot aus der Heimat
+                      spaeter zu mehr als einer Randnotiz
+           wurzeln    waechst beim Bleiben, faellt beim Wechsel; hohe
+                      Wurzeln geben Moral und machen einen Wechsel teuer
+           familie    allein -> Partner -> Kinder; wer eine Familie hat,
+                      wechselt schwerer und hoert frueher auf
+           vermoegen  was von den Gehaeltern uebrig bleibt
+
+         Alle vier wirken auf Dinge, die es schon gibt: Moral, die
+         Anziehungskraft von Angeboten, die Kosten eines Wechsels und
+         das Karriereende.
+         ---------------------------------------------------------------- */
+      /* Die Heimatliga steht im Zustand, damit Ereignisbedingungen
+         danach fragen koennen - sie sehen nur st, nicht die Huelle. */
+      heimLiga: homeLg,
+      leben: {
+        heimweh: 0,           // 0-100
+        wurzeln: 20,          // 0-100
+        familie: 'allein',    // allein | partner | kinder
+        kinder: 0,
+        partnerMit: true,     // zieht der Partner mit, oder blieb er daheim?
+        vermoegen: 0,         // Mio, summiert ueber die Laufbahn
+        heimatjahre: 0,       // Saisons in der Heimatliga
+        fremdjahre: 0
+      },
       trainerJahre: 0,        // wie lange derselbe Mann schon an der Bande steht
       trainerNeu: false,      // in dieser Saison hat der Klub gewechselt
       trainerVorher: null,    // wer vorher da war
@@ -693,6 +731,7 @@ const PUCKERO = (() => {
         merke('Der Körper trägt es mit', false);
       }
       if (e.rolle) rollenGutschrift(e.rolle);
+      wirkeLeben(e.leben, merke);
       if (!folge.wirkungen.length) merke('Ein Sommer wie jeder andere', gelungen);
 
       st.verlauf.push({
@@ -797,6 +836,8 @@ const PUCKERO = (() => {
                     merke('+' + Math.round(e.form * 100) + '% Form', true); }
       if (e.risiko){ st.risikoBonus += e.risiko / 100;
                     merke('+' + e.risiko + ' Verletzungsrisiko', false); }
+
+      wirkeLeben(e.leben, merke);
 
       st.natZusage = !!o.zusage;
       if (!o.zusage){ st.natAbsagen++; merke('Absage an den Verband', false); }
@@ -1018,6 +1059,8 @@ const PUCKERO = (() => {
                     merke((e.moral > 0 ? '+' : '') + e.moral + ' Moral', e.moral > 0); }
       if (e.form){  st.formBonus += e.form;
                     merke((e.form > 0 ? '+' : '') + Math.round(e.form * 100) + '% Form', e.form > 0); }
+
+      wirkeLeben(e.leben, merke);
 
       /* Ein geglückter Wechsel bringt dich sofort zum neuen Klub */
       if (gelungen && o.zielKlub){
@@ -1372,6 +1415,11 @@ const PUCKERO = (() => {
         /* Eine Klausel, die man waehrend der Saison vergisst, ist keine
            Entscheidung gewesen - sie steht deshalb im Auftakt. */
         bonus: st.bonus ? Object.assign({}, st.bonus) : null,
+        leben: { heimweh: Math.round(st.leben.heimweh),
+                 wurzeln: Math.round(st.leben.wurzeln),
+                 familie: st.leben.familie, kinder: st.leben.kinder,
+                 partnerMit: st.leben.partnerMit,
+                 daheim: st.club && st.club.lg === homeLg },
         sperre: !!st.sperre,
         klausel: !!st.klausel,
         rolle: st.rolle ? { n: st.rolle.n, kurz: st.rolle.kurz, icon: st.rolle.icon,
@@ -2381,6 +2429,7 @@ const PUCKERO = (() => {
       st.formBonus *= 0.5;          // Nachwirkung klingt ab
       st.risikoBonus *= 0.5;
       st.moral = clamp(st.moral + (season.title ? 6 : (season.playoffs ? 2 : -3)), 10, 100);
+      werteLeben(season);
       werteKlausel(season);
 
       /* ----------------------------------------------------------------
@@ -2589,9 +2638,19 @@ const PUCKERO = (() => {
                                       - (player.traits.robust || 0) * 0.0012, 0, 0.10);
       if (st.age >= 26 && r() < verletzungsRisiko){ ende('verletzung'); return; }
       if (letzte && letzte.title && st.age >= 33 && r() < 0.22){ ende('hoehepunkt'); return; }
-      if (st.age >= 34 && r() < 0.06){ ende('familie'); return; }
-      if (st.age >= 34 && st.club.lg !== HOME_LG[player.nation]
-          && bewertung < LG_MIN[st.club.lg] + 2 && r() < 0.12){ ende('heimkehr'); return; }
+      /* Frueher zwei feste Wuerfel: 6 Prozent "aus familiaeren
+         Gruenden" und 12 Prozent Heimkehr, beide unabhaengig davon,
+         ob es je eine Familie oder ein Heimweh gegeben hat. Jetzt
+         haengen beide an dem Leben, das tatsaechlich gefuehrt wurde -
+         wer allein geblieben ist, hoert deswegen auch nicht auf. */
+      const L = st.leben;
+      const familienDruck = (L.familie === 'kinder' ? 0.06 + L.kinder * 0.025 : 0)
+                          + (L.familie === 'partner' ? 0.02 : 0)
+                          + (L.partnerMit ? 0 : 0.05);
+      if (st.age >= 32 && r() < familienDruck){ ende('familie'); return; }
+      if (st.age >= 31 && st.club.lg !== HOME_LG[player.nation]
+          && bewertung < LG_MIN[st.club.lg] + 2
+          && r() < L.heimweh * 0.0045){ ende('heimkehr'); return; }
 
       /* Wann kommt der Spieler überhaupt auf den Markt? */
       st.vertragJahre--;
@@ -2640,7 +2699,10 @@ const PUCKERO = (() => {
       const aktuell = st.club;
       let moeglicheLigen = D.LEAGUES.filter(l => {
         if (l.k === 'JUN') return st.age <= 20;
-        const bonus = l.k === homeLg ? 4 + ((player.wirkung || {}).heimbonus || 0) * 0.4 : 0;
+        /* Wer lange fort war, greift auch nach unten - Heimweh macht
+           eine Liga erreichbar, die die Wertung sonst ausschliesst. */
+        const bonus = l.k === homeLg
+          ? 4 + ((player.wirkung || {}).heimbonus || 0) * 0.4 + st.leben.heimweh * 0.05 : 0;
         return bewertung >= LG_MIN[l.k] - bonus;
       });
       if (!moeglicheLigen.length) moeglicheLigen = [league(st.age <= 20 ? 'JUN' : 'AHL')];
@@ -2674,7 +2736,8 @@ const PUCKERO = (() => {
 
       // 2. Zwei bis drei Angebote aus den erreichbaren Ligen
       const gewichtet = moeglicheLigen.map(l => ({
-        l, s: l.prestige + (l.k === homeLg ? 24 : 0) + (l.k === aktuell.lg ? 10 : 0) + r() * 30
+        l, s: l.prestige + (l.k === homeLg ? 24 + st.leben.heimweh * 0.35 : 0)
+              + (l.k === aktuell.lg ? 10 + st.leben.wurzeln * 0.12 : 0) + r() * 30
       })).sort((a, b) => b.s - a.s);
 
       for (const g of gewichtet){
@@ -2743,6 +2806,22 @@ const PUCKERO = (() => {
           st.ehemalige.push(st.club.n);
         st.klubJahre = 0;
         if (st.kapitaenSeit !== a.club.n) st.kapitaenSeit = null;
+        /* Ein Umzug kostet, und er kostet umso mehr, je mehr man
+           zurueckgelassen hat. Ohne das war ein Wechsel eine reine
+           Tabellenfrage. */
+        if (st.club && st.club.n !== a.club.n){
+          const L = st.leben;
+          const preis = Math.round(L.wurzeln * 0.09
+            + (L.familie === 'kinder' ? 7 : L.familie === 'partner' ? 3 : 0));
+          if (preis) st.moral = clamp(st.moral - preis, 10, 100);
+          L.wurzeln = Math.round(clamp(L.wurzeln * 0.35 + 8, 0, 100));
+          /* Kinder in der Schule ziehen nicht jedes Mal mit. */
+          if (L.familie === 'kinder' && a.club.lg !== st.club.lg && r() < 0.30){
+            L.partnerMit = false;
+          } else if (a.club.lg === homeLg){
+            L.partnerMit = true;
+          }
+        }
         st.club = a.club;          // fuer die Namensvergabe schon setzen
         umfeldBenennen();
         st.trainerJahre = 0;
@@ -2822,6 +2901,94 @@ const PUCKERO = (() => {
                bed:'Erst ab ' + ziel + ' Scorerpunkten',
                d:'Alles zählt, was du auflegst oder selbst machst.',
                lohn:{ geld: 0.48, ruf: 5, moral: 8 } };
+    }
+
+    /* Der Lebensstrang als Wirkung einer Entscheidung. Die Namen sind
+       dieselben wie im Zustand, damit ein Ereignis schreiben kann
+       { leben: { heimweh: -25, wurzeln: 12 } } - und es steht in der
+       Folge, damit die Wahl sichtbar etwas bewegt hat. */
+    const LEBEN_NAMEN = { heimweh: 'Heimweh', wurzeln: 'Verwurzelung',
+                          vermoegen: 'Vermögen' };
+    function wirkeLeben(w, merke){
+      if (!w) return;
+      const L = st.leben;
+      Object.entries(w).forEach(([k, v]) => {
+        if (k === 'partnerMit'){
+          L.partnerMit = !!v;
+          merke(v ? 'Die Familie zieht mit' : 'Die Familie bleibt zurück', !!v);
+          return;
+        }
+        if (k === 'familie'){ L.familie = v; return; }
+        if (L[k] === undefined) return;
+        const grenze = k === 'vermoegen' ? 400 : 100;
+        L[k] = k === 'vermoegen' ? round1(clamp(L[k] + v, 0, grenze))
+                                 : Math.round(clamp(L[k] + v, 0, grenze));
+        const n = LEBEN_NAMEN[k] || k;
+        /* Weniger Heimweh ist etwas Gutes - deshalb haengt die Farbe
+           nicht am Vorzeichen, sondern an der Bedeutung. */
+        const gut = k === 'heimweh' ? v < 0 : v > 0;
+        merke((v > 0 ? '+' : '') + v + ' ' + n, gut);
+      });
+    }
+
+    /* ----------------------------------------------------------------
+       Was eine Saison mit dem Leben daneben macht
+       ---------------------------------------------------------------- */
+    function werteLeben(season){
+      const L = st.leben;
+      const daheim = st.club && st.club.lg === homeLg;
+
+      /* Heimweh. Daheim faellt es schnell, in der Fremde steigt es
+         langsam - und deutlich schneller, wenn niemand mitgekommen
+         ist. Wurzeln bremsen: wer sich eingelebt hat, vermisst
+         weniger. */
+      if (daheim){
+        L.heimatjahre++;
+        L.heimweh = Math.round(clamp(L.heimweh - 11, 0, 100));
+      } else {
+        L.fremdjahre++;
+        const allein = L.familie !== 'allein' && !L.partnerMit;
+        L.heimweh = Math.round(clamp(L.heimweh
+          + 8 + (allein ? 8 : 0) + (L.kinder > 0 && !L.partnerMit ? 5 : 0)
+          - L.wurzeln * 0.05, 0, 100));
+      }
+
+      /* Wurzeln wachsen mit jedem Jahr am selben Ort. */
+      /* Asymptotisch, sonst steht bei jedem zehnten Spieler am Ende
+         schlicht 100 und die Zahl sagt nichts mehr aus. */
+      L.wurzeln = Math.round(clamp(
+        L.wurzeln + (100 - L.wurzeln) * (st.klubJahre >= 1 ? 0.16 : 0.07), 0, 100));
+
+      /* Die Familie waechst mit den Jahren - aber nicht aus dem
+         Nichts: der erste Schritt braucht Zeit, der zweite Ruhe. */
+      if (L.familie === 'allein' && st.age >= 22 && r() < 0.16){
+        L.familie = 'partner';
+        L.partnerMit = true;
+        season.events.push({ t: 'Du bist nicht mehr allein', c: 'good' });
+        st.moral = clamp(st.moral + 6, 10, 100);
+      } else if (L.familie === 'partner' && st.age >= 25
+                 && L.wurzeln >= 45 && r() < 0.22){
+        L.familie = 'kinder'; L.kinder = 1;
+        season.events.push({ t: 'Du bist Vater geworden', c: 'good' });
+        st.moral = clamp(st.moral + 8, 10, 100);
+      } else if (L.familie === 'kinder' && L.kinder < 3
+                 && st.age >= 28 && r() < 0.16){
+        L.kinder++;
+        season.events.push({ t: 'Nachwuchs, zum ' + L.kinder + '. Mal', c: 'good' });
+      }
+
+      /* Vermoegen: was vom Gehalt uebrig bleibt. Wer eine Familie
+         hat, legt mehr zurueck - das ist der Sinn der Sache. */
+      L.vermoegen = round1(L.vermoegen
+        + (season.salary || 0) * (L.familie === 'allein' ? 0.42 : 0.55));
+
+      /* Und die Rueckwirkung auf die Moral: ein Zuhause traegt,
+         Heimweh zehrt. Beides klein genug, um nicht alles andere zu
+         ueberdecken. */
+      const zug = Math.round(L.wurzeln * 0.04 - L.heimweh * 0.07);
+      if (zug) st.moral = clamp(st.moral + zug, 10, 100);
+      season.leben = { heimweh: Math.round(L.heimweh), wurzeln: Math.round(L.wurzeln),
+                       familie: L.familie, kinder: L.kinder, vermoegen: L.vermoegen };
     }
 
     /* Am Saisonende wird abgerechnet. Eine verfehlte Klausel kostet
@@ -3331,6 +3498,7 @@ const PUCKERO = (() => {
         sperre: st.sperre,
         bonus: st.bonus,
         bonusBilanz: st.bonusBilanz,
+        leben: st.leben,
         zielBilanz: st.zielBilanz,
         hauptklub: klubs.slice().sort((a, b) => b.saisons - a.saisons)[0] || null,
         entscheidungen: st.entscheidungen,

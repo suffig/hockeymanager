@@ -1122,6 +1122,7 @@ function CareerGame(root, cfg){
         </div>
 
         ${UI.zielKarte(v.ziele)}
+        ${UI.lebenKarte(v.leben)}
 
         <div class="row mt-l">
           <button class="btn btn-primary" id="weiter">Saison beginnen →</button>
@@ -1863,6 +1864,15 @@ function CareerGame(root, cfg){
             <div class="attrs" style="grid-template-columns:1fr">${UI.attrRows(p, res.peakAttrs)}</div>
           </div>
           ${alsApp ? zu() + auf('vitrine') : ''}
+          ${res.leben ? `<div class="card ${alsApp ? 'mt' : ''}">
+            <h3>Das Leben daneben</h3>
+            ${UI.lebenKarte(Object.assign({}, res.leben,
+                { daheim: res.leben.heimatjahre > res.leben.fremdjahre }),
+                { gross:true, vermoegen: res.leben.vermoegen })}
+            <p class="small mt">${res.leben.heimatjahre} ${res.leben.heimatjahre === 1
+              ? 'Saison' : 'Saisons'} in der Heimat, ${res.leben.fremdjahre} in der Fremde.</p>
+          </div>` : ''}
+
           <div class="card ${alsApp ? 'mt' : ''}">
             <h3>Vereinstitel</h3>
             ${UI.trophyList(res, 'team')}
