@@ -409,6 +409,9 @@ const PUCKERO = (() => {
       rollenLauf: [],         // jede Aenderung, mit Grund
       verhandlung: null,      // offene Vertragsverhandlung
       klausel: false,         // Ausstiegsklausel im laufenden Vertrag
+      sperre: false,          // Wechselsperre - der Klub laesst dich nicht gehen
+      bonus: null,            // laufende Bonusklausel im aktuellen Vertrag
+      bonusBilanz: { erfuellt: 0, verfehlt: 0 },
       gehaltFaktor: 1,        // ausgehandelter Aufschlag auf das Grundgehalt
       sommer: null,           // offene Entscheidung fuer die Sommerpause
       kapitaensfrage: null,   // offenes Angebot fuer das C
@@ -900,7 +903,7 @@ const PUCKERO = (() => {
           stand: { klub: st.club.n, diff: Math.round(diff), ziel: ziel.n },
           optionen: [
             { t: 'Den Wechsel durchsetzen', ikone: 'flug',
-              chance: st.klausel ? 92 : 62,
+              chance: st.sperre ? 18 : st.klausel ? 92 : 62,
               hinweis: 'Zu ' + ziel.n + ' – dort zählt nur der Titel',
               zielKlub: ziel, folgt: 'wechsler',
               gut: { moral: 6, ruf: 4,
@@ -1366,6 +1369,11 @@ const PUCKERO = (() => {
            schwachen Jahrgang leisten kann. */
         vertragJahre: st.vertragJahre,
         letztesJahr: st.vertragJahre <= 1,
+        /* Eine Klausel, die man waehrend der Saison vergisst, ist keine
+           Entscheidung gewesen - sie steht deshalb im Auftakt. */
+        bonus: st.bonus ? Object.assign({}, st.bonus) : null,
+        sperre: !!st.sperre,
+        klausel: !!st.klausel,
         rolle: st.rolle ? { n: st.rolle.n, kurz: st.rolle.kurz, icon: st.rolle.icon,
                             soll: st.rolle.soll } : null,
         rollenStand: st.rollenStand,
@@ -2373,6 +2381,8 @@ const PUCKERO = (() => {
       st.formBonus *= 0.5;          // Nachwirkung klingt ab
       st.risikoBonus *= 0.5;
       st.moral = clamp(st.moral + (season.title ? 6 : (season.playoffs ? 2 : -3)), 10, 100);
+      werteKlausel(season);
+
       /* ----------------------------------------------------------------
          Der Trainer wechselt
 
@@ -2746,11 +2756,111 @@ const PUCKERO = (() => {
         st.rollenwahl = baueRollenwahl(a.club, a.gehalt);
       }
       st.klausel = false;              // neuer Vertrag, neue Bedingungen
+      st.sperre = false;
+      st.bonus = null;
       st.gehaltFaktor = 1;
       st.verhandlung = macheVerhandlung(a);
       st.angebote = null;
       st.angebotsGrund = null;
       return true;
+    }
+
+    /* ================================================================
+       Bonusklauseln: auf sich selbst wetten
+
+       Bisher war jede Verhandlung eine Frage nach Sicherheit: mehr
+       Geld, mehr Jahre, ein Ausweg. Was fehlte, war die Gegenrichtung -
+       auf die eigene Leistung setzen statt auf die Zusage des Klubs.
+       Genau das ist die Klausel: der Klub zahlt nichts im Voraus,
+       sondern erst, wenn eine Zahl steht.
+
+       Die Zahl kommt aus der eigenen Vorsaison, nicht aus der Liga.
+       Sie liegt bewusst ueber dem, was das Saisonziel fordert - ein
+       Ziel soll erreichbar sein, eine Wette nicht.
+       ================================================================ */
+    function macheKlausel(a){
+      const letzte = st.seasons[st.seasons.length - 1];
+      const skala = k => Math.pow((league(k) || {}).level || 20, 0.45);
+      const ligaFaktor = letzte
+        ? clamp(skala(letzte.lg) / skala(a.club.lg), 0.5, 1.6) : 1;
+      /* Ueber dem Saisonziel (dort 1.03), aber nicht ausserhalb der
+         Reichweite. Junge Spieler wachsen schneller in ihre Zahl. */
+      const hebel = (st.age < 23 ? 1.34 : st.age > 33 ? 1.16 : 1.26) * ligaFaktor;
+      const stark = klubStaerke(a.club) - ligaSchnittJetzt(a.club.lg) > 8.6;
+      const zerbrechlich = (st.verletzungsjahre || 0) >= 2;
+
+      /* Welche Klausel passt, haengt daran, wer der Spieler ist und
+         wohin er geht - nicht am Zufall allein. */
+      if (stark && r() < 0.42){
+        return { art:'titel', wert: 1, n:'Titelprämie', bed:'Nur mit dem Titel',
+                 kurz:'Titel', d:'Der Meistertitel mit ' + a.club.n + '.',
+                 lohn:{ geld: 0.55, ruf: 6, moral: 10 } };
+      }
+      if (zerbrechlich && r() < 0.5){
+        const ziel = clamp(Math.round((letzte && letzte.vollGp ? letzte.vollGp : 60) * 0.86), 30, 74);
+        return { art:'spiele', wert: ziel, n: ziel + ' Einsätze',
+                 bed:'Erst ab ' + ziel + ' Einsätzen',
+                 kurz: ziel + ' Sp.', d:'Der Klub will wissen, ob du durchhältst.',
+                 lohn:{ geld: 0.34, jahre: 1, moral: 8 } };
+      }
+      if (isG){
+        const ziel = clamp(Math.round(((letzte && letzte.wins) || 12) * hebel), 8, 50);
+        return { art:'siege', wert: ziel, n: ziel + ' Siege', kurz: ziel + ' S.',
+                 bed:'Erst ab ' + ziel + ' Siegen',
+                 d:'Gezählt wird, was hinten stehen bleibt.',
+                 lohn:{ geld: 0.48, ruf: 5, moral: 8 } };
+      }
+      if (player.pos !== 'D' && (!letzte || (letzte.g || 0) >= 12)){
+        const ziel = clamp(Math.round(((letzte && letzte.g) || 14) * hebel), 10, 62);
+        return { art:'tore', wert: ziel, n: ziel + ' Tore', kurz: ziel + ' T.',
+                 bed:'Erst ab ' + ziel + ' Toren',
+                 d:'Abschlüsse, keine Ausreden.',
+                 lohn:{ geld: 0.48, ruf: 5, moral: 8 } };
+      }
+      const ziel = clamp(Math.round(((letzte && letzte.p) || 24) * hebel), 14, 118);
+      return { art:'punkte', wert: ziel, n: ziel + ' Scorerpunkte', kurz: ziel + ' P.',
+               bed:'Erst ab ' + ziel + ' Scorerpunkten',
+               d:'Alles zählt, was du auflegst oder selbst machst.',
+               lohn:{ geld: 0.48, ruf: 5, moral: 8 } };
+    }
+
+    /* Am Saisonende wird abgerechnet. Eine verfehlte Klausel kostet
+       nichts - der Preis wurde am Verhandlungstisch bezahlt, als die
+       sichere Erhoehung ausgeschlagen wurde. */
+    function werteKlausel(season){
+      const b = st.bonus;
+      if (!b) return;
+      const ist = b.art === 'titel'  ? (season.title ? 1 : 0)
+                : b.art === 'siege'  ? (season.wins || 0)
+                : b.art === 'tore'   ? (season.g || 0)
+                : b.art === 'spiele' ? (season.gp || 0)
+                : (season.p || 0);
+      b.ist = ist;
+      if (ist >= b.wert){
+        b.erfuellt = true;
+        st.bonusBilanz.erfuellt++;
+        if (b.lohn.geld)  st.gehaltFaktor = round1((st.gehaltFaktor || 1) + b.lohn.geld);
+        if (b.lohn.ruf)   st.ruf = clamp(st.ruf + b.lohn.ruf, 20, 99);
+        if (b.lohn.moral) st.moral = clamp(st.moral + b.lohn.moral, 10, 100);
+        if (b.lohn.jahre) st.vertragJahre += b.lohn.jahre;
+        season.events.push({ t: 'Bonusklausel erfüllt: ' + b.n
+          + (b.lohn.jahre ? ' – der Vertrag verlängert sich' : ' – das Gehalt steigt'), c: 'good' });
+        st.verlauf.push({ jahr: st.year, alter: st.age, art: 'klausel',
+          tag: 'Klausel', titel: 'Bonusklausel erfüllt', wahl: b.n,
+          gelungen: true, chance: null, wagnis: false });
+        st.bonus = null;                 // eingeloest, sie gilt nur einmal
+      } else {
+        b.jahre--;
+        if (b.jahre <= 0){
+          st.bonusBilanz.verfehlt++;
+          season.events.push({ t: 'Bonusklausel verfallen: ' + b.n
+            + ' (' + ist + ')', c: 'bad' });
+          st.verlauf.push({ jahr: st.year, alter: st.age, art: 'klausel',
+            tag: 'Klausel', titel: 'Bonusklausel verfallen', wahl: b.n,
+            gelungen: false, chance: null, wagnis: false });
+          st.bonus = null;
+        }
+      }
     }
 
     /* ---------------------------------------------------------------
@@ -2760,6 +2870,26 @@ const PUCKERO = (() => {
     function macheVerhandlung(a){
       const stark = st.ruf >= 88;
       const lang = a.jahre >= 3;
+      const kl = macheKlausel(a);
+      /* Ein Klub, der deutlich staerker ist als du, dreht die Frage um:
+         er will dich nicht ziehen lassen, statt dir einen Ausweg zu
+         geben. Dafuer zahlt er. */
+      const halten = klubStaerke(a.club) - ligaSchnittJetzt(a.club.lg) > 8.6 && st.ruf >= 78;
+      const dritte = halten
+        ? { t: 'Wechselsperre akzeptieren', ikone: 'schild',
+            chance: 88,
+            hinweis: 'Kein Wechsel bis Vertragsende – dafür ein Drittel mehr',
+            wirkung: 'sperre',
+            gut: { text: 'Sie zahlen den Aufschlag, aber sie schreiben hinein, dass du bleibst. '
+                       + 'Was auch kommt: du bleibst.' },
+            schlecht: { text: 'Der Klub zieht das Angebot zurück und bleibt beim ersten.' } }
+        : { t: 'Eine Ausstiegsklausel verlangen', ikone: 'flug',
+            chance: Math.round(clamp(34 + (st.ruf - 80) * 1.4, 15, 74)),
+            hinweis: 'Macht einen Wechsel an der Frist deutlich leichter',
+            wirkung: 'klausel',
+            gut: { text: 'Die Klausel steht. Solltest du gehen wollen, hält dich niemand.' },
+            schlecht: { moral: -3,
+              text: 'Davon will der Klub nichts wissen. Du bist gebunden wie jeder andere.' } };
       return {
         art: 'verhandlung', ikone: 'stift', tag: 'Vertragsgespräch',
         titel: 'Der Vertrag bei ' + a.club.n + ' liegt auf dem Tisch',
@@ -2767,6 +2897,7 @@ const PUCKERO = (() => {
             + a.gehalt.toFixed(1) + ' Mio pro Saison. '
             + 'Dein Berater sagt, eine Forderung sei drin – aber nur eine. '
             + (stark ? 'Deine Position ist stark.' : 'Viel Spielraum hast du nicht.'),
+        klausel: kl,
         stand: { klub: a.club.n, jahre: a.jahre, gehalt: a.gehalt },
         optionen: [
           { t: 'Mehr Geld verlangen', ikone: 'stern',
@@ -2785,13 +2916,19 @@ const PUCKERO = (() => {
             gut: { moral: 5, text: 'Die Laufzeit wird angepasst. Beide Seiten können damit leben.' },
             schlecht: { text: 'Die Laufzeit bleibt, wie sie war.' } },
 
-          { t: 'Eine Ausstiegsklausel verlangen', ikone: 'flug',
-            chance: Math.round(clamp(34 + (st.ruf - 80) * 1.4, 15, 74)),
-            hinweis: 'Macht einen Wechsel an der Frist deutlich leichter',
-            wirkung: 'klausel',
-            gut: { text: 'Die Klausel steht. Solltest du gehen wollen, hält dich niemand.' },
-            schlecht: { moral: -3,
-              text: 'Davon will der Klub nichts wissen. Du bist gebunden wie jeder andere.' } },
+          dritte,
+
+          { t: 'Auf dich selbst wetten', ikone: 'ziel',
+            chance: 90,
+            /* Der Prozentsatz allein laese sich wie das bessere
+               Geldangebot - er haengt aber an der Bedingung, und das
+               muss vor der Wahl dastehen, nicht danach. */
+            hinweis: kl.bed + ': +' + Math.round(kl.lohn.geld * 100) + '% Gehalt'
+                   + (kl.lohn.jahre ? ' und ein Jahr mehr' : '') + ', sonst nichts',
+            wirkung: 'bonus', klausel: kl,
+            gut: { text: 'Kein Aufschlag, keine Sicherheit – eine Zahl. '
+                       + 'Erreichst du sie, zahlen sie. Erreichst du sie nicht, war es dein Angebot.' },
+            schlecht: { text: 'Sie wollen keine Klauseln im Vertrag. Es bleibt beim Grundangebot.' } },
 
           { t: 'Unterschreiben wie angeboten', ikone: 'haken', chance: 100,
             hinweis: 'Ohne Gefeilsche – das kommt an',
@@ -2825,6 +2962,19 @@ const PUCKERO = (() => {
           st.vertragJahre--; merke('-1 Vertragsjahr', true);
         }
         if (o.wirkung === 'klausel'){ st.klausel = true; merke('Ausstiegsklausel', true); }
+        if (o.wirkung === 'sperre'){
+          st.sperre = true;
+          st.gehaltFaktor = 1.35;
+          merke('+35% Gehalt', true);
+          merke('Wechselsperre bis Vertragsende', false);
+        }
+        if (o.wirkung === 'bonus'){
+          /* Sie gilt fuer die Vertragslaufzeit, aber hoechstens drei
+             Jahre - danach ist die Zahl nicht mehr dieselbe Wette. */
+          st.bonus = Object.assign({}, o.klausel,
+            { jahre: clamp(st.vertragJahre, 1, 3), erfuellt: false, ist: 0 });
+          merke('Bonusklausel: ' + o.klausel.n, true);
+        }
       }
       if (e.moral){ st.moral = clamp(st.moral + e.moral, 10, 100);
                     merke((e.moral > 0 ? '+' : '') + e.moral + ' Moral', e.moral > 0); }
@@ -3178,6 +3328,9 @@ const PUCKERO = (() => {
         natKapitaen: st.natKapitaen,
         natAbsagen: st.natAbsagen,
         klausel: st.klausel,
+        sperre: st.sperre,
+        bonus: st.bonus,
+        bonusBilanz: st.bonusBilanz,
         zielBilanz: st.zielBilanz,
         hauptklub: klubs.slice().sort((a, b) => b.saisons - a.saisons)[0] || null,
         entscheidungen: st.entscheidungen,

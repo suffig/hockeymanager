@@ -1099,8 +1099,22 @@ function CareerGame(root, cfg){
           <div class="an-fuss">der eigenen Anlage ausgeschöpft</div>
         </div>` : ''}
 
+        ${v.bonus ? `<div class="klauselband">
+          <span class="kb-ik">${UI.ikone('ziel', 15)}</span>
+          <div class="kb-text">
+            <b>Bonusklausel: ${esc(v.bonus.n)}</b>
+            <span>${esc(v.bonus.d)}</span>
+          </div>
+          <span class="kb-rest">${v.bonus.jahre === 1
+            ? 'letzte Chance' : 'noch ' + v.bonus.jahre + ' Jahre'}</span>
+        </div>` : ''}
+
         <div class="au-fakten">
           <span class="au-fakt ${vertrag.k}">${UI.ikone('stift', 14)} ${vertrag.t}</span>
+          ${v.sperre ? `<span class="au-fakt warn">${UI.ikone('schild', 14)}
+            Wechselsperre</span>` : ''}
+          ${v.klausel ? `<span class="au-fakt gut">${UI.ikone('flug', 14)}
+            Ausstiegsklausel</span>` : ''}
           <span class="au-fakt">${UI.ikone('kalender', 14)} ${v.klubJahre === 0
             ? 'Erstes Jahr hier' : v.klubJahre + '. Jahr hier'}</span>
           ${v.rolle ? `<span class="au-fakt">${v.rolle.icon}
