@@ -759,6 +759,7 @@ function CareerGame(root, cfg){
       : alsApp ? UI.bilanzStreifen(letzte, isG)
       : UI.seasonCard(letzte, isG, blind(), true, mobil());
 
+    if (lauf.bericht)     return kopf + berichtHtml(lauf.bericht, isG);
     if (st.jugend)        return kopf + jugendHtml(st.jugend);
     if (st.ereignis)      return kopf + ereignisHtml(st.ereignis);
     if (lauf.wechselfrist) return kopf + wechselfristHtml(lauf.wechselfrist);
@@ -779,24 +780,83 @@ function CareerGame(root, cfg){
         <button class="btn btn-primary mt-l" id="bilanz">Karrierebilanz ansehen →</button>
       </div>`;
 
-    return kopf + `
-      ${letzte ? UI.seasonCard(letzte, isG, blind(), true, mobil()) : `
-        <div class="card center pad-lg">
-          <h3>Bereit für die erste Saison</h3>
-          <p class="small mb0">Der Vertrag steht. Jetzt zählt nur noch, was auf dem Eis passiert.</p>
-        </div>`}
-      ${UI.zielKarte(lauf.kommendeZiele)}
-      <div class="row mt-l">
-        <button class="btn btn-primary" id="weiter">Nächste Saison →</button>
-        <button class="btn btn-ghost" id="rest">Rest automatisch</button>
-      </div>
-      ${st.seasons.length > 1 ? `
-        <details class="mt-l">
-          <summary class="small" style="cursor:pointer;color:var(--accent)">
-            Frühere Saisons (${st.seasons.length - 1})</summary>
-          <div class="mt">${st.seasons.slice(0, -1).reverse()
-            .map(x => UI.seasonCard(x, isG, blind())).join('')}</div>
-        </details>` : ''}`;
+    return kopf + auftaktHtml(lauf.vorschau, st, isG);
+  }
+
+  /* ----------------------------------------------------------------
+     Der Saisonauftakt
+
+     Vorher war die Ruheansicht beides zugleich: die Bilanz der
+     vergangenen Saison und die Vorgaben der kommenden, im selben
+     Bild. Und weil Sommer, Training und Vertrag dazwischenlagen, sah
+     man das Ergebnis einer Saison erst nach drei weiteren
+     Entscheidungen. Jetzt trennt sich das: der Bericht kommt sofort
+     nach der Saison, der Auftakt davor. Hier steht nur, was man vor
+     dem Anpfiff wissen will.
+     ---------------------------------------------------------------- */
+  function auftaktHtml(v, st, isG){
+    if (!v) return `
+      <div class="card center pad-lg anim">
+        <h2 style="margin-bottom:6px">Bereit für die erste Saison</h2>
+        <p class="small mb0">Der Vertrag steht. Jetzt zählt nur noch, was auf dem Eis passiert.</p>
+        <div class="row mt-l" style="justify-content:center">
+          <button class="btn btn-primary" id="weiter">Saison beginnen →</button>
+        </div>
+      </div>`;
+
+    const jahre = v.vertragJahre;
+    const vertrag = jahre <= 0 ? { t:'Vertrag läuft aus', k:'auslauf' }
+                  : jahre === 1 ? { t:'Letztes Vertragsjahr', k:'auslauf' }
+                  : { t: 'Vertrag läuft noch ' + jahre + ' Jahre', k:'' };
+
+    return `
+      <div class="auftakt anim">
+        <div class="au-kopf">
+          <div class="au-wappen">${UI.wappenBild(v.klub, 46)}</div>
+          <div class="au-wer">
+            <span class="au-jahr">Saison ${v.jahr}/${String(v.jahr + 1).slice(2)}</span>
+            <b class="klubname">${esc(v.klub)}</b>
+            <span class="au-liga">${esc(v.ligaName)} · ${esc(v.erwartung)}
+              ${v.kapitaen ? '<span class="kapitaen-c">C</span>' : ''}</span>
+          </div>
+          <div class="au-alter"><b>${v.alter}</b><span>Jahre</span></div>
+        </div>
+
+        <div class="au-fakten">
+          <span class="au-fakt ${vertrag.k}">${UI.ikone('stift', 14)} ${vertrag.t}</span>
+          <span class="au-fakt">${UI.ikone('kalender', 14)} ${v.klubJahre === 0
+            ? 'Erstes Jahr hier' : v.klubJahre + '. Jahr hier'}</span>
+          ${v.rolle ? `<span class="au-fakt">${v.rolle.icon}
+            ${esc(v.rolle.kurz || v.rolle.n.replace(/^Als /, ''))}</span>` : ''}
+        </div>
+
+        ${UI.zielKarte(v.ziele)}
+
+        <div class="row mt-l">
+          <button class="btn btn-primary" id="weiter">Saison beginnen →</button>
+          <button class="btn btn-ghost" id="rest">Rest automatisch</button>
+        </div>
+
+        ${st.seasons.length ? `
+          <details class="mt-l">
+            <summary class="small" style="cursor:pointer;color:var(--accent)">
+              Frühere Saisons (${st.seasons.length})</summary>
+            <div class="mt">${st.seasons.slice().reverse()
+              .map(x => UI.seasonCard(x, isG, blind())).join('')}</div>
+          </details>` : ''}
+      </div>`;
+  }
+
+  /* Der Bericht: wie die Saison gelaufen ist, sofort danach. */
+  function berichtHtml(b, isG){
+    return `
+      <div class="bericht anim">
+        <div class="be-marke">${UI.ikone('haken', 14)} Saison ${b.jahr}/${String(b.jahr + 1).slice(2)} gespielt</div>
+        ${UI.seasonCard(b.saison, isG, blind(), true, mobil())}
+        <div class="row mt-l">
+          <button class="btn btn-primary" id="bericht-weiter">Weiter →</button>
+        </div>
+      </div>`;
   }
 
   /* Ausgang und Auswirkungen der letzten Entscheidung */
@@ -1298,6 +1358,8 @@ function CareerGame(root, cfg){
 
     const w = root.querySelector('#weiter');
     if (w) w.onclick = () => { st.letzteFolge = null; lauf.playSeason(); neu(); };
+    const bw = root.querySelector('#bericht-weiter');
+    if (bw) bw.onclick = () => { lauf.schliesseBericht(); neu(); };
     const rest = root.querySelector('#rest');
     if (rest) rest.onclick = () => beendeKarriere(lauf.runToEnd());
     const b = root.querySelector('#bilanz');

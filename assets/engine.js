@@ -315,6 +315,7 @@ const PUCKERO = (() => {
       natAbsagen: 0,          // wie oft du abgesagt hast
       natKapitaen: false,     // Kapitaen der Nationalmannschaft
       entryDraft: null,       // Ergebnis des Entry Drafts
+      bericht: null,          // Rueckblick direkt nach der Saison
       rolle: null,            // gewaehlte Rolle im aktuellen Vertrag
       rollenwahl: null,       // offene Rollenfrage
       rollenStand: null,      // wie fest du darin sitzt
@@ -1125,6 +1126,39 @@ const PUCKERO = (() => {
       }
     }
 
+    /* Was vor der Saison auf dem Tisch liegt. Ohne Zufall - der
+       Auftakt darf nichts vorwegnehmen, was erst die Saison entscheidet. */
+    function macheAuftakt(){
+      if (!st.club) return null;
+      const lg = league(st.club.lg);
+      const schnitt = lgAvgStr(st.club.lg);
+      return {
+        jahr: st.year, alter: st.age,
+        klub: st.club.n, liga: st.club.lg, ligaName: lg.n,
+        staerke: Math.round(st.club.str - schnitt),
+        erwartung: st.club.str >= schnitt + 6 ? 'Titelkandidat'
+                 : st.club.str >= schnitt ? 'Playoff-Team'
+                 : st.club.str >= schnitt - 6 ? 'Mittelfeld' : 'Aufbauteam',
+        /* Die Restlaufzeit stand bisher nur als Randnotiz in der
+           Saisonbilanz - dabei haengt an ihr, ob man sich einen
+           schwachen Jahrgang leisten kann. */
+        vertragJahre: st.vertragJahre,
+        letztesJahr: st.vertragJahre <= 1,
+        rolle: st.rolle ? { n: st.rolle.n, kurz: st.rolle.kurz, icon: st.rolle.icon,
+                            soll: st.rolle.soll } : null,
+        rollenStand: st.rollenStand,
+        klubJahre: st.klubJahre,
+        kapitaen: st.kapitaenSeit === st.club.n,
+        ziele: setzeSaisonZiel(st.club)
+      };
+    }
+
+    function schliesseBericht(){
+      if (!st.bericht) return false;
+      st.bericht = null;
+      return true;
+    }
+
     function setzeSaisonZiel(club){
       /* Die Schwellen sind an der gemessenen Verteilung der Kaderstaerken
          geeicht: Titel fordert nur die Spitze, sonst waere jede Saison
@@ -1541,25 +1575,41 @@ const PUCKERO = (() => {
       return folge;
     }
 
-    /* ---- eine Saison ausspielen ---- */
+    /* ---- eine Saison ausspielen ----
+
+       Das Jahr laeuft jetzt in der Reihenfolge ab, in der es auch
+       stattfindet. Vorher sah der Spieler das Ergebnis einer Saison
+       erst, nachdem er Sommer, Training und Vertrag hinter sich hatte -
+       eine Runde zu spaet, und dazwischen entschied er ueber Dinge,
+       deren Grundlage er noch gar nicht kannte.
+
+         Auftakt      was der Klub erwartet, wie lange der Vertrag noch
+                      laeuft, in welcher Rolle du antrittst
+         Verband      fragt vor der Saison an
+         Ereignis     passiert waehrend der Vorbereitung
+         Wechselfrist mitten in der Saison
+         -> gespielt
+         Bericht      wie es gelaufen ist, sofort danach
+         Sommer, Training, Vertrag, Rolle - die Pause danach
+    */
     function playSeason(){
       if (st.fertig || st.angebote || st.training || st.ereignis || st.jugend
           || st.rollenwahl || st.kapitaensfrage || st.ruecktrittsfrage
           || st.wechselfrist || st.nominierung || st.verhandlung
-          || st.sommer) return null;
-
-      // Vor der Saison kann ein Karriereereignis dazwischenkommen
-      if (!st.ereignisGeprueft){
-        st.ereignisGeprueft = true;
-        const e = waehleEreignis(st.seasons[st.seasons.length - 1]);
-        if (e){ st.ereignis = e; return null; }
-      }
+          || st.sommer || st.bericht) return null;
 
       // Der Verband fragt vor der Saison, ob du zur Verfuegung stehst
       if (!st.natGeprueft){
         st.natGeprueft = true;
         const f = pruefeNominierung();
         if (f){ st.nominierung = f; return null; }
+      }
+
+      // Waehrend der Vorbereitung kann ein Karriereereignis dazwischenkommen
+      if (!st.ereignisGeprueft){
+        st.ereignisGeprueft = true;
+        const e = waehleEreignis(st.seasons[st.seasons.length - 1]);
+        if (e){ st.ereignis = e; return null; }
       }
 
       // Die Wechselfrist mitten in der Saison
@@ -2038,7 +2088,8 @@ const PUCKERO = (() => {
       st.formBonus *= 0.5;          // Nachwirkung klingt ab
       st.risikoBonus *= 0.5;
       st.moral = clamp(st.moral + (season.title ? 6 : (season.playoffs ? 2 : -3)), 10, 100);
-      st.ereignisGeprueft = false;  // im nächsten Jahr wieder möglich
+      /* Alles, was einmal je Saison passiert, wieder freigeben */
+      st.ereignisGeprueft = false;
       st.wechselGeprueft = false;
       st.natGeprueft = false;
 
@@ -2109,6 +2160,9 @@ const PUCKERO = (() => {
       }
 
       /* Sommerpause: erst Training, danach die Vertragsfrage */
+      /* Der Rueckblick kommt sofort - erst danach die Sommerpause. */
+      st.bericht = { jahr: season.year, saison: season };
+
       st.age++; st.year++;
       if (st.age > maxAge){ ende('ruhestand', 'mit ' + (st.age - 1)); return season; }
       st.sommer = macheSommer();
@@ -2594,6 +2648,7 @@ const PUCKERO = (() => {
     function runToEnd(maxSchritte){
       let n = 0;
       while (!st.fertig && n++ < (maxSchritte || 120)){
+        if (st.bericht) schliesseBericht();
         if (st.jugend) waehleJugend(0);
         if (st.ereignis) chooseEreignis(0);
         if (st.wechselfrist) entscheideWechselfrist(0);
@@ -2784,6 +2839,10 @@ const PUCKERO = (() => {
       },
       get jugend(){ return st.jugend; },
       get rollenwahl(){ return st.rollenwahl; },
+      /* Die Vorschau ist keine Entscheidung, sondern die Ruheansicht -
+         sie wird bei Bedarf gerechnet und haelt den Ablauf nicht an. */
+      get vorschau(){ return macheAuftakt(); },
+      get bericht(){ return st.bericht; },
       get kapitaensfrage(){ return st.kapitaensfrage; },
       get ruecktrittsfrage(){ return st.ruecktrittsfrage; },
       get letzteSaison(){ return st.seasons[st.seasons.length - 1] || null; },
@@ -2792,6 +2851,7 @@ const PUCKERO = (() => {
       entscheideWechselfrist, entscheideNominierung, entscheideVerhandlung,
       entscheideSommer,
       waehleJugend, chooseEreignis, waehleRolle, autoRolle, entscheideKapitaen,
+      schliesseBericht,
       entscheideRuecktritt, autoWeiter,
       runToEnd, result
     };
