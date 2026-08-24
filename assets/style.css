@@ -1797,12 +1797,16 @@ footer.site a:hover{color:var(--text)}
 /* Waehrend des Spiels tritt auf schmalen Bildschirmen alles zurueck,
    was nicht zum Spiel gehoert - sonst scrollt man durch Werbetext. */
 @media (max-width:760px){
+  /* Im Spielmodus tritt alles zurueck, was nicht die Spielflaeche ist.
+     Vorher wurde sie ueber die Id #spielen gesucht - die gibt es aber
+     nur auf der Startseite. Auf der Tageskarriere hiess die Sektion
+     anders und verschwand damit auf dem Telefon vollstaendig. */
   :root[data-spiel] .hero,
-  :root[data-spiel] section.block:not(#spielen),
+  :root[data-spiel] section.block:not([data-spielflaeche]),
   :root[data-spiel] footer.site{display:none}
-  :root[data-spiel] section#spielen{padding-top:8px;padding-bottom:8px}
-  :root[data-spiel] section#spielen > .wrap > h2,
-  :root[data-spiel] section#spielen > .wrap > .lead{display:none}
+  :root[data-spiel] section[data-spielflaeche]{padding-top:8px;padding-bottom:8px}
+  :root[data-spiel] section[data-spielflaeche] > .wrap > h2,
+  :root[data-spiel] section[data-spielflaeche] > .wrap > .lead{display:none}
 }
 
 /* Detailteil der Saisonkarte auf dem Handy einklappbar */
@@ -1889,9 +1893,9 @@ footer.site a:hover{color:var(--text)}
 @media (max-width:760px){
 
   /* Waehrend gespielt wird, uebernimmt das Spiel den Bildschirm */
-  :root[data-spiel] body{overflow:hidden}
-  :root[data-spiel] section#spielen{padding:0}
-  :root[data-spiel] section#spielen > .wrap{padding-left:0;padding-right:0}
+  :root[data-vollbild] body{overflow:hidden}
+  :root[data-spiel] section[data-spielflaeche]{padding:0}
+  :root[data-spiel] section[data-spielflaeche] > .wrap{padding-left:0;padding-right:0}
   /* Auch oben und unten randlos - sonst ragt die Seite um die zwei
      Rahmenpixel ueber den Bildschirm. */
   :root[data-spiel] .panel{border-radius:0;border:0;margin:0}
@@ -2501,4 +2505,95 @@ footer.site a:hover{color:var(--text)}
   .au-liga{font-size:10.5px}
   .au-alter b{font-size:22px}
   .au-fakt{font-size:10.5px;padding:4px 9px;gap:5px}
+}
+
+/* ==========================================================
+   Bewegung
+   Alles hier ist Zugabe, nie Voraussetzung: wer weniger
+   Bewegung eingestellt hat, bekommt dieselbe Seite in Ruhe.
+   ========================================================== */
+
+/* Gestaffelter Auftritt: die Teile kommen nacheinander, nicht alle
+   auf einmal. Das gibt dem Auftakt und dem Bericht einen Anfang. */
+.staffel > *{animation:teilRein .38s cubic-bezier(.2,.9,.3,1) both}
+.staffel > *:nth-child(1){animation-delay:.02s}
+.staffel > *:nth-child(2){animation-delay:.08s}
+.staffel > *:nth-child(3){animation-delay:.14s}
+.staffel > *:nth-child(4){animation-delay:.20s}
+.staffel > *:nth-child(5){animation-delay:.26s}
+.staffel > *:nth-child(n+6){animation-delay:.32s}
+@keyframes teilRein{
+  from{opacity:0;transform:translateY(9px)}
+  to{opacity:1;transform:none}
+}
+
+/* Die Vertrauensleiste der Rolle waechst in ihren Wert hinein */
+.rs-leiste i{transition:width .75s cubic-bezier(.2,.9,.25,1)}
+
+/* Die Kacheln der Saisonkarte heben sich beim Erscheinen kurz an */
+.season.neu .stk{animation:kachelRein .42s cubic-bezier(.2,1.2,.35,1) both}
+.season.neu .stk:nth-child(1){animation-delay:.10s}
+.season.neu .stk:nth-child(2){animation-delay:.17s}
+.season.neu .stk:nth-child(3){animation-delay:.24s}
+.season.neu .stk:nth-child(4){animation-delay:.31s}
+.season.neu .stk:nth-child(5){animation-delay:.38s}
+@keyframes kachelRein{
+  from{opacity:0;transform:translateY(10px) scale(.96)}
+  to{opacity:1;transform:none}
+}
+
+/* Das Urteil zur Rolle setzt sich mit einem kleinen Stoss */
+.season.neu .pill[class*="rolle-"]{animation:urteilRein .45s cubic-bezier(.2,1.5,.4,1) .5s both}
+@keyframes urteilRein{
+  from{opacity:0;transform:scale(.7)}
+  60%{transform:scale(1.08)}
+  to{opacity:1;transform:none}
+}
+
+/* Erfuellte Saisonziele haken sich nacheinander ab */
+.season.neu .ziel-zeile{animation:zielRein .4s ease both}
+.season.neu .ziel-zeile:nth-child(1){animation-delay:.42s}
+.season.neu .ziel-zeile:nth-child(2){animation-delay:.54s}
+@keyframes zielRein{
+  from{opacity:0;transform:translateX(-8px)}
+  to{opacity:1;transform:none}
+}
+
+/* Knoepfe geben beim Antippen nach - auf dem Telefon das einzige
+   Zeichen, dass der Tipp angekommen ist. */
+.btn:active,.wahlzeile:active,.rollenkarte:active,
+.jugendkarte:active,.charakterkarte:active,.app-nav-knopf:active{
+  transform:scale(.975);
+}
+.btn,.wahlzeile,.rollenkarte,.jugendkarte,.charakterkarte,.app-nav-knopf{
+  transition:transform .12s ease, background-color .16s ease,
+             border-color .16s ease, box-shadow .16s ease;
+}
+
+/* Der Marken-Puck dreht sich einmal, wenn die Seite kommt */
+header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
+@keyframes puckRein{
+  from{opacity:0;transform:rotate(-140deg) scale(.6)}
+  to{opacity:1;transform:none}
+}
+
+@media (prefers-reduced-motion: reduce){
+  .staffel > *,
+  .season.neu .stk,
+  .season.neu .pill[class*="rolle-"],
+  .season.neu .ziel-zeile,
+  header.site .brand .puck{animation:none}
+  .rs-leiste i{transition:none}
+  .btn:active,.wahlzeile:active,.rollenkarte:active,
+  .jugendkarte:active,.charakterkarte:active,.app-nav-knopf:active{transform:none}
+}
+
+/* Im Auftakt stehen zwei Knoepfe: der eine startet die Saison, der
+   andere ueberspringt den Rest der Laufbahn. Untereinander kosten sie
+   auf dem Telefon hundertfuenf Pixel und damit den Kopfstreifen. */
+@media (max-width:760px){
+  .auftakt > .row{display:flex;gap:8px;flex-wrap:nowrap}
+  .auftakt > .row > .btn{flex:1 1 0;min-width:0;white-space:nowrap;
+    padding-left:10px;padding-right:10px;font-size:13px}
+  .auftakt > .row > .btn-ghost{flex:0 1 auto}
 }

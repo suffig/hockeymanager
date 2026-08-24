@@ -47,6 +47,9 @@ function CareerGame(root, cfg){
     const imSpiel = S.phase === 'ident' || S.phase === 'start'
                  || S.phase === 'draft' || S.phase === 'karriere';
     document.documentElement.toggleAttribute('data-spiel', imSpiel);
+    /* Wird beim Zeichnen der App-Huelle gesetzt - hier nur geloescht,
+       damit keine andere Ansicht mit gesperrtem Scrollen zurueckbleibt. */
+    document.documentElement.removeAttribute('data-vollbild');
     if (S.phase === 'ident')    return renderIdent();
     if (S.phase === 'draft')    return renderDraft();
     if (S.phase === 'start')    return renderStart();
@@ -389,6 +392,12 @@ function CareerGame(root, cfg){
     bindeKarriere(lauf, st);
 
     if (mobil()){
+      /* Jetzt uebernimmt die App-Huelle den Bildschirm - erst ab hier
+         darf die Seite ihr eigenes Scrollen abgeben. Auf der
+         Tageskarriere steht ueber dem Spielfeld noch das Tagesprofil;
+         dort war die Seite 1482 Pixel hoch, das Fenster 740, und
+         gescrollt werden konnte trotzdem nicht. */
+      document.documentElement.setAttribute('data-vollbild', '');
       root.querySelectorAll('[data-apptab]').forEach(el =>
         el.onclick = () => tabZeigen(el.dataset.apptab));
       tabZeigen(appTab);
@@ -399,6 +408,9 @@ function CareerGame(root, cfg){
         folgeZeigen(st.letzteFolge);
       }
     }
+    /* Ausserhalb der Handy-Abfrage: die Zahlen sollen auf jedem Geraet
+       laufen, nicht nur auf dem Telefon. */
+    beleben(lauf, st);
     zumZug();
   }
 
@@ -498,6 +510,37 @@ function CareerGame(root, cfg){
      erzaehlt, was nicht auch im Text steht, dann der Text - und zwar
      nur so weit, bis es passt, und nie unter achtzig Prozent.
      ---------------------------------------------------------------- */
+  /* ----------------------------------------------------------------
+     Beleben
+
+     Zahlen, die einfach dastehen, liest man ueber. Zahlen, die
+     hochlaufen, schaut man an. Das gilt vor allem im Bericht: dort
+     steht das Ergebnis einer ganzen Saison, und es soll sich wie ein
+     Ergebnis anfuehlen und nicht wie eine Tabellenzeile.
+
+     Alles hier haelt sich an prefers-reduced-motion - das erledigt
+     zahlHoch selbst, und die CSS-Regeln stehen unter derselben Abfrage.
+     ---------------------------------------------------------------- */
+  let gefeiert = null;
+  function beleben(lauf, st){
+    const b = lauf.bericht;
+    if (b){
+      UI.alleZahlenHoch(root);
+      /* Ein Titel wird einmal gefeiert, nicht bei jedem Neuzeichnen. */
+      const s = b.saison;
+      if (s && s.title && gefeiert !== s.year){
+        gefeiert = s.year;
+        setTimeout(() => UI.konfetti(60), 320);
+      }
+    }
+    /* Die Vertrauensleiste der Rolle waechst von null auf ihren Wert. */
+    root.querySelectorAll('.rs-leiste i[style*="--ziel"]').forEach(el => {
+      const ziel = el.style.getPropertyValue('--ziel');
+      el.style.width = '0%';
+      requestAnimationFrame(() => requestAnimationFrame(() => { el.style.width = ziel; }));
+    });
+  }
+
   function einpassen(){
     if (!mobil()) return;
     const k = root.querySelector('.app-inhalt');
@@ -530,6 +573,13 @@ function CareerGame(root, cfg){
          letzten Saison, nicht zur anstehenden Entscheidung. */
       () => { const b = root.querySelector('.bilanzstreifen');
               if (b) b.style.display = 'none'; },
+      /* Die aufklappbare Liste frueherer Saisons - dieselben Karten
+         stehen im Verlauf-Tab. */
+      () => k.querySelectorAll('.auftakt > details, .bericht details')
+             .forEach(x => x.style.display = 'none'),
+      /* Die Erlaeuterung unter jedem Saisonziel. Was verlangt wird,
+         steht in der Zeile darueber; hier steht nur das Warum. */
+      () => k.querySelectorAll('.ziel-text > .small').forEach(x => x.style.display = 'none'),
       /* Zuletzt der Text selbst, in kleinen Schritten. */
       () => setzeText(k, 0.92),
       () => setzeText(k, 0.86),
@@ -594,7 +644,7 @@ function CareerGame(root, cfg){
       </div>`;
     document.body.appendChild(w);
     folgeOffen = w;
-    w.addEventListener('click', () => folgeSchliessen());
+    w.addEventListener('click', () => weiterNachFolge());
     requestAnimationFrame(() => {
       w.classList.add('an');
       /* Die Nadel faehrt erst nach dem Aufblenden an ihre Stelle -
@@ -603,6 +653,34 @@ function CareerGame(root, cfg){
       if (nadel) setTimeout(() => nadel.classList.add('an'), 90);
       if (knapp && typeof UI.konfetti === 'function') setTimeout(() => UI.konfetti(28), 260);
     });
+  }
+
+  /* ----------------------------------------------------------------
+     Was nach einer Entscheidung passiert
+
+     Vorher lief hier sofort playSeason(): eine Wahl an der
+     Wechselfrist spielte im selben Klick die ganze Saison durch, und
+     die Einblendung mit dem Ausgang landete oben auf dem Saisonbericht.
+     Man sah also das Ergebnis, bevor man wusste, wie die eigene
+     Entscheidung ausgegangen war.
+
+     Jetzt gilt: solange eine Einblendung offen ist, wartet der Ablauf.
+     Weiter geht es, wenn sie weggetippt wird - dort steht der naechste
+     Schritt. Auf dem Schreibtisch gibt es keine Einblendung, dort geht
+     es unmittelbar weiter.
+     ---------------------------------------------------------------- */
+  function nachEntscheidung(lauf){
+    if (mobil() && lauf.st && lauf.st.letzteFolge){ renderKarriere(); return; }
+    lauf.playSeason();
+    renderKarriere();
+  }
+
+  function weiterNachFolge(){
+    folgeSchliessen();
+    if (!S.lauf) return;
+    S.lauf.st.letzteFolge = null;
+    S.lauf.playSeason();
+    renderKarriere();
   }
 
   function folgeSchliessen(){
@@ -810,7 +888,7 @@ function CareerGame(root, cfg){
                   : { t: 'Vertrag läuft noch ' + jahre + ' Jahre', k:'' };
 
     return `
-      <div class="auftakt anim">
+      <div class="auftakt anim staffel">
         <div class="au-kopf">
           <div class="au-wappen">${UI.wappenBild(v.klub, 46)}</div>
           <div class="au-wer">
@@ -850,7 +928,7 @@ function CareerGame(root, cfg){
   /* Der Bericht: wie die Saison gelaufen ist, sofort danach. */
   function berichtHtml(b, isG){
     return `
-      <div class="bericht anim">
+      <div class="bericht anim staffel">
         <div class="be-marke">${UI.ikone('haken', 14)} Saison ${b.jahr}/${String(b.jahr + 1).slice(2)} gespielt</div>
         ${UI.seasonCard(b.saison, isG, blind(), true, mobil())}
         <div class="row mt-l">
@@ -1319,18 +1397,15 @@ function CareerGame(root, cfg){
     });
     root.querySelectorAll('[data-ereignis]').forEach(el => el.onclick = () => {
       lauf.chooseEreignis(+el.dataset.ereignis);
-      lauf.playSeason();
-      neu();
+      nachEntscheidung(lauf);
     });
     root.querySelectorAll('[data-wechsel]').forEach(el => el.onclick = () => {
       lauf.entscheideWechselfrist(+el.dataset.wechsel);
-      lauf.playSeason();
-      neu();
+      nachEntscheidung(lauf);
     });
     root.querySelectorAll('[data-nominierung]').forEach(el => el.onclick = () => {
       lauf.entscheideNominierung(+el.dataset.nominierung);
-      lauf.playSeason();
-      neu();
+      nachEntscheidung(lauf);
     });
     root.querySelectorAll('[data-verhandlung]').forEach(el => el.onclick = () => {
       lauf.entscheideVerhandlung(+el.dataset.verhandlung);

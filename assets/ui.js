@@ -296,12 +296,17 @@ const UI = (() => {
     /* Icon, Zahl, winzige Beschriftung. Der Klartext steht zusaetzlich im
        title, aber sichtbar bleibt er auch ohne Maus - auf dem Handy gibt
        es kein Hover. */
-    const kachel = (ik, wert, kurz, lang, ton) => `
+    /* Reine Zahlen bekommen data-zahl und zaehlen sich beim Erscheinen
+       hoch - zusammengesetzte Werte wie "34-12-6" bleiben, wie sie sind. */
+    const kachel = (ik, wert, kurz, lang, ton) => {
+      const zaehlbar = neu && typeof wert === 'number' && isFinite(wert);
+      return `
       <div class="stk ${ton || ''}" title="${esc(lang || kurz)}">
         <span class="stk-ik">${ikone(ik, 15)}</span>
-        <b>${wert}</b>
+        <b${zaehlbar ? ' data-zahl="' + wert + '">0' : '>' + wert}</b>
         <span class="stk-n">${kurz}</span>
       </div>`;
+    };
 
     /* Die Uebersicht zeigt nur, was man beim Durchblaettern wirklich
        braucht. Alles Weitere steht hinter "Details der Saison" - die
@@ -445,7 +450,7 @@ const UI = (() => {
         </span>
         ${urteil ? `<span class="rs-urteil ${urteil.k}">${urteil.n}</span>` : ''}
       </div>
-      <div class="rs-leiste"><i style="width:${anteil}%"></i>
+      <div class="rs-leiste"><i style="--ziel:${anteil}%;width:${anteil}%"></i>
         <span class="rs-marke" style="left:37.5%"></span></div>
       <div class="rs-fuss">
         <span>${ikone('waage', 12)} ${st.rolle.soll ? esc(st.rolle.soll) : 'Leistung'}</span>
@@ -1123,12 +1128,16 @@ const UI = (() => {
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){
       el.textContent = ziel; return;
     }
+    /* Nachkommastellen des Ziels beibehalten - sonst werden aus 12,5
+       Minuten Eiszeit beim Hochzaehlen dreizehn. */
+    const stellen = (String(ziel).split('.')[1] || '').length;
     const start = performance.now(), d = dauer || 900;
     const schritt = jetzt => {
       const t = Math.min(1, (jetzt - start) / d);
       const eased = 1 - Math.pow(1 - t, 3);
-      el.textContent = Math.round(ziel * eased);
+      el.textContent = (ziel * eased).toFixed(stellen);
       if (t < 1) requestAnimationFrame(schritt);
+      else el.textContent = ziel;
     };
     requestAnimationFrame(schritt);
   }

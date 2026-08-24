@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=2798cdd3">
+<link rel="stylesheet" href="assets/style.css?v=f9e32749">
 
 <!-- Als App auf dem Startbildschirm -->
 <link rel="manifest" href="manifest.json">
@@ -53,7 +53,7 @@ try{var t=localStorage.getItem('eiszeit.thema')||localStorage.getItem('puckero.t
 </section>
 
 <!-- ================= SPIEL ================= -->
-<section class="block tight" id="spielen">
+<section class="block tight" id="spielen" data-spielflaeche>
   <div class="wrap">
     <h2>Eislegende</h2>
     <p class="lead" style="margin-bottom:22px">Das Hauptspiel: Identität festlegen, Charakter formen,
@@ -265,13 +265,13 @@ try{var t=localStorage.getItem('eiszeit.thema')||localStorage.getItem('puckero.t
 
 <div id="ftr"></div>
 
-<script src="assets/data.js?v=2798cdd3"></script>
-<script src="assets/draft.js?v=2798cdd3"></script>
-<script src="assets/engine.js?v=2798cdd3"></script>
-<script src="assets/ereignisse.js?v=2798cdd3"></script>
-<script src="assets/wappen.js?v=2798cdd3"></script>
-<script src="assets/ui.js?v=2798cdd3"></script>
-<script src="assets/game.js?v=2798cdd3"></script>
+<script src="assets/data.js?v=f9e32749"></script>
+<script src="assets/draft.js?v=f9e32749"></script>
+<script src="assets/engine.js?v=f9e32749"></script>
+<script src="assets/ereignisse.js?v=f9e32749"></script>
+<script src="assets/wappen.js?v=f9e32749"></script>
+<script src="assets/ui.js?v=f9e32749"></script>
+<script src="assets/game.js?v=f9e32749"></script>
 <script>
   const urlSeed = new URLSearchParams(location.search).get('seed');
   CareerGame(document.getElementById('game'), { startSeed: urlSeed || null });
