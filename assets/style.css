@@ -2374,3 +2374,36 @@ footer.site a:hover{color:var(--text)}
   .rw-jahr{font-size:12px}
   .rw-bilanz{font-size:9.5px}
 }
+
+/* Die Nachwuchswahl auf dem Telefon: drei hochkant gestapelte Karten
+   liefen ueber den Schirm hinaus. Als Zeile gelesen passen sie. */
+@media (max-width:760px){
+  .jugendwahl-kopf h2{font-size:20px;line-height:1.2}
+  .jugendwahl-kopf .lead{font-size:12.5px;line-height:1.35}
+  .jugendliste{gap:7px}
+  .app .jugendkarte{
+    display:grid;text-align:left;align-items:center;
+    grid-template-columns:44px minmax(0,1fr) auto;
+    grid-template-areas:"wappen name liga" "wappen land minuten";
+    column-gap:10px;row-gap:1px;padding:8px 11px;
+  }
+  .app .jugendkarte .jk-wappen{grid-area:wappen;margin:0}
+  .app .jugendkarte .jk-wappen svg,
+  .app .jugendkarte .jk-wappen img{width:42px;height:42px}
+  .app .jugendkarte .jk-name{grid-area:name;font-size:16px;line-height:1.15;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .app .jugendkarte .jk-land{grid-area:land;margin-top:0;font-size:10.5px;
+    display:flex;align-items:center;gap:6px}
+  .app .jugendkarte .jk-liga{
+    grid-area:liga;min-height:0;margin:0;text-align:right;font-size:9px;
+  }
+  /* In der Zeile stehen Liga und Einsatzzeit nebeneinander. Beide in
+     Grossbuchstaben und Gruen sahen gleich wichtig aus - die Liga ist
+     die Entscheidung, die Einsatzzeit die Begruendung dazu. */
+  .app .jugendkarte .jk-minuten{
+    grid-area:minuten;font-size:10px;text-align:right;line-height:1.3;
+    max-width:112px;margin:0;
+    font-weight:600;letter-spacing:0;text-transform:none;color:var(--muted);
+  }
+}
+@media (max-width:760px){ .app .jugendkarte .jk-vertrag{display:none} }

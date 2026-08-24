@@ -925,14 +925,15 @@ function CareerGame(root, cfg){
   function jugendHtml(angebote){
     return `
       <div class="anim">
-        <h2 style="margin-bottom:6px">Angebote aus dem Nachwuchs</h2>
-        <p class="lead" style="font-size:15px">Drei Vereine wollen dich in ihre Nachwuchsabteilung holen.
-          Wähle den Startpunkt deiner Laufbahn – viel Eiszeit bringt Entwicklung,
-          ein großer Name bringt Aufmerksamkeit.</p>
-        <div class="grid g3 mt-l stagger">
+        <div class="jugendwahl-kopf">
+          <h2 style="margin-bottom:6px">Angebote aus dem Nachwuchs</h2>
+          <p class="lead" style="font-size:15px">Wähle den Startpunkt deiner Laufbahn:
+            viel Eiszeit bringt Entwicklung, ein großer Name bringt Aufmerksamkeit.</p>
+        </div>
+        <div class="grid g3 mt-l stagger jugendliste">
           ${angebote.map((a, i) => `
             <button class="jugendkarte" data-jugend="${i}">
-              <div class="jk-liga">Vertrag bei · ${esc(a.lgName)}</div>
+              <div class="jk-liga"><span class="jk-vertrag">Vertrag bei · </span>${esc(a.lgName)}</div>
               <div class="jk-wappen">${UI.wappenBild(a.club.n, 62)}</div>
               <div class="jk-name">${esc(a.club.n)}</div>
               <div class="jk-land">${esc(a.land)}
