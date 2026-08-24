@@ -2842,3 +2842,109 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
   .bogen-fuss{font-size:9.5px}
   .bogen-legende{display:none}
 }
+
+/* ---------- Das Urteil ueber eine Saison ----------
+   Es steht ueber dem Bericht und sagt in einem Satz, was fuer ein
+   Jahr das war. Der Einsatz ist gestaffelt: erst die Jahreszahl,
+   dann der Satz, dann die Erklaerung - so liest man es in der
+   Reihenfolge, in der es gemeint ist. */
+.be-urteil{
+  display:flex;flex-direction:column;gap:2px;
+  padding:13px 15px;margin-bottom:12px;
+  border-radius:var(--radius-sm);
+  border:1px solid var(--line);border-left:3px solid var(--muted);
+  background:linear-gradient(120deg,rgba(255,255,255,.04),transparent);
+}
+.be-jahr{
+  font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;
+  color:var(--dim);
+}
+.be-urteil > b{font-size:19px;font-weight:750;line-height:1.15;letter-spacing:-.01em}
+.be-dazu{font-size:12.5px;color:var(--muted);line-height:1.35}
+
+.be-urteil.gut{
+  border-left-color:var(--green);
+  background:linear-gradient(120deg,color-mix(in srgb,var(--green) 11%,transparent),transparent);
+}
+.be-urteil.gut > b{color:var(--green)}
+.be-urteil.schlecht{
+  border-left-color:var(--red);
+  background:linear-gradient(120deg,color-mix(in srgb,var(--red) 11%,transparent),transparent);
+}
+.be-urteil.schlecht > b{color:var(--red)}
+.be-urteil.gross{
+  border-left-color:var(--gold);
+  background:linear-gradient(120deg,color-mix(in srgb,var(--gold) 16%,transparent),transparent);
+  box-shadow:0 12px 32px -26px var(--gold);
+}
+.be-urteil.gross > b{color:var(--gold);font-size:23px}
+
+.bericht .be-urteil > *{animation:urteilZeile .42s cubic-bezier(.2,.9,.3,1) both}
+.bericht .be-urteil > *:nth-child(1){animation-delay:.06s}
+.bericht .be-urteil > *:nth-child(2){animation-delay:.16s}
+.bericht .be-urteil > *:nth-child(3){animation-delay:.28s}
+@keyframes urteilZeile{
+  from{opacity:0;transform:translateY(7px)}
+  to{opacity:1;transform:none}
+}
+.be-urteil.gross > b{animation-name:urteilGross}
+@keyframes urteilGross{
+  from{opacity:0;transform:scale(.82)}
+  62%{transform:scale(1.05)}
+  to{opacity:1;transform:none}
+}
+
+@media (max-width:760px){
+  .be-urteil{padding:10px 12px;margin-bottom:9px}
+  .be-urteil > b{font-size:17px}
+  .be-urteil.gross > b{font-size:20px}
+  .be-dazu{font-size:11.5px}
+}
+@media (prefers-reduced-motion: reduce){
+  .bericht .be-urteil > *{animation:none}
+}
+
+/* ---------- Der Bogen zeichnet sich ----------
+   Die Linie laeuft von links nach rechts, die Flaeche blendet
+   danach auf, und erst zum Schluss setzen sich Titel und Gipfel.
+   So liest man die Laufbahn in ihrer eigenen Richtung: von der
+   ersten Saison zur letzten. */
+.bogen-linie{
+  stroke-dasharray:220;stroke-dashoffset:220;
+  animation:bogenZeichnen 1.25s cubic-bezier(.35,.1,.25,1) .12s forwards;
+}
+@keyframes bogenZeichnen{ to{ stroke-dashoffset:0 } }
+
+.bogen-flaeche{animation:bogenFuellen .7s ease .75s both}
+@keyframes bogenFuellen{ from{opacity:0} to{opacity:1} }
+
+.bogen-titel circle{animation:bogenPunkt .4s cubic-bezier(.2,1.5,.4,1) 1.0s both}
+.bogen-gipfel{animation:bogenPunkt .45s cubic-bezier(.2,1.5,.4,1) 1.15s both}
+@keyframes bogenPunkt{
+  from{opacity:0;transform:scale(.2);transform-origin:center;transform-box:fill-box}
+  to{opacity:1;transform:none}
+}
+
+/* ---------- Das Podest steigt auf ----------
+   Von unten nach oben und in der Reihenfolge zwei, drei, eins -
+   der Erste kommt zuletzt und bleibt einen Moment laenger stehen. */
+.podest .pod{animation:podSteigt .5s cubic-bezier(.2,.9,.3,1) both}
+.podest .pod-2{animation-delay:.05s}
+.podest .pod-3{animation-delay:.14s}
+.podest .pod-1{animation-delay:.26s;animation-duration:.58s}
+@keyframes podSteigt{
+  from{opacity:0;transform:translateY(16px) scale(.96)}
+  to{opacity:1;transform:none}
+}
+.podest .pod-1 .pod-wert{animation:podGlanz .8s ease .8s both}
+@keyframes podGlanz{
+  0%{text-shadow:none}
+  40%{text-shadow:0 0 18px var(--gold)}
+  100%{text-shadow:0 0 0 transparent}
+}
+
+@media (prefers-reduced-motion: reduce){
+  .bogen-linie{stroke-dashoffset:0;animation:none}
+  .bogen-flaeche,.bogen-titel circle,.bogen-gipfel,
+  .podest .pod,.podest .pod-1 .pod-wert{animation:none}
+}

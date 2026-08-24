@@ -565,6 +565,7 @@ const UI = (() => {
      Deshalb eine Kurve des Gesamtwerts ueber die Jahre, mit den
      Ligawechseln als Marken und den Titeljahren als Sternen.
      ---------------------------------------------------------------- */
+  let bogenZaehler = 0;
   function laufbahnBogen(saisonwerte){
     const w = (saisonwerte || []).filter(s => s.o);
     if (w.length < 3) return '';
@@ -590,6 +591,9 @@ const UI = (() => {
            fill="var(--gold)"/>` : '').join('');
 
     const gipfel = werte.indexOf(Math.max(...werte));
+    /* Eigene Kennung je Bild: sonst zeigen zwei Boegen auf derselben
+       Seite beide auf denselben Verlauf. */
+    const farbId = 'bogenfarbe' + (bogenZaehler++);
 
     return `<div class="bogen mt">
       <div class="bogen-kopf">
@@ -602,17 +606,18 @@ const UI = (() => {
       <svg viewBox="0 0 ${B} ${H}" preserveAspectRatio="none" class="bogen-bild"
            role="img" aria-label="Gesamtwert je Saison von ${w[0].j} bis ${w[w.length-1].j}">
         <defs>
-          <linearGradient id="bogenfarbe" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id="${farbId}" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="var(--accent)" stop-opacity=".38"/>
             <stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/>
           </linearGradient>
         </defs>
         ${wechsel}
-        <polygon points="${flaeche}" fill="url(#bogenfarbe)"/>
-        <polyline points="${linie}" fill="none" stroke="var(--accent)"
+        <polygon class="bogen-flaeche" points="${flaeche}" fill="url(#${farbId})"/>
+        <polyline class="bogen-linie" points="${linie}" fill="none" stroke="var(--accent)"
                   stroke-width="1.1" stroke-linejoin="round" stroke-linecap="round"/>
-        ${titel}
-        <circle cx="${x(gipfel).toFixed(1)}" cy="${y(werte[gipfel]).toFixed(1)}" r="1.7"
+        <g class="bogen-titel">${titel}</g>
+        <circle class="bogen-gipfel" cx="${x(gipfel).toFixed(1)}"
+                cy="${y(werte[gipfel]).toFixed(1)}" r="1.7"
                 fill="none" stroke="var(--text)" stroke-width=".6"/>
       </svg>
       <div class="bogen-fuss">

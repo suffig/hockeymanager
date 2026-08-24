@@ -937,11 +937,58 @@ function CareerGame(root, cfg){
       </div>`;
   }
 
+  /* ----------------------------------------------------------------
+     Was fuer eine Saison das war
+
+     Der Bericht sagte nur, dass gespielt wurde. Aber eine Saison ist
+     nicht wie die andere: es gibt das Jahr, in dem alles zusammenkam,
+     und das Jahr, das man abhaken will. Wer nur Zahlen sieht, muss
+     sich das selbst zusammenreimen - und auf dem Telefon, wo der
+     Bericht zwischen zwei Entscheidungen liegt, tut das niemand.
+
+     Die Reihenfolge ist die der Bedeutung: ein Titel schlaegt alles,
+     danach kommt der persoenliche Bestwert, dann die Auszeichnungen,
+     dann das, was der Klub verlangt hatte.
+     ---------------------------------------------------------------- */
+  function saisonUrteil(s, alle, isG){
+    const punkte = isG ? (s.wins || 0) : (s.p || 0);
+    const frueher = alle.filter(x => x !== s && x.gp);
+    const bestesBisher = frueher.length
+      ? Math.max(...frueher.map(x => isG ? (x.wins || 0) : (x.p || 0))) : -1;
+    const zieleErfuellt = s.ziele
+      ? (s.ziele.team.erfuellt ? 1 : 0) + (s.ziele.person.erfuellt ? 1 : 0) : null;
+
+    if (s.title)          return { t: s.title + '!', d:'Der Titel. Mehr geht in einem Jahr nicht.', k:'gross' };
+    if (s.awards && s.awards.length >= 2)
+      return { t:'Ein Jahr voller Ehrungen', d: s.awards.length + ' Auszeichnungen in einer Saison.', k:'gross' };
+    if (s.sternstunde)    return { t:'Sternstunde', d:'Ein Jahr, in dem dir einfach alles gelang.', k:'gross' };
+    if (punkte > bestesBisher && frueher.length >= 2)
+      return { t:'Deine beste Saison bisher', d: punkte + (isG ? ' Siege' : ' Scorerpunkte') + ' – so viele wie nie.', k:'gut' };
+    if (s.awards && s.awards.length === 1)
+      return { t: s.awards.length + ' Auszeichnung', d:'Der Rest der Liga hat es gemerkt.', k:'gut' };
+    if (s.verletzung && s.verletzung.spiele >= 20)
+      return { t:'Ein Jahr auf der Tribüne', d: s.verletzung.n + ' – ' + s.verletzung.spiele + ' Spiele verpasst.', k:'schlecht' };
+    if (zieleErfuellt === 2)  return { t:'Beide Vorgaben erfüllt', d:'Der Klub hat bekommen, was er wollte.', k:'gut' };
+    if (zieleErfuellt === 0)  return { t:'Nichts davon erreicht', d:'Weder die Mannschaft noch du.', k:'schlecht' };
+    if (s.rollenUrteil === 'uebertroffen')
+      return { t:'Über der Erwartung', d:'Deine Rolle hast du mehr als ausgefüllt.', k:'gut' };
+    if (s.rollenUrteil === 'verfehlt')
+      return { t:'Unter der Erwartung', d:'Der Trainer hatte mehr eingeplant.', k:'schlecht' };
+    if (s.playoffs)       return { t:'Playoffs erreicht', d:'Solide Arbeit, das Jahr zählt.', k:'' };
+    return { t:'Eine Saison wie viele', d:'Nichts, worüber man in zehn Jahren noch spricht.', k:'' };
+  }
+
   /* Der Bericht: wie die Saison gelaufen ist, sofort danach. */
   function berichtHtml(b, isG){
+    const alle = (S.lauf && S.lauf.st.seasons) || [];
+    const u = saisonUrteil(b.saison, alle, isG);
     return `
       <div class="bericht anim staffel">
-        <div class="be-marke">${UI.ikone('haken', 14)} Saison ${b.jahr}/${String(b.jahr + 1).slice(2)} gespielt</div>
+        <div class="be-urteil ${u.k}">
+          <span class="be-jahr">Saison ${b.jahr}/${String(b.jahr + 1).slice(2)}</span>
+          <b>${esc(u.t)}</b>
+          <span class="be-dazu">${esc(u.d)}</span>
+        </div>
         ${UI.seasonCard(b.saison, isG, blind(), true, mobil())}
         <div class="row mt-l">
           <button class="btn btn-primary" id="bericht-weiter">Weiter →</button>
