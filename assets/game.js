@@ -367,7 +367,9 @@ function CareerGame(root, cfg){
                </section>
                <section class="app-tab" data-tab="verlauf">
                  ${st.seasons.length
-                   ? st.seasons.slice().reverse()
+                   ? UI.laufbahnBogen(st.seasons.filter(x => x.gp).map(x => ({
+                       j: x.year, a: x.age, l: x.lg, o: x.ovr, ti: x.title || null })))
+                     + st.seasons.slice().reverse()
                        .map(x => UI.seasonCard(x, isG, blind(), false, true)).join('')
                    : '<p class="small">Noch keine Saison gespielt.</p>'}
                </section>

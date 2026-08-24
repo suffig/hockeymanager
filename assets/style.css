@@ -2948,3 +2948,54 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
   .bogen-flaeche,.bogen-titel circle,.bogen-gipfel,
   .podest .pod,.podest .pod-1 .pod-wert{animation:none}
 }
+
+/* ==========================================================
+   Richtung im Ablauf
+
+   Auf dem Telefon wechselt der ganze Bildschirm, und ein blosses
+   Aufblenden sagt nicht, ob es vorwaerts oder zurueck ging. Die
+   Entscheidungen kommen deshalb von rechts herein - in derselben
+   Richtung, in der man sie wegtippt -, waehrend Auftakt und Bericht
+   von unten aufsteigen: sie gehoeren zum Jahr, nicht zum Weg
+   dorthin.
+   ========================================================== */
+@media (max-width:760px){
+  .app .ereignis.anim,
+  .app .wechselfrist.anim{
+    animation:vonRechts .34s cubic-bezier(.2,.9,.3,1) both;
+  }
+  .app .auftakt.anim,
+  .app .bericht.anim{
+    animation:vonUnten .38s cubic-bezier(.2,.9,.3,1) both;
+  }
+}
+@keyframes vonRechts{
+  from{opacity:0;transform:translateX(22px)}
+  to{opacity:1;transform:none}
+}
+@keyframes vonUnten{
+  from{opacity:0;transform:translateY(14px)}
+  to{opacity:1;transform:none}
+}
+
+/* Die Wahlzeilen eines Ereignisses laufen nacheinander ein, damit
+   man sie liest statt sie als Block zu sehen. */
+@media (max-width:760px){
+  .app .ereignis-wahl .wahlzeile{
+    animation:zeileRein .3s ease both;
+  }
+  .app .ereignis-wahl .wahlzeile:nth-child(1){animation-delay:.16s}
+  .app .ereignis-wahl .wahlzeile:nth-child(2){animation-delay:.23s}
+  .app .ereignis-wahl .wahlzeile:nth-child(3){animation-delay:.30s}
+  .app .ereignis-wahl .wahlzeile:nth-child(n+4){animation-delay:.37s}
+}
+@keyframes zeileRein{
+  from{opacity:0;transform:translateX(10px)}
+  to{opacity:1;transform:none}
+}
+
+@media (prefers-reduced-motion: reduce){
+  .app .ereignis.anim,.app .wechselfrist.anim,
+  .app .auftakt.anim,.app .bericht.anim,
+  .app .ereignis-wahl .wahlzeile{animation:none}
+}
