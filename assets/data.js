@@ -679,7 +679,7 @@ const PUCKERO_DATA = (() => {
 
     { id:'purist', icon:'🙈', n:'Blind zum Star',
       d:'Erreiche im Puristenmodus mindestens den Rang Topstar.',
-      pruef: res => res.player.mode === 'blind' && res.legacy >= 430 },
+      pruef: res => res.player.mode === 'blind' && res.legacy >= 870 },
 
     { id:'spaetform', icon:'🕰', n:'Späte Blüte',
       d:'Gewinn mit 33 Jahren oder älter noch eine Einzelauszeichnung.',
