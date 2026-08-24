@@ -1531,7 +1531,19 @@ const PUCKERO = (() => {
         if (x.benoetigt) w *= 8;        // Folge einer eigenen Entscheidung
         if (x.nurEig)    w *= 3.5;      // passt zum Charakter
         if (x.nurPos)    w *= 2.5;      // passt zur Position
+        /* Ereignisse, aus denen ein Erzaehlstrang erwachsen kann, sind
+           der Anfang von allem, was spaeter zurueckkommt. Ohne Vorrang
+           lagen sie gemessen nur 3,2-mal je Laufbahn ueberhaupt vor,
+           und jede vierte Laufbahn hat die Erzaehlebene nie gesehen. */
+        if (!x.benoetigt && (x.optionen || []).some(o => o.folgt)) w *= 1.9;
         if (st.erlebt.includes(x.id)) w *= 0.35;   // Wiederholung seltener
+        /* Kein einzelnes Ereignis soll das Feld beherrschen. Ohne
+           Deckel multiplizieren sich Vorrang, Charakterbindung und
+           Strangoeffnung zu einem Gewicht, bei dem ein Ereignis in
+           jeder sechzehnten Saison kam - und andere in keiner. Nur
+           Folgeereignisse duerfen darueber: sie sind die Antwort auf
+           eine eigene Entscheidung und muessen kommen. */
+        if (!x.benoetigt) w = Math.min(w, 4.2);
         return w;
       };
       const summe = offen.reduce((a2, x) => a2 + gewicht(x), 0);
