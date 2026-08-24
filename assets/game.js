@@ -45,7 +45,8 @@ function CareerGame(root, cfg){
     /* Auch Identitaet und Moduswahl gehoeren zum Spielen - dort stand
        sonst weiter die ganze Landingpage darum herum (gemessen 8302 px). */
     const imSpiel = S.phase === 'ident' || S.phase === 'start'
-                 || S.phase === 'draft' || S.phase === 'karriere';
+                 || S.phase === 'draft' || S.phase === 'karriere'
+                 || S.phase === 'ergebnis';
     document.documentElement.toggleAttribute('data-spiel', imSpiel);
     /* Wird beim Zeichnen der App-Huelle gesetzt - hier nur geloescht,
        damit keine andere Ansicht mit gesperrtem Scrollen zurueckbleibt. */
@@ -471,10 +472,23 @@ function CareerGame(root, cfg){
   ];
   let appTab = 'spielen';
 
-  function appNav(){
+  /* Die Bilanz am Karriereende bekommt dieselbe Huelle wie das Spiel,
+     nur mit eigenen Bereichen - deshalb nimmt appNav die Liste jetzt
+     entgegen, statt sie fest zu kennen. */
+  const ERG_TABS = [
+    { k:'bilanz',  n:'Bilanz',   ik:'pokal' },
+    { k:'zahlen',  n:'Zahlen',   ik:'waage' },
+    { k:'vitrine', n:'Vitrine',  ik:'medaille' },
+    { k:'weg',     n:'Der Weg',  ik:'transfer' }
+  ];
+  let ergTab = 'bilanz';
+
+  function appNav(tabs, aktiv){
+    const liste = tabs || APP_TABS;
+    const an = aktiv || appTab;
     return `<nav class="app-nav">
-      ${APP_TABS.map(t => `
-        <button class="app-nav-knopf ${t.k === appTab ? 'an' : ''}" data-apptab="${t.k}">
+      ${liste.map(t => `
+        <button class="app-nav-knopf ${t.k === an ? 'an' : ''}" data-apptab="${t.k}">
           ${UI.ikone(t.ik, 19)}<span>${t.n}</span>
         </button>`).join('')}
     </nav>`;
@@ -1544,14 +1558,26 @@ function CareerGame(root, cfg){
     const t = res.totals;
     const bs = res.besteSaison;
 
+    /* ----------------------------------------------------------------
+       Die Bilanz war fuenfzehntausend Pixel lang - neunzehn
+       Bildschirme am Stueck auf einem Telefon, und das ausgerechnet im
+       Moment, in dem eine Laufbahn ihren Sinn bekommt. Auf schmalen
+       Geraeten liegt sie jetzt in vier Bereichen: was daraus geworden
+       ist, die Zahlen, die Vitrine und der Weg dorthin.
+       ---------------------------------------------------------------- */
+    const alsApp = mobil();
+    const auf = (k) => alsApp ? `<section class="app-tab ${k === ergTab ? 'an' : ''}" data-tab="${k}">` : '';
+    const zu  = () => alsApp ? '</section>' : '';
+
     root.innerHTML = `
       <div class="panel-head">
         <h3>Karriereende</h3>
         <span class="pill ${gold ? 'gold' : ''}">${res.rank.n}</span>
         <span class="pill">${res.legacy} Legendenpunkte</span>
       </div>
-      <div class="panel-body">
-
+      <div class="panel-body ${alsApp ? 'karriere mobil app ergebnis-app' : ''}">
+      ${alsApp ? '<div class="app-inhalt">' : ''}
+      ${auf('bilanz')}
         <div class="abschluss-kopf">
           <div class="ak-karte">
             <div class="row between" style="align-items:flex-start;gap:14px">
@@ -1632,10 +1658,6 @@ function CareerGame(root, cfg){
         ${UI.laufbahnBogen((res.seasons || []).filter(s => s.gp).map(s => ({
           j: s.year, a: s.age, l: s.lg, o: s.ovr, ti: s.title || null })))}
 
-        ${abschnitt('Bilanz nach Ligen', UI.ligaBilanz(res))}
-        ${abschnitt('Stationen', UI.klubKarten(res))}
-        ${UI.rollenWeg(res) ? abschnitt('Deine Rolle über die Jahre', UI.rollenWeg(res), true) : ''}
-
         ${UI.rankLeiste(res.legacy)}
 
         ${(S.neueZiele && S.neueZiele.length) ? `
@@ -1648,13 +1670,16 @@ function CareerGame(root, cfg){
             <p class="small mt mb0"><a href="herausforderungen.html">Alle Herausforderungen ansehen</a></p>
           </div>` : ''}
 
-        <div class="grid g2 mt-l">
-          <div class="card">
+        ${zu()}
+        ${auf('zahlen')}
+        ${alsApp ? '' : '<div class="grid g2 mt-l">'}
+          <div class="card ${alsApp ? 'mt' : ''}">
             <h3>Werte auf dem Höhepunkt</h3>
             <p class="small">Potenzial mal Altersform, gemessen in deiner stärksten Saison.</p>
             <div class="attrs" style="grid-template-columns:1fr">${UI.attrRows(p, res.peakAttrs)}</div>
           </div>
-          <div class="card">
+          ${alsApp ? zu() + auf('vitrine') : ''}
+          <div class="card ${alsApp ? 'mt' : ''}">
             <h3>Vereinstitel</h3>
             ${UI.trophyList(res, 'team')}
             <h3 class="mt-l">Mit der Nationalmannschaft</h3>
@@ -1674,7 +1699,10 @@ function CareerGame(root, cfg){
             }).join('')}</div>
             <p class="small mt">${p.picks.map(x => esc(x.n)).join(' · ')}</p>
           </div>
-        </div>
+        ${alsApp ? '' : '</div>'}
+
+        ${abschnitt('Länderspiele', '<div class="card">' + UI.natTabelle(res) + '</div>')}
+        ${alsApp ? zu() + auf('zahlen2') : ''}
 
         <h2 class="mt-l" style="margin-top:38px">Karrierebilanz</h2>
         ${UI.statBoxen(res.isG
@@ -1694,8 +1722,25 @@ function CareerGame(root, cfg){
 
         ${rekordeHtml(res)}
 
+        ${abschnitt('Bilanz nach Ligen', UI.ligaBilanz(res))}
+        ${abschnitt('Karriere auf einen Blick',
+            '<div class="bilanzraster">' + bilanzRaster(res) + '</div>')}
+        ${abschnitt('Statistiktabelle', UI.statsTable(res))}
+        ${zu()}
+
+        ${auf('weg')}
+        ${abschnitt('Stationen', UI.klubKarten(res))}
+        ${UI.rollenWeg(res) ? abschnitt('Deine Rolle über die Jahre', UI.rollenWeg(res), true) : ''}
         ${abschnitt('Was deine Laufbahn geprägt hat', UI.wendepunkte(res), true)}
-        ${abschnitt('Länderspiele', '<div class="card">' + UI.natTabelle(res) + '</div>')}
+        ${res.jahrgangStand ? abschnitt('Dein Jahrgang zum Schluss',
+            UI.jahrgangTabelle(res.jahrgangStand, res.isG, { alle:true, gross:true })
+            + UI.jahrgangVerlauf(res)) : ''}
+        ${abschnitt('Verlauf Saison für Saison (' + res.seasons.length + ')',
+            '<div id="timeline">'
+            + res.seasons.map(x => UI.seasonCard(x, res.isG, false, false, mobil())).join('')
+            + '</div>')}
+        ${zu()}
+        ${alsApp ? '</div>' : ''}
 
         <div class="row mt-l abschluss-taten">
           <button class="btn btn-primary" id="karte">Karriere-Karte speichern</button>
@@ -1703,26 +1748,35 @@ function CareerGame(root, cfg){
           <button class="btn btn-ghost" id="again">Neue Karriere</button>
           <a class="btn btn-ghost" href="pokalraum.html">Pokalraum</a>
         </div>
-        <p class="small mt">Seed dieser Karriere: <code>${esc(p.seed)}</code> –
-          damit lässt sich dieselbe Ausgangslage erneut draften.</p>
-
-        ${abschnitt('Karriere auf einen Blick',
-            '<div class="bilanzraster">' + bilanzRaster(res) + '</div>')}
-
-        ${res.jahrgangStand ? abschnitt('Dein Jahrgang zum Schluss',
-            UI.jahrgangTabelle(res.jahrgangStand, res.isG, { alle:true, gross:true })
-            + UI.jahrgangVerlauf(res)) : ''}
-
-        ${abschnitt('Verlauf Saison für Saison (' + res.seasons.length + ')',
-            '<div id="timeline">'
-            + res.seasons.map(x => UI.seasonCard(x, res.isG, false, false, mobil())).join('')
-            + '</div>')}
-
-        ${abschnitt('Statistiktabelle', UI.statsTable(res))}
+        ${alsApp ? appNav(ERG_TABS, ergTab) : `
+          <p class="small mt">Seed dieser Karriere: <code>${esc(p.seed)}</code> –
+            damit lässt sich dieselbe Ausgangslage erneut draften.</p>`}
       </div>`;
 
     UI.alleZahlenHoch(root);
     if (res.legacy >= 1300) UI.konfetti(120);
+
+    if (alsApp){
+      /* Auch die Bilanz uebernimmt jetzt den Bildschirm. Beide Marken
+         hier und nicht in render(): die Schnellkarriere und die
+         Tageskarriere zeichnen ihr Ergebnis auf eigenem Weg und
+         kaemen sonst nie dazu. */
+      document.documentElement.setAttribute('data-vollbild', '');
+      document.documentElement.setAttribute('data-spiel', '');
+      root.querySelectorAll('[data-apptab]').forEach(el => el.onclick = () => {
+        ergTab = el.dataset.apptab;
+        /* "zahlen2" traegt den zweiten Teil desselben Bereichs. */
+        root.querySelectorAll('.app-tab').forEach(x => x.classList.toggle('an',
+          x.dataset.tab === ergTab || (ergTab === 'zahlen' && x.dataset.tab === 'zahlen2')));
+        root.querySelectorAll('[data-apptab]').forEach(x =>
+          x.classList.toggle('an', x.dataset.apptab === ergTab));
+        const inhalt = root.querySelector('.app-inhalt');
+        if (inhalt) inhalt.scrollTop = 0;
+      });
+      /* Beim ersten Zeichnen denselben Zustand herstellen */
+      root.querySelectorAll('.app-tab').forEach(x => x.classList.toggle('an',
+        x.dataset.tab === ergTab || (ergTab === 'zahlen' && x.dataset.tab === 'zahlen2')));
+    }
 
     let teilenLaeuft = false;
     root.querySelector('#share').onclick = () => {

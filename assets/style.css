@@ -3025,3 +3025,52 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
 .wf-kopf.lage-reha .wf-lage{color:var(--red)}
 .wf-kopf.lage-reha{box-shadow:inset 0 3px 0 var(--red)}
 .wechselfrist.reha{border-color:color-mix(in srgb,var(--red) 30%,var(--line))}
+
+/* ==========================================================
+   Die Karrierebilanz auf dem Telefon
+   Fuenfzehntausend Pixel am Stueck waren neunzehn Bildschirme -
+   ausgerechnet im Moment, in dem eine Laufbahn ihren Sinn
+   bekommt. Jetzt vier Bereiche in derselben Huelle wie das
+   Spiel, mit den Tasten unten fest im Bild.
+   ========================================================== */
+@media (max-width:760px){
+  .panel-body.ergebnis-app{
+    display:flex;flex-direction:column;align-items:stretch;gap:0;
+    margin-left:calc(-1 * var(--seitenrand,14px));
+    margin-right:calc(-1 * var(--seitenrand,14px));
+    width:auto;padding-bottom:0;
+    height:calc(100dvh - var(--kopfhoehe,56px));
+    overflow:hidden;
+  }
+  .ergebnis-app .app-inhalt{
+    flex:1 1 auto;min-height:0;overflow-y:auto;
+    padding:12px var(--seitenrand,14px) 14px;
+    overscroll-behavior:contain;
+  }
+  /* Die Tastenleiste sitzt jetzt in der Huelle, nicht mehr am
+     Fensterrand - sonst haette die Seite zwei feste Leisten. */
+  .ergebnis-app .abschluss-taten{
+    position:static;flex:0 0 auto;
+    padding:8px var(--seitenrand,14px);
+    border-top:1px solid var(--line);
+    background:color-mix(in srgb,var(--ice-900) 92%,transparent);
+  }
+  /* Drei Reihen Tasten nahmen hundertsechzig Pixel vom Inhalt. Der
+     Pokalraum steht ohnehin im Menue - hier zaehlt, was man mit
+     dieser einen Laufbahn machen will. */
+  .ergebnis-app .abschluss-taten a[href="pokalraum.html"]{display:none}
+  .ergebnis-app .app-nav{flex:0 0 auto}
+  /* Der Platzhalter fuer die frueher schwebende Leiste entfaellt */
+  :root:has(.ergebnis-app) .panel-body{padding-bottom:0}
+  .ergebnis-app .app-tab{display:none}
+  .ergebnis-app .app-tab.an{display:block;animation:tabRein .22s ease}
+}
+
+/* Wenn die App-Huelle den Bildschirm uebernimmt, darf ueber ihr nichts
+   mehr stehen. Auf der Schnellkarriere sind das die Wuerfeltasten, auf
+   der Tageskarriere das Tagesprofil - beides waere sonst unerreichbar
+   hinter einer festen Huelle, weil die Seite nicht mehr scrollt. */
+@media (max-width:760px){
+  :root[data-vollbild] section[data-spielflaeche] > .wrap > *:not(#game),
+  :root[data-vollbild] section[data-spielflaeche] > .wrap > .eyebrow{display:none}
+}
