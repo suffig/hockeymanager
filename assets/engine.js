@@ -3085,6 +3085,28 @@ const PUCKERO = (() => {
         rolle: result.rolle ? result.rolle.n : null,
         rollenStand: result.rollenStand || null,
         umstellungen: (result.rollenLauf || []).filter(x => x.grund === 'umgestellt').length,
+        potenzial: result.potenzial || null,
+        ausgeschoepft: result.ausgeschoepft != null ? result.ausgeschoepft : null,
+        besteLiga: (() => {
+          let b = null, hoch = -1;
+          (result.seasons || []).forEach(s => {
+            const L = league(s.lg) || { prestige: 0 };
+            if (s.lg !== 'JUN' && L.prestige > hoch){ hoch = L.prestige; b = s.lg; }
+          });
+          return b;
+        })(),
+        /* Saison fuer Saison, knapp gehalten. Ohne das laesst sich eine
+           fremde Laufbahn nur zusammengefasst zeigen - und genau das
+           soll ein Klick in der Bestenliste aufmachen. */
+        saisonwerte: (result.seasons || []).filter(s => s.gp).map(s => ({
+          j: s.year, a: s.age, k: s.club, l: s.lg, sp: s.gp,
+          t: s.g || 0, v: s.a || 0, p: s.p || 0, pm: s.plus || 0,
+          ez: s.toi || 0,
+          si: s.wins || 0, fq: s.sv ? Math.round(s.sv * 1000) : 0, so: s.so || 0,
+          o: s.ovr, r: s.reihe || null, ti: s.title || null,
+          au: (s.awards || []).length, pl: s.platz || null,
+          ru: s.rollenUrteil || null
+        })),
         klubs: (result.ehemalige || []).length + 1,
         wahlen: (result.verlauf || []).length,
         gelungen: (result.verlauf || []).filter(v => v.gelungen).length,

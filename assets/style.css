@@ -2637,3 +2637,105 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
   .an-text{font-size:12.5px;margin:4px 0 7px}
   .an-kopf b{font-size:17px}
 }
+
+/* ==========================================================
+   Weltweite Bestenliste
+   Eine Zeile muss auf einem Telefon mit einem Blick lesbar
+   sein: Platz, wer, Punkte. Alles Weitere kommt beim Tippen.
+   ========================================================== */
+.bl-filter-reihe{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.bl-filter{
+  padding:6px 13px;border-radius:99px;cursor:pointer;
+  border:1px solid var(--line);background:none;color:var(--muted);
+  font-family:inherit;font-size:12px;font-weight:650;
+  transition:.15s;
+}
+.bl-filter:hover{border-color:var(--accent);color:var(--text)}
+.bl-filter.an{
+  background:color-mix(in srgb,var(--accent) 16%,transparent);
+  border-color:var(--accent);color:var(--accent);
+}
+
+.bl-liste{display:flex;flex-direction:column;gap:5px}
+.bl-zeile{
+  display:grid;grid-template-columns:38px minmax(0,1fr) auto 14px;
+  gap:11px;align-items:center;width:100%;text-align:left;cursor:pointer;
+  padding:10px 12px;border-radius:var(--radius-sm);
+  border:1px solid var(--line);color:var(--text);
+  background:linear-gradient(120deg,rgba(255,255,255,.03),rgba(255,255,255,.008));
+  font-family:var(--font);transition:.15s;
+}
+.bl-zeile:hover{border-color:var(--accent);transform:translateX(3px)}
+.bl-platz{
+  font-family:var(--display);font-size:20px;line-height:1;
+  color:var(--dim);text-align:center;
+}
+.bl-podest .bl-platz{color:var(--gold)}
+.bl-p1{border-color:color-mix(in srgb,var(--gold) 55%,transparent)}
+.bl-p1 .bl-platz{font-size:24px}
+.bl-wer{display:flex;flex-direction:column;gap:1px;min-width:0}
+.bl-wer b{font-size:14.5px;font-weight:700;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.bl-klein{font-size:10.5px;color:var(--dim);overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+.bl-zahlen{display:flex;flex-direction:column;align-items:flex-end;gap:1px}
+.bl-zahlen b{font-family:var(--display);font-size:19px;line-height:1;color:var(--accent)}
+.bl-podest .bl-zahlen b{color:var(--gold)}
+.bl-pfeil{color:var(--dim);font-size:19px;line-height:1}
+.bl-blaettern{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;margin-top:14px;
+}
+
+/* Eine fremde Laufbahn */
+.ka-kopf{
+  display:flex;justify-content:space-between;align-items:flex-start;gap:14px;
+  padding:14px 16px;border-radius:var(--radius-sm);
+  border:1px solid var(--line);
+  background:linear-gradient(120deg,
+    color-mix(in srgb,var(--accent) 10%,transparent),transparent);
+}
+.ka-wer{min-width:0}
+.ka-wer h2{font-size:26px;margin:2px 0 4px}
+.ka-num{color:var(--dim);font-size:19px}
+.ka-wert{text-align:right;flex:0 0 auto;line-height:1.1}
+.ka-wert b{display:block;font-family:var(--display);font-size:34px;color:var(--gold)}
+.ka-wert span{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)}
+.ka-weg{display:flex;flex-wrap:wrap;gap:7px}
+.ka-weg > span{
+  display:inline-flex;align-items:center;gap:6px;
+  font-size:11.5px;color:var(--muted);
+  padding:5px 10px;border-radius:99px;border:1px solid var(--line);
+}
+.ka-tabelle .ka-klub{max-width:120px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap}
+
+@media (max-width:760px){
+  .bl-zeile{grid-template-columns:30px minmax(0,1fr) auto 12px;
+            gap:8px;padding:8px 10px}
+  .bl-platz{font-size:17px}
+  .bl-p1 .bl-platz{font-size:20px}
+  .bl-wer b{font-size:13px}
+  .bl-zahlen b{font-size:16px}
+  .bl-filter{padding:5px 11px;font-size:11.5px}
+  .ka-kopf{padding:11px 12px;gap:10px}
+  .ka-wer h2{font-size:20px}
+  .ka-wert b{font-size:26px}
+  .ka-tabelle .ka-klub{max-width:78px}
+  .ka-weg > span{font-size:10.5px;padding:4px 9px}
+}
+
+/* Die Saisontabelle einer fremden Laufbahn ist breiter als ein
+   Telefon. Sie scrollt in ihrem eigenen Rahmen - die Seite selbst
+   darf sich dabei nicht verschieben. */
+.tabelle-rahmen{
+  overflow-x:auto;-webkit-overflow-scrolling:touch;
+  border:1px solid var(--line);border-radius:var(--radius-sm);
+  background:color-mix(in srgb,var(--line) 10%,transparent);
+}
+.tabelle-rahmen table.stats{min-width:440px;margin:0}
+.tabelle-rahmen th,.tabelle-rahmen td{white-space:nowrap}
+@media (max-width:760px){
+  .tabelle-rahmen table.stats{font-size:11.5px;min-width:400px}
+  .tabelle-rahmen th,.tabelle-rahmen td{padding:5px 7px}
+}

@@ -11,6 +11,12 @@ Im Supabase-Dashboard unter **SQL Editor** nacheinander ausführen:
 
 1. `01_schema.sql` – Tabellen, Trigger, Freigabefunktionen
 2. `02_rls.sql` – Zugriffsrechte und die Ansicht für die Bestenliste
+3. `03_bestenliste.sql` – Saisonwerte je Laufbahn, Platzziffer, Leserecht
+   für die weltweite Bestenliste
+
+Wer die Datenbank vor der Bestenliste eingerichtet hat, führt nur
+`03_bestenliste.sql` nach. Mehrfaches Ausführen ist bei allen dreien
+unschädlich.
 
 Danach registrierst du dich einmal ganz normal über die Seite. Dein
 Profil steht dann auf `wartet`, wie alle anderen auch. Weil es noch

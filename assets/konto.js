@@ -191,6 +191,13 @@ const KONTO = (() => {
       wahlen: k.wahlen != null ? k.wahlen : null,
       gelungen: k.gelungen != null ? k.gelungen : null,
       wendepunkt: k.wendepunkt || null,
+      beste_liga: k.besteLiga || null,
+      potenzial: k.potenzial != null ? k.potenzial : null,
+      ausgeschoepft: k.ausgeschoepft != null ? k.ausgeschoepft : null,
+      rolle: k.rolle || null,
+      rollen_stand: k.rollenStand || null,
+      umstellungen: k.umstellungen != null ? k.umstellungen : null,
+      saisonwerte: k.saisonwerte || null,
       gespielt_am: new Date(k.t || Date.now()).toISOString()
     };
   }
@@ -206,6 +213,10 @@ const KONTO = (() => {
       straenge: z.straenge || [], natKapitaen: !!z.nat_kapitaen,
       klubs: z.stationen, wahlen: z.wahlen, gelungen: z.gelungen,
       wendepunkt: z.wendepunkt,
+      besteLiga: z.beste_liga, potenzial: z.potenzial,
+      ausgeschoepft: z.ausgeschoepft, rolle: z.rolle,
+      rollenStand: z.rollen_stand, umstellungen: z.umstellungen,
+      saisonwerte: z.saisonwerte || null,
       ausDb: true, dbId: z.id
     };
   }
@@ -274,12 +285,45 @@ const KONTO = (() => {
     } catch(e){ return false; }
   }
 
-  async function bestenliste(grenze){
+  /* ---------- Weltweite Bestenliste ----------
+
+     Die Rangliste laedt bewusst ohne Saisonwerte: eine Seite mit
+     fuenfzig Laufbahnen wuerde sonst fuenfzig Saisontabellen
+     mitschleppen. Die kommen erst beim Klick auf eine Position. */
+
+  async function bestenliste(opt){
+    const o = opt || {};
     const c = await ladeClient();
-    const { data, error } = await c.from('bestenliste')
-      .select('*').limit(grenze || 50);
-    if (error) return [];
-    return data || [];
+    let f = c.from('bestenliste').select('*', { count: 'exact' });
+    if (o.pos)    f = f.eq('pos', o.pos);
+    if (o.nation) f = f.eq('nation', o.nation);
+    const von = o.von || 0;
+    const { data, error, count } = await f.range(von, von + (o.wieviele || 25) - 1);
+    if (error) return { zeilen: [], gesamt: 0, fehler: error.message };
+    return { zeilen: data || [], gesamt: count || 0 };
+  }
+
+  /* Eine einzelne fremde Laufbahn, samt Saison fuer Saison. */
+  async function karriereAnsicht(id){
+    const c = await ladeClient();
+    const { data, error } = await c.from('karriere_ansicht')
+      .select('*').eq('id', id).maybeSingle();
+    if (error || !data) return null;
+    return data;
+  }
+
+  /* Wo die eigenen Laufbahnen in der Welt stehen. */
+  async function eigenePlaetze(){
+    if (!zustand().frei) return [];
+    try {
+      const c = await ladeClient();
+      const { data, error } = await c.from('bestenliste')
+        .select('platz, id, name, legendenwert, rang')
+        .eq('benutzername', (zustand().profil || {}).benutzername || '')
+        .order('legendenwert', { ascending: false }).limit(10);
+      if (error) return [];
+      return data || [];
+    } catch(e){ return []; }
   }
 
   return {
@@ -287,7 +331,7 @@ const KONTO = (() => {
     registrieren, anmelden, abmelden, passwortZuruecksetzen, benutzernameAendern,
     profileLaden, freigeben, sperren,
     karriereSpeichern, karrierenLaden, nichtUebertragen, uebertragen,
-    zieleLaden, zieleSpeichern, bestenliste
+    zieleLaden, zieleSpeichern, bestenliste, karriereAnsicht, eigenePlaetze
   };
 })();
 
