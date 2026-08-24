@@ -457,6 +457,96 @@ const UI = (() => {
 
   function clampZahl(v, a, b){ return v < a ? a : v > b ? b : v; }
 
+  /* Der Rollenweg: was der Trainer ueber die Jahre aus dir gemacht hat.
+     Am Ende einer Laufbahn ist das oft die ehrlichere Geschichte als
+     die Vitrine - Aufstieg, Bestaetigung, Umstellung, Abstieg. */
+  const ROLLEN_ANFANG = {
+    vereinbart: { n:'vereinbart',  k:'' },
+    abgelehnt:  { n:'zugewiesen',  k:'schlecht' },
+    umgestellt: { n:'umgestellt',  k:'schlecht' }
+  };
+
+  /* Der Rollenweg: was der Trainer ueber die Jahre aus dir gemacht hat.
+     Am Ende einer Laufbahn ist das oft die ehrlichere Geschichte als die
+     Vitrine.
+
+     Der erste Entwurf zeigte jeden Eintrag einzeln - bei sechzehn
+     Zeilen ("bestaetigt", "verfehlt", "bestaetigt", ...) las sich das
+     wie ein Protokoll, nicht wie eine Laufbahn. Jetzt wird nach
+     Abschnitten zusammengefasst: eine Zeile je Rolle, mit dem Zeitraum,
+     dem hoechsten erreichten Stand und dem, was schiefging. */
+  function rollenWeg(res){
+    const lauf = res.rollenLauf || [];
+    if (!lauf.length) return '';
+    const alle = (PUCKERO_DATA.ROLLEN || []).concat(PUCKERO_DATA.ROLLEN_G || []);
+    const finde = k => alle.find(x => x.k === k) || {};
+    const RANG = { bewaehrung:0, gesetzt:1, saeule:2 };
+    const letztesJahr = (res.seasons || []).length
+      ? res.seasons[res.seasons.length - 1].year : null;
+
+    /* Aufeinanderfolgende Eintraege derselben Rolle zu einem Abschnitt. */
+    const abschnitte = [];
+    lauf.forEach(x => {
+      const letzter = abschnitte[abschnitte.length - 1];
+      if (letzter && letzter.rolle === x.rolle){
+        if (RANG[x.stand] > RANG[letzter.hoechst]) letzter.hoechst = x.stand;
+        if (x.grund === 'verfehlt') letzter.verfehlt++;
+        if (x.grund === 'uebertroffen') letzter.stark++;
+        letzter.bis = x.jahr;
+      } else {
+        abschnitte.push({ rolle: x.rolle, von: x.jahr, bis: x.jahr,
+          anfang: ROLLEN_ANFANG[x.grund] ? x.grund : 'vereinbart',
+          statt: x.wunsch || x.von || null,
+          hoechst: x.stand, verfehlt: x.grund === 'verfehlt' ? 1 : 0,
+          stark: x.grund === 'uebertroffen' ? 1 : 0 });
+      }
+    });
+    abschnitte.forEach((a, i) => {
+      a.bis = i + 1 < abschnitte.length ? abschnitte[i + 1].von - 1
+            : (letztesJahr || a.bis);
+      if (a.bis < a.von) a.bis = a.von;
+    });
+
+    const umgestellt = lauf.filter(x => x.grund === 'umgestellt').length;
+    const abgelehnt  = lauf.filter(x => x.grund === 'abgelehnt').length;
+
+    return `<div class="card">
+      <div class="rw-liste">
+        ${abschnitte.map(a => {
+          const rolle = finde(a.rolle);
+          const st = ROLLEN_STAND[a.hoechst] || ROLLEN_STAND.gesetzt;
+          const an = ROLLEN_ANFANG[a.anfang];
+          const jahre = a.von === a.bis ? String(a.von)
+                      : a.von + '–' + String(a.bis).slice(2);
+          return `<div class="rw-zeile ${st.k}">
+            <span class="rw-jahr">${jahre}</span>
+            <span class="rw-icon">${rolle.icon || '•'}</span>
+            <span class="rw-name">
+              <b>${esc(rolle.kurz || (rolle.n || a.rolle).replace(/^Als /, ''))}</b>
+              ${a.statt ? `<em>statt ${esc(finde(a.statt).kurz
+                  || (finde(a.statt).n || a.statt).replace(/^Als /, ''))}</em>` : ''}
+            </span>
+            <span class="rw-bilanz">
+              ${an.k ? `<b class="${an.k}">${an.n}</b>` : ''}
+              ${a.stark ? `<span class="gut">${a.stark}× übertroffen</span>` : ''}
+              ${a.verfehlt ? `<span class="schlecht">${a.verfehlt}× verfehlt</span>` : ''}
+            </span>
+            <span class="rw-stand">${st.n}</span>
+          </div>`;
+        }).join('')}
+      </div>
+      <p class="small mt mb0">${
+        umgestellt === 0 && abgelehnt === 0
+          ? 'Du hast jede Rolle bekommen, die du wolltest, und keine wieder verloren.'
+        : umgestellt === 0
+          ? 'Der Klub hat dir nicht alles zugetraut – aber was du bekommen hast, hast du behalten.'
+        : 'Der Trainer hat dich ' + (umgestellt === 1 ? 'einmal'
+            : umgestellt === 2 ? 'zweimal' : umgestellt + '-mal')
+          + ' umgestellt. Wer seine Rolle verliert, spielt danach in einer '
+          + 'anderen Mannschaft, auch wenn das Trikot dasselbe bleibt.'}</p>
+    </div>`;
+  }
+
   /* Saisonvorgaben des Klubs – vorher als Auftrag, nachher als Abrechnung. */
   const ZIEL_ICON = { titel:'pokal', runden:'medaille', playoffs:'ziel', platz:'schild',
                       punkte:'hoch', tore:'tor', siege:'haken', spiele:'uhr' };
@@ -1437,7 +1527,7 @@ const UI = (() => {
            trophyList, klubKarten, natKarte, ligaBilanz, shareText, rankLeiste, karriereKarte,
            statBoxen, natTabelle, rivaleKarte, vermaechtnisKarte, zeremonie, formKurve,
            eisfeld, serienBaum, meilensteinJagd, jahrgangTabelle, zielKarte,
-           bilanzStreifen, rollenKarte,
+           bilanzStreifen, rollenKarte, rollenWeg,
            ikone, kennzahl, IKONEN, wendepunkte, jahrgangVerlauf, STRANG_INFO,
            konfetti, zahlHoch, alleZahlenHoch, toast, copy };
 })();

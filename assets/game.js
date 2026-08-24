@@ -1348,6 +1348,7 @@ function CareerGame(root, cfg){
 
         ${abschnitt('Bilanz nach Ligen', UI.ligaBilanz(res))}
         ${abschnitt('Stationen', UI.klubKarten(res))}
+        ${UI.rollenWeg(res) ? abschnitt('Deine Rolle über die Jahre', UI.rollenWeg(res), true) : ''}
 
         ${UI.rankLeiste(res.legacy)}
 

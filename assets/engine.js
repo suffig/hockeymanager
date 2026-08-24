@@ -953,8 +953,11 @@ const PUCKERO = (() => {
                      : st.rollenPunkte <= -1 ? 'bewaehrung' : 'gesetzt';
     }
 
+    /* Ohne die Notbremse steht hier ein harter Absturz, sobald ein
+       Browser eine alte data.js neben einer neuen engine.js liegen hat -
+       genau das ist beim Entwickeln passiert. */
     function standFaktor(){
-      const S = D.ROLLENSTAND[st.rollenStand || 'gesetzt'];
+      const S = (D.ROLLENSTAND || {})[st.rollenStand || 'gesetzt'];
       return S ? S.f : 1;
     }
 
@@ -2440,7 +2443,11 @@ const PUCKERO = (() => {
       st.rollenPunkte = st.rollenStand === 'bewaehrung' ? -1 : 1;
       st.rollenJahre = 0;
       st.rollenLauf.push({ jahr: st.year, rolle: gewaehlt.k, stand: st.rollenStand,
-                           grund: abgelehnt ? 'abgelehnt' : 'vereinbart' });
+                           grund: abgelehnt ? 'abgelehnt' : 'vereinbart',
+                           /* Was du wolltest - sonst laese sich der Eintrag
+                              spaeter so, als waere die Rolle abgelehnt
+                              worden, die du bekommen hast. */
+                           wunsch: abgelehnt ? gewuenscht.k : null });
 
       if (!abgelehnt && letzte) letzte.events.push({
         t: 'Rolle im Team: ' + gewaehlt.n

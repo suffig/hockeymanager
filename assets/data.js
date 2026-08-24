@@ -507,33 +507,33 @@ const PUCKERO_DATA = (() => {
                in engine.js).
      ---------- */
   const ROLLEN = [
-    { k:'offensiv', n:'Als Scorer verpflichtet', icon:'🎯', anspruch:3,
+    { k:'offensiv', n:'Als Scorer verpflichtet', kurz:'Scorer', icon:'🎯', anspruch:3,
       d:'Du sollst treffen. Alles andere interessiert den Trainer weniger.',
       soll:'Punkte', attr:['praezision','schuss','puck'],
       w:{ punkte:0.16, plus:-6, risiko:0, eiszeit:1.5, gehalt:1.10 } },
-    { k:'zweiweg', n:'Als Zweiwegspieler', icon:'⚖', anspruch:1,
+    { k:'zweiweg', n:'Als Zweiwegspieler', kurz:'Zweiwegspieler', icon:'⚖', anspruch:1,
       d:'Beide Enden des Eises. Weniger Ruhm, mehr Vertrauen.',
       soll:'Punkte und Bilanz', attr:['uebersicht','defensive','skating'],
       w:{ punkte:0.02, plus:8, risiko:0, eiszeit:1.0, gehalt:1.0, selke:0.18 } },
-    { k:'defensiv', n:'Als defensiver Anker', icon:'🧱', anspruch:2,
+    { k:'defensiv', n:'Als defensiver Anker', kurz:'Anker', icon:'🧱', anspruch:2,
       d:'Unterzahl, letzte Minute, gegnerische Paradereihe. Deine Nacht beginnt, wenn es eng wird.',
       soll:'Plus-Minus', attr:['defensive','nerven','zweikampf'],
       w:{ punkte:-0.14, plus:14, risiko:0.01, eiszeit:1.2, gehalt:0.95, selke:0.3 } },
-    { k:'physisch', n:'Als körperlicher Faktor', icon:'💪', anspruch:0,
+    { k:'physisch', n:'Als körperlicher Faktor', kurz:'Körperspiel', icon:'💪', anspruch:0,
       d:'Du sollst wehtun, den Slot räumen und die Reihe schützen.',
       soll:'Härte und Bilanz', attr:['zweikampf','defensive','antritt'],
       w:{ punkte:-0.08, plus:4, risiko:0.05, strafen:1.8, eiszeit:0.8, gehalt:0.9, moral:6 } }
   ];
   const ROLLEN_G = [
-    { k:'stamm', n:'Als klare Nummer eins', icon:'🥅', anspruch:3,
+    { k:'stamm', n:'Als klare Nummer eins', kurz:'Nummer eins', icon:'🥅', anspruch:3,
       d:'Siebzig Spiele, keine Diskussion. Und keine Ausrede.',
       soll:'Einsätze', attr:['konstanz','stellung','nerven'],
       w:{ anteil:0.16, risiko:0.03, gehalt:1.12 } },
-    { k:'teilung', n:'Als Teil eines Duos', icon:'🤝', anspruch:1,
+    { k:'teilung', n:'Als Teil eines Duos', kurz:'Duo', icon:'🤝', anspruch:1,
       d:'Geteilte Last, geteilte Verantwortung – und ein frischerer Körper im April.',
       soll:'Fangquote', attr:['reflexe','fanghand','beweglich'],
       w:{ anteil:-0.10, risiko:-0.04, gehalt:0.95, playoff:4 } },
-    { k:'aufbau', n:'Als Entwicklungsprojekt', icon:'🌱', anspruch:0,
+    { k:'aufbau', n:'Als Entwicklungsprojekt', kurz:'Projekt', icon:'🌱', anspruch:0,
       d:'Weniger Spiele, mehr Training. Der Klub baut dich langsam auf.',
       soll:'Fortschritt', attr:['lesen','puckspiel','beweglich'],
       w:{ anteil:-0.16, gehalt:0.8, training:2 } }
