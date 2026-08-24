@@ -238,7 +238,7 @@ const EREIGNISSE = (() => {
       ] },
 
     /* ---------- Verletzung ---------- */
-    { id:'comeback1', gewicht:3.5, kat:'spiel', szene:'kabine', tag:'Nach der Verletzung',
+    { id:'comeback1', gewicht:3.5, mehrfach:true, kat:'spiel', szene:'kabine', tag:'Nach der Verletzung',
       titel:'Der Arzt gibt dir grünes Licht – dein Knie sieht das anders',
       text:'Die Untersuchung ist unauffällig, die Werte gut, alle nicken. Nur du weißt, wie es sich '
          + 'anfühlt, wenn du in der letzten Kurve vor der Bande abbremst. In elf Tagen ist '
@@ -978,6 +978,35 @@ const EREIGNISSE = (() => {
                 text:'Ein ehrlicher Satz über eine alte Entscheidung. Die Leser mögen ihn mehr als jede Bilanz.' },
           schlecht:{ moral:-7, ruf:-5,
                 text:'Aus einem Nebensatz wird eine Schlagzeile: „Er bereut den Wechsel."' } }
+      ] },
+
+    /* Der neue Mann an der Bande. Kein Strangoeffner, sondern die
+       Frage, wie man einem begegnet, der einen nicht kennt - und der
+       ueber Eiszeit und Rolle entscheidet. */
+    { id:'tr_neuer', dringend:true, mehrfach:true, kat:'trainer', szene:'kabine', tag:'Der Neue',
+      titel:'{trainer} übernimmt – und kennt dich nur vom Video',
+      text:'Am ersten Tag steht er in der Kabine und sagt, jeder fange bei ihm bei null '
+         + 'an. Es klingt nach einer Floskel, aber die Aufstellung am Abend zeigt, dass '
+         + 'er es ernst meint. Was du dir beim Vorgänger aufgebaut hast, zählt hier nicht.',
+      bedingung: st => !!st.trainerNeu,
+      optionen:[
+        { t:'Ihn im Training überzeugen', chance:66,
+          hinweis:'Reden hilft nicht, laufen schon',
+          gut:{ rolle:2, moral:6, attr:{ nerven:2 },
+                text:'Drei Wochen als Erster auf dem Eis. In Spiel vier stehst du wieder da, wo du vorher warst.' },
+          schlecht:{ rolle:-1, moral:-6,
+                text:'Du rennst dich müde und er sieht es nicht. Die Reihe bleibt, wie sie ist.' } },
+        { t:'Das Gespräch suchen', chance:58,
+          hinweis:'Früh klarstellen, was du kannst',
+          gut:{ rolle:2, ruf:5,
+                text:'Zwanzig Minuten in seinem Büro. Danach weiß er, wofür er dich einsetzen kann – und tut es.' },
+          schlecht:{ rolle:-2, ruf:-4,
+                text:'Er hört zu und macht es trotzdem anders. Jetzt gilst du als einer, der fordert.' } },
+        { t:'Abwarten, was er vorhat', chance:74,
+          hinweis:'Kein Risiko, aber auch kein Anspruch',
+          gut:{ form:0.04, text:'Du hältst dich raus und spielst. Nach zwei Monaten hat sich vieles von selbst geklärt.' },
+          schlecht:{ moral:-5, rolle:-1,
+                text:'Wer nichts sagt, wird eingeteilt. Deine Minuten gehen an jemanden, der lauter war.' } }
       ] },
 
     /* ==========================================================

@@ -403,6 +403,9 @@ const PUCKERO = (() => {
       rollenJahre: 0,         // Saisons in dieser Rolle
       rollenVorOvr: null,     // Wert der Vorsaison, fuer die Aufbaurolle
       startVerpasst: 0,       // Spiele, die die Reha den Saisonstart kostet
+      trainerJahre: 0,        // wie lange derselbe Mann schon an der Bande steht
+      trainerNeu: false,      // in dieser Saison hat der Klub gewechselt
+      trainerVorher: null,    // wer vorher da war
       rollenLauf: [],         // jede Aenderung, mit Grund
       verhandlung: null,      // offene Vertragsverhandlung
       klausel: false,         // Ausstiegsklausel im laufenden Vertrag
@@ -1369,6 +1372,9 @@ const PUCKERO = (() => {
         klubJahre: st.klubJahre,
         kapitaen: st.kapitaenSeit === st.club.n,
         einschaetzung: einschaetzung(),
+        trainer: st.trainer || null,
+        trainerJahre: st.trainerJahre,
+        trainerNeu: !!st.trainerNeu,
         ziele: setzeSaisonZiel(st.club)
       };
     }
@@ -1647,7 +1653,6 @@ const PUCKERO = (() => {
     function waehleEreignis(letzteSaison){
       if (!window.EREIGNISSE || st.club === null) return null;
       if (league(st.club.lg).prestige < 8) return null;
-      if (r() > 0.7) return null;                        // nicht jede Saison
       // Wiederholbare Ereignisse duerfen erneut kommen, nur nicht direkt hintereinander
       const zuletzt = st.erlebt[st.erlebt.length - 1];
       const offen = EREIGNISSE.LISTE.filter(e => {
@@ -1663,6 +1668,21 @@ const PUCKERO = (() => {
         return !e.bedingung || e.bedingung(st, letzteSaison);
       });
       if (!offen.length) return null;
+
+      /* Ereignisse mit einem einzigen Saisonfenster - der neue Trainer
+         ist im Jahr darauf kein neuer Trainer mehr - gehen nicht in die
+         Lotterie. Gemessen kamen sie sonst bei zwei Trainerwechseln je
+         Laufbahn auf 0,20 Feuerungen, also in einem von zehn Faellen.
+         Jetzt kommen sie zuerst; die uebliche Frage, ob ueberhaupt ein
+         Ereignis stattfindet, gilt fuer sie nicht. */
+      const dringend = offen.filter(x => x.dringend);
+      if (dringend.length && r() < 0.45){
+        const e0 = dringend.length === 1 ? dringend[0] : pick(r, dringend);
+        return baueEreignis(e0, letzteSaison);
+      }
+
+      if (r() > 0.7) return null;                        // nicht jede Saison
+
       /* Nicht jedes Ereignis ist gleich wichtig: Was aus einer frueheren
          Entscheidung erwaechst oder zum Charakter passt, kommt bevorzugt.
          Sonst gehen genau die persoenlichen Momente im grossen Pool unter. */
@@ -1686,6 +1706,11 @@ const PUCKERO = (() => {
            lagen sie gemessen nur 3,2-mal je Laufbahn ueberhaupt vor,
            und jede vierte Laufbahn hat die Erzaehlebene nie gesehen. */
         if (!x.benoetigt && (x.optionen || []).some(o => o.folgt)) w *= 1.9;
+        /* Manche Ereignisse haben nur ein einziges Saisonfenster - der
+           neue Trainer ist im Jahr danach kein neuer Trainer mehr.
+           Ohne Vorrang gehen sie darin unter: gemessen kam "Der Neue"
+           bei zwei Trainerwechseln je Laufbahn auf 0,06 Feuerungen. */
+        if (x.dringend) w *= 12;
         if (st.erlebt.includes(x.id)) w *= 0.35;   // Wiederholung seltener
         /* Kein einzelnes Ereignis soll das Feld beherrschen. Ohne
            Deckel multiplizieren sich Vorrang, Charakterbindung und
@@ -1696,7 +1721,7 @@ const PUCKERO = (() => {
         /* Kein einzelnes Ereignis soll das Feld beherrschen - auch
            kein faelliges Folgeereignis. Ohne den zweiten Deckel stieg
            eines davon auf sechs Prozent aller Feuerungen. */
-        w = Math.min(w, x.benoetigt ? 22 : 4.2);
+        w = Math.min(w, (x.benoetigt || x.dringend) ? 22 : 4.2);
         return w;
       };
       const summe = offen.reduce((a2, x) => a2 + gewicht(x), 0);
@@ -1705,6 +1730,12 @@ const PUCKERO = (() => {
         ziel -= gewicht(kandidat);
         if (ziel <= 0){ e = kandidat; break; }
       }
+      return baueEreignis(e, letzteSaison);
+    }
+
+    /* Aus einer Vorlage ein fertiges Ereignis machen. Frueher stand das
+       am Ende der Auswahl; jetzt brauchen es zwei Wege dorthin. */
+    function baueEreignis(e, letzteSaison){
       st.erlebt.push(e.id);
       // Erfolg pro Option vorab auswürfeln, damit die Anzeige ehrlich bleibt
       const ctx = ereignisKontext();
@@ -2342,6 +2373,53 @@ const PUCKERO = (() => {
       st.formBonus *= 0.5;          // Nachwirkung klingt ab
       st.risikoBonus *= 0.5;
       st.moral = clamp(st.moral + (season.title ? 6 : (season.playoffs ? 2 : -3)), 10, 100);
+      /* ----------------------------------------------------------------
+         Der Trainer wechselt
+
+         Er war bisher unsterblich: derselbe Mann von der ersten bis zur
+         letzten Saison bei einem Klub. In Wahrheit ist er der erste,
+         den ein Verein entlaesst, wenn es nicht laeuft - und fuer einen
+         Spieler ist das einer der groessten Einschnitte, die es gibt.
+         Alles, was er sich beim alten aufgebaut hat, faengt von vorne
+         an: der neue Mann kennt ihn nicht.
+         ---------------------------------------------------------------- */
+      st.trainerNeu = false;
+      if (st.club && lg.k !== 'JUN'){
+        st.trainerJahre++;
+        const zielVerfehlt = season.ziele && season.ziele.team
+                          && season.ziele.team.erfuellt === false;
+        const schwach = klubStaerke(club) < ligaSchnittJetzt(club.lg) - 3;
+        /* Geeicht auf rund ein Fuenftel der Saisons: ein Trainer haelt
+           damit im Mittel gut vier Jahre, und ein Spieler erlebt in
+           einer Laufbahn zwei bis drei Wechsel. Mit dem ersten Ansatz
+           waren es 7,6 Prozent - einer je dreizehn Saisons, und damit
+           blieb der Mann an der Bande faktisch doch unsterblich. */
+        const risiko = clamp(0.11
+          + (zielVerfehlt ? 0.24 : 0)
+          + (schwach ? 0.12 : 0)
+          + (season.playoffs ? -0.07 : 0.10)
+          + (st.trainerJahre >= 4 ? 0.10 : 0), 0.03, 0.62);
+        if (r() < risiko){
+          st.trainerVorher = st.trainer;
+          const rr2 = rng(player.seed + ':trainer:' + club.n + ':' + st.year);
+          st.trainer = pick(rr2, D.FIRST) + ' ' + pick(rr2, D.LAST);
+          st.trainerJahre = 0;
+          st.trainerNeu = true;
+          season.events.push({ t: st.trainerVorher + ' muss gehen – '
+            + st.trainer + ' übernimmt', c: 'bad' });
+          /* Der Neue kennt dich nicht. Wer Saeule war, ist erst einmal
+             wieder gesetzt; wer schon wackelte, steht ganz unten. */
+          if (st.rolle){
+            st.rollenStand = st.rollenStand === 'bewaehrung' ? 'bewaehrung' : 'gesetzt';
+            st.rollenPunkte = st.rollenStand === 'bewaehrung' ? -1 : 0;
+            st.rollenLauf.push({ jahr: st.year, rolle: st.rolle.k,
+                                 stand: st.rollenStand, grund: 'neuerTrainer' });
+          }
+          /* Ein Kapitaen bleibt Kapitaen - aber nicht selbstverstaendlich. */
+          st.moral = clamp(st.moral - 6, 10, 100);
+        }
+      }
+
       /* Alles, was einmal je Saison passiert, wieder freigeben */
       st.ereignisGeprueft = false;
       st.wechselGeprueft = false;
@@ -2657,6 +2735,8 @@ const PUCKERO = (() => {
         if (st.kapitaenSeit !== a.club.n) st.kapitaenSeit = null;
         st.club = a.club;          // fuer die Namensvergabe schon setzen
         umfeldBenennen();
+        st.trainerJahre = 0;
+        st.trainerVorher = null;
       }
       st.entscheidungen.push(a.club.n);
       st.vertragJahre = a.jahre;

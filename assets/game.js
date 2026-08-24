@@ -164,6 +164,21 @@ function CareerGame(root, cfg){
         fn.call(roh, z[1]);
         S.zuege.push(z);
       });
+      /* Nachspielen ergibt nur dann dieselbe Laufbahn, wenn die Engine
+         sich seit dem Sichern nicht geaendert hat. Genau das passiert
+         aber bei jeder Verbesserung. Deshalb wird verglichen: stimmt
+         der Stand nach dem Nachspielen nicht mit dem ueberein, der
+         gesichert wurde, ist er wertlos und wird verworfen - lieber
+         ein ehrlicher Neuanfang als eine stillschweigend andere
+         Laufbahn. */
+      const jetzt = roh.st || {};
+      const k = stand.kurz;
+      if (k && (k.jahr !== jetzt.year || k.alter !== jetzt.age
+                || k.saisons !== (jetzt.seasons || []).length
+                || k.klub !== (jetzt.club ? jetzt.club.n : null))){
+        throw new Error('Stand passt nicht mehr zur aktuellen Fassung');
+      }
+
       S.lauf = mitProtokoll(roh);
       S.phase = S.lauf.fertig ? 'ergebnis' : 'karriere';
       if (S.lauf.fertig){ standLoeschen(); return false; }
