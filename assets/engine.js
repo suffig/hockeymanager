@@ -2432,11 +2432,98 @@ const PUCKERO = (() => {
       };
     }
 
+    /* Eine Wirkung vervielfachen, ohne das Original anzutasten - die
+       Ereignisliste wird fuer jede weitere Laufbahn unveraendert
+       gebraucht. Texte, Faeden und Schalter bleiben, nur die Zahlen
+       wachsen. */
+    /* Obergrenzen je Feld. Ohne sie kam bei einem Wagnis mit sechzehn
+       Prozent Chance ein Ansehensgewinn von 46 heraus - die Skala
+       reicht von 20 bis 99, ein einziger Abend haette also die halbe
+       Laufbahn ersetzt. Grosszuegig, aber nicht masslos: mehr als das
+       Doppelte einer guten normalen Belohnung soll auch ein Wagnis
+       nicht bringen. */
+    const WAGNIS_DECKEL = { moral: 22, ruf: 20, rolle: 4, berater: 24,
+                            form: 0.18, attr: 8, trait: 8 };
+    function skaliereWirkung(w, faktor){
+      if (!w || faktor === 1) return w;
+      const raus = Object.assign({}, w);
+      const deckeln = (v, d) => v > 0 ? Math.min(v, d) : v;
+      ['moral', 'ruf', 'rolle', 'berater'].forEach(k => {
+        if (typeof raus[k] === 'number')
+          raus[k] = deckeln(Math.round(raus[k] * faktor), WAGNIS_DECKEL[k]);
+      });
+      /* Risiko und Verschleiss sind selbst dann Nachteile, wenn etwas
+         gelingt - sie folgen der Milde beim Scheitern, wachsen aber
+         nicht mit dem Lohn. */
+      if (faktor < 1){
+        ['risiko', 'verschleiss'].forEach(k => {
+          if (typeof raus[k] === 'number') raus[k] = Math.round(raus[k] * faktor);
+        });
+      }
+      if (typeof raus.form === 'number')
+        raus.form = deckeln(Math.round(raus.form * faktor * 100) / 100, WAGNIS_DECKEL.form);
+      ['attr', 'trait'].forEach(feld => {
+        if (!raus[feld]) return;
+        const neu = {};
+        Object.entries(raus[feld]).forEach(([k, v]) => {
+          neu[k] = deckeln(Math.round(v * faktor), WAGNIS_DECKEL[feld]);
+        });
+        raus[feld] = neu;
+      });
+      return raus;
+    }
+
     function chooseEreignis(index){
       if (!st.ereignis) return null;
       const o = st.ereignis.optionen[clamp(index, 0, st.ereignis.optionen.length - 1)];
       const gelungen = o._wurf < o.chance;
-      const w = gelungen ? o._gut : o._schlecht;
+      /* ------------------------------------------------------------------
+         Ein Wagnis muss sich lohnen koennen
+
+         Gemessen ueber alle 262 Optionen war der Erwartungswert nach
+         Chancestufe:
+
+           80-100 %   +5,6      Gewinn  +7,2   Verlust  -1,6
+           65-79  %   +6,9      Gewinn +11,1   Verlust  -3,4
+           50-64  %   +7,1      Gewinn +16,9   Verlust  -5,7
+           35-49  %   +2,6      Gewinn +17,0   Verlust  -8,6
+           unter 35   -8,7      Gewinn +32,0   Verlust -18,6
+
+         Der Gewinn stieg also, aber laengst nicht genug fuer den
+         Verlust: ein grosses Wagnis war rechnerisch ein Fehler. Und
+         gespielt zeigte sich dasselbe - "mutig" lag auf jedem
+         Perzentil unter "sicher", auch beim Spitzenwert. Risiko ohne
+         Aufwaertsschwanz ist kein Risiko, sondern eine Falle, und wer
+         sie durchschaut, waehlt vierzehn Optionen nie wieder.
+
+         Deshalb faellt der Ertrag hier hoeher aus, je unwahr-
+         scheinlicher der Erfolg war. Der Verlust bleibt unangetastet:
+         ein Wagnis soll dieselbe Erwartung haben wie vorsichtiges
+         Spiel, aber eine viel groessere Spanne. Es steht an dieser
+         einen Stelle statt in vierzehn handgeschriebenen Bloecken -
+         so gilt die Regel auch fuer jedes Ereignis, das noch dazukommt,
+         und die angezeigten Wirkungen stimmen mit den wirklichen
+         ueberein, weil beide dasselbe w benutzen.
+         ------------------------------------------------------------------ */
+      /* Der Zuschlag setzt erst unter 50 Prozent ein. Darueber war der
+         Erwartungswert gemessen schon gesund (50-64 % war mit +7,1 die
+         beste Stufe ueberhaupt) - dort noch etwas draufzulegen haette
+         nur das Ungleichgewicht umgedreht. */
+      /* Zwei Hebel, weil einer nicht reicht. Nur die Gewinne zu heben
+         haette bei sechzehn Prozent Chance einen Ansehensgewinn von 46
+         gebraucht - die Skala reicht von 20 bis 99, ein Abend haette
+         die halbe Laufbahn ersetzt. Mit vernuenftigen Deckeln blieb der
+         Erwartungswert dagegen bei -6.
+
+         Also faellt auch der Preis des Scheiterns milder aus, je
+         unwahrscheinlicher der Versuch war. Das ist nicht nur Rechnung:
+         wer einen aussichtslosen Zug versucht und scheitert, wird in
+         einer Kabine anders angesehen als einer, der eine sichere
+         Sache verpatzt. */
+      const wagnisLohn = gelungen
+        ? clamp(1 + (50 - (o.chance || 50)) / 22, 1, 2.8)
+        : clamp(1 - (48 - (o.chance || 48)) / 62, 0.52, 1);
+      const w = skaliereWirkung(gelungen ? o._gut : o._schlecht, wagnisLohn);
       /* Vor dem Ablegen pruefen: danach steht der Faden schon in der
          Liste und die Abfrage waere immer falsch. */
       const oeffnetFaden = (o.folgt && !st.freigeschaltet.includes(o.folgt)) ? o.folgt : null;
