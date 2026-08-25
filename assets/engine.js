@@ -648,6 +648,14 @@ const PUCKERO = (() => {
          Folgen, solange man dort spielt.
          ---------------------------------------------------------------- */
       klubKonto: {},
+      /* Welche Vereine zuletzt im Angebot standen. Eine Liga hat sechs
+         bis sechzehn Vereine, und das passende Band davon ist noch
+         kleiner - gemessen nannte fast jedes dritte Angebot einen
+         Verein, den man in dieser Laufbahn schon gesehen hatte. Wer
+         gerade dran war, rutscht deshalb nach hinten. Ausgeschlossen
+         wird niemand: dass ein Verein es zwei Jahre spaeter noch
+         einmal versucht, ist gerade das Realistische. */
+      zuletztAngeboten: [],
       /* ----------------------------------------------------------------
          Was der Koerper behaelt
 
@@ -4260,11 +4268,16 @@ const PUCKERO = (() => {
           /* Naehe zaehlt, aber nicht allein - sonst waere es wieder
              deterministisch. Der Zufallsanteil ist bewusst gross. */
           s: -Math.abs(klubStaerke(c) - passend) + r() * 11
+             - ((st.zuletztAngeboten || []).indexOf(c.n) >= 0 ? 7 : 0)
         })).sort((a2, b2) => b2.s - a2.s);
         const band = bewertetePool.slice(0, Math.max(3, Math.ceil(pool.length * 0.4)));
         nimm(pick(r, band).c, false);
       }
       if (!angebote.length) nimm(aktuell, true);
+      /* Die Namen fuer die naechsten beiden Runden vormerken. Sechs
+         Plaetze reichen dafuer bei hoechstens drei Angeboten. */
+      st.zuletztAngeboten = angebote.map(a => a.club.n)
+        .concat(st.zuletztAngeboten || []).slice(0, 6);
       return angebote;
     }
 
