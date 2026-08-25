@@ -27,6 +27,17 @@
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
+--  Die Spalte fuer das Profil muss leer bleiben duerfen
+--
+--  profil_id war "not null" - ein Gasteintrag waere damit unmoeglich
+--  gewesen, ganz gleich was die Zugriffsregel erlaubt. Der Verweis auf
+--  die Profiltabelle bleibt bestehen; er greift nur dann, wenn eine
+--  Kennung dasteht.
+-- ---------------------------------------------------------------------
+alter table public.karriere
+  alter column profil_id drop not null;
+
+-- ---------------------------------------------------------------------
 --  Das Feld fuer den Gastnamen
 -- ---------------------------------------------------------------------
 alter table public.karriere
@@ -69,6 +80,10 @@ $$;
 comment on function public.gast_darf_eintragen is
   'Bremse gegen massenhafte Gasteintraege unter demselben Namen';
 
+-- Ohne dieses Recht faellt die Regel jedes Mal durch, weil sie die
+-- Funktion nicht aufrufen darf.
+grant execute on function public.gast_darf_eintragen(text) to anon, authenticated;
+
 
 -- ---------------------------------------------------------------------
 --  Das Schreibrecht
@@ -83,8 +98,10 @@ create policy karriere_gast_eintragen on public.karriere
     and length(gastname) between 3 and 20
     -- Plausible Groessenordnungen, damit niemand die Liste mit
     -- Phantasiezahlen anfuehrt
-    and saisons      between 1 and 30
-    and legendenwert between 0 and 4000
+    -- coalesce ueberall: eine Pruefung gegen NULL ergibt NULL, und die
+    -- Regel liesse die Zeile dann durch, statt sie abzuweisen.
+    and coalesce(saisons, 0)      between 1 and 30
+    and coalesce(legendenwert, 0) between 0 and 4000
     and coalesce(punkte, 0)    between 0 and 3000
     and coalesce(trophaeen, 0) between 0 and 60
     and coalesce(hoehepunkt, 0) between 1 and 99
@@ -97,7 +114,17 @@ grant insert on public.karriere to anon;
 -- ---------------------------------------------------------------------
 --  Die Ansichten zeigen den Namen, egal woher er kommt
 -- ---------------------------------------------------------------------
+-- ---------------------------------------------------------------------
+--  Beide Ansichten erst weg, dann neu
+--
+--  "create or replace view" kann Spalten nur hinten anhaengen, nicht
+--  umbenennen und nicht verschieben. Die neue Spalte "gast" steht aber
+--  hinter dem Benutzernamen, also rutscht alles dahinter eine Stelle -
+--  und Postgres meldet "cannot change name of view column name to
+--  gast". Beide Ansichten werden deshalb zuerst verworfen.
+-- ---------------------------------------------------------------------
 drop view if exists public.bestenliste;
+drop view if exists public.karriere_ansicht;
 
 create or replace view public.bestenliste
 with (security_invoker = false)
@@ -149,3 +176,9 @@ revoke select, update, delete on public.karriere from anon;
 --  select benutzername, gast, name, legendenwert
 --    from public.bestenliste order by platz limit 10;
 --  select count(*) from public.karriere where profil_id is null;
+--
+--  Und die Gegenprobe, dass die Tabelle selbst zu bleibt: als Gast
+--  (anon-Schluessel, ohne Anmeldung) muss die erste Zeile gehen und
+--  die zweite mit "permission denied" scheitern.
+--  select count(*) from public.bestenliste;   -- muss gehen
+--  select count(*) from public.karriere;      -- muss scheitern

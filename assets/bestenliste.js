@@ -103,7 +103,8 @@
       <span class="bl-wer">
         <b>${esc(z.name)}${istIch(z) ? '<span class="bl-du">du</span>' : ''}</b>
         <span class="bl-klein">${nat.flag || ''} ${esc(z.pos)}
-          · ${esc(z.benutzername || 'unbekannt')}</span>
+          · ${esc(z.benutzername || 'unbekannt')}${z.gast
+            ? '<span class="bl-gast" title="Ohne Konto eingetragen">Gast</span>' : ''}</span>
       </span>
       <span class="bl-zahlen">
         <b>${gross}</b>

@@ -942,6 +942,26 @@ const PUCKERO = (() => {
       const wertJetzt = letzteS ? letzteS.ovr : 0;
       if (wertJetzt < 78 + (100 - natB) * 0.26 - 6) return null;
 
+      /* ----------------------------------------------------------------
+         Der Verband fragt nur fuer die A-Mannschaft
+
+         Die Frage kannte keine Altersstufen, die Auswertung schon -
+         und dort werden U18 und U20 zuerst geprueft, mit deutlich
+         tieferer Huerde als die A-Mannschaft. Wer mit zwanzig die
+         A-Huerde naehme, naeme die U20-Huerde erst recht - gefragt
+         wuerde nach Olympia, gefahren zur U20-WM. Gemessen tritt das
+         heute nie ein, weil die A-Huerde so hoch liegt; die Sperre
+         haelt die beiden Stellen aber in derselben Reihenfolge, falls
+         an einer von beiden je geschraubt wird.
+
+         Fuer die Junioren fragt niemand - man wird nominiert und faehrt.
+         Das ist auch realistisch: eine U20-Einladung schlaegt man nicht
+         aus. Wer ueber zwanzig noch in einer Jugendliga spielt, kommt
+         fuer die A-Mannschaft ohnehin nicht in Frage.
+         ---------------------------------------------------------------- */
+      if (st.age <= 20) return null;
+      if (istJugend(st.club.lg)) return null;
+
       const nat = nation(player.nation);
       const ctx = ereignisKontext();
       const olympia = (st.year + 1) % 4 === 0;
@@ -1576,7 +1596,7 @@ const PUCKERO = (() => {
            Mittelwert haengt also am Zweikampfwert, nicht an einer 20. */
         pim:    (10 + (dev.zweikampf || 50) / 4) * (w.strafen || 1),
         anteil: clamp(0.50 + (w.anteil || 0) * 1.6 + kante * 0.08, 0.12, 0.96),
-        sv:     clamp(0.885 + kante * 0.045, 0.868, 0.948) + 0.002
+        sv:     clamp(0.8755 + kante * 0.029, 0.860, 0.940) + 0.002
       };
     }
 
@@ -1610,7 +1630,9 @@ const PUCKERO = (() => {
            (34/33/32). Deshalb weite Spanne und mehr Gewicht auf die
            Fangquote, die der Torwart selbst in der Hand hat. */
         const qA = norm(season.gp / vollGp, L.anteil, 0.50);
-        const qS = norm(season.sv, L.sv, 0.017);
+        /* Die Spanne folgt der Skala: sie wurde von 0.045 auf 0.029
+           je Punkt "kante" gestaucht, also auch hier. */
+        const qS = norm(season.sv, L.sv, 0.011);
         /* Ein Aufbautorwart liefert keine Zahlen, sondern Fortschritt.
            Vorher stand hier ein Feld, das es nie gab - jeder
            Aufbautorwart verfehlte damit jede einzelne Saison.
@@ -2555,10 +2577,27 @@ const PUCKERO = (() => {
         }
         const gp = Math.max(6, Math.min(fullGp - missed, Math.round((fullGp - missed) * anteil)));
         season.gp = gp;
-        season.sv = clamp(0.885 + kante * 0.045 + rPass * 0.006
-                          + (r() - 0.5) * 0.007, 0.868, 0.948);
+        /* ------------------------------------------------------------
+           Die Fangquote auf echtem Massstab
+
+           Gemessen lagen 33 Prozent aller Torhuetersaisons exakt auf
+           der Obergrenze 0.948, der Median bei 0.9387 - hoeher als die
+           beste NHL-Saison, die je gespielt wurde (Hasek, 0.937). Die
+           Verteilung war oben abgeschnitten und damit keine mehr: drei
+           von zehn Saisons waren zahlengleich.
+
+           Neue Skala, an der Wirklichkeit ausgerichtet: Ligaschnitt
+           liegt bei etwa 0.905, ein guter Stammtorwart bei 0.915, eine
+           herausragende Saison bei 0.930. Die Steigung folgt der
+           gemessenen Verteilung von "kante" (Median 1.19), damit der
+           Mittelwert dort landet, wo ein Stammtorwart hingehoert.
+           ------------------------------------------------------------ */
+        season.sv = clamp(0.8755 + kante * 0.029 + rPass * 0.006
+                          + (r() - 0.5) * 0.007, 0.860, 0.940);
         season.gaa = clamp(3.40 - kante * 1.55 + (r() - 0.5) * 0.30, 1.42, 4.3);
-        season.so = Math.max(0, Math.round((season.sv - 0.902) * 130 * (gp / 50) + (r() - 0.65)));
+        /* Nullpunkt und Steigung folgen der neuen Skala: bei 0.910
+           sind es rund drei Zunullspiele, bei 0.930 acht. */
+        season.so = Math.max(0, Math.round((season.sv - 0.895) * 190 * (gp / 50) + (r() - 0.65)));
         season.wins = Math.round(gp * clamp(0.32 + kante * 0.22
                                             + (klubStaerke(club) - 74) * 0.007, 0.18, 0.78));
         season.otl = Math.round((gp - season.wins) * (0.15 + r() * 0.12));
@@ -2726,7 +2765,7 @@ const PUCKERO = (() => {
         if (isG){
           season.poWins = serien.filter(x => x.gewonnen).length * 4
                         + (weiter ? 0 : ri(r, 0, 3));
-          season.poSv = clamp(season.sv + (r() - 0.45) * 0.016 + poBoost / 900, 0.86, 0.955);
+          season.poSv = clamp(season.sv + (r() - 0.45) * 0.016 + poBoost / 900, 0.855, 0.950);
         } else {
           const poRate = (season.p / Math.max(1, season.gp)) * (0.80 + r() * 0.45)
                        + poBoost / 500;
@@ -2763,8 +2802,8 @@ const PUCKERO = (() => {
              Auszeichnung fuer zwei, die sich die Saison teilen. */
           const genugImTor = season.gp >= fullGp * 0.55;
           if (genugImTor){
-            if (season.sv > 0.928 && kante > 1.00) season.awards.push('bestG');
-            if (season.sv > 0.936 && kante > 1.25 && r() < 0.4) season.awards.push('mvp');
+            if (season.sv > 0.925 && kante > 1.00) season.awards.push('bestG');
+            if (season.sv > 0.933 && kante > 1.25 && r() < 0.4) season.awards.push('mvp');
           }
           if (season.gaa < 2.20 && kante > 0.95 && r() < 0.5) season.awards.push('torwartDuo');
         } else {
@@ -2917,7 +2956,7 @@ const PUCKERO = (() => {
           const turnier = { jahr: st.year + 1, art: stufe.toLowerCase(), stufe,
                             n: T.n, kurz: T.kurz, gp: spiele };
           if (isG){
-            turnier.sv = clamp(season.sv + (r() - 0.5) * 0.014, 0.855, 0.960);
+            turnier.sv = clamp(season.sv + (r() - 0.5) * 0.014, 0.850, 0.950);
             turnier.wins = Math.round(spiele * clamp(0.35 + (natPower - 80) / 60, 0.15, 0.85));
             turnier.so = r() < 0.25 ? 1 : 0;
           } else {
@@ -2942,7 +2981,7 @@ const PUCKERO = (() => {
              gut ein Punkt je Spiel -, und der Ausschlag ist gedeckelt,
              damit ein einzelner Mann kein Land traegt. */
           const eigenerBeitrag = (() => {
-            if (isG) return clamp(((turnier.sv || 0.9) - 0.912) * 260, -6, 9);
+            if (isG) return clamp(((turnier.sv || 0.9) - 0.908) * 380, -6, 9);
             const proSpiel = (turnier.p || 0) / Math.max(1, spiele);
             return clamp((proSpiel - 1.0) * 9, -6, 9);
           })();

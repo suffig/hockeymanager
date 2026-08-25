@@ -3834,10 +3834,50 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
   .stats td:nth-child(2){
     max-width:92px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   }
-  /* Ligatabelle: Punkte je Spiel und der beste Gesamtwert stehen
-     ohnehin im Bereich "Bilanz". */
-  .stats.ligatab th:nth-child(7), .stats.ligatab td:nth-child(7),
-  .stats.ligatab th:nth-child(9), .stats.ligatab td:nth-child(9){ display:none }
+  /* ------------------------------------------------------------------
+     Die Ligatabelle bricht in Karten um
+
+     Gemessen war sie 378 Pixel breit in einem Kasten von 325: 53 Pixel
+     seitwaerts, obwohl zwei Spalten schon ausgeblendet waren. Eine
+     dritte zu verstecken haette den naechsten Wert gekostet - also
+     bricht sie stattdessen wirklich um. Jede Liga wird eine Karte, die
+     Zahlen stehen darunter im Raster, und alle neun Spalten sind
+     wieder da. Die Ueberschriften kommen aus data-l an jeder Zelle.
+     ------------------------------------------------------------------ */
+  .stats.ligatab{ display:block; font-size:12px }
+  .stats.ligatab thead{ display:none }
+  .stats.ligatab tbody{ display:flex; flex-direction:column; gap:8px }
+  .stats.ligatab tr{
+    display:grid; grid-template-columns:repeat(4, 1fr); gap:7px 6px;
+    padding:10px 11px; border-radius:12px;
+    border:1px solid var(--line);
+    background:color-mix(in srgb,var(--dim) 7%,transparent);
+  }
+  .stats.ligatab tr.total{
+    border-color:color-mix(in srgb,var(--gold) 40%,var(--line));
+    background:color-mix(in srgb,var(--gold) 9%,transparent);
+  }
+  .stats.ligatab td{
+    display:flex; flex-direction:column-reverse; gap:1px;
+    padding:0; border:0; text-align:left; white-space:normal;
+    font-variant-numeric:tabular-nums;
+  }
+  /* Die Liga steht als Kopfzeile ueber der ganzen Karte. */
+  .stats.ligatab td.lgz{
+    grid-column:1 / -1; margin-bottom:1px;
+    padding-bottom:7px; border-bottom:1px solid var(--line);
+    font-weight:800; font-size:13px;
+  }
+  .stats.ligatab td.lgz::before{ content:none }
+  .stats.ligatab td::before{
+    content:attr(data-l);
+    font-size:9px; letter-spacing:.05em; text-transform:uppercase;
+    color:var(--dim); font-weight:700; line-height:1.2;
+  }
+  .stats.ligatab td{ font-size:14px; line-height:1.15 }
+  .stats.ligatab td b{ font-weight:800 }
+  /* Der seitwaerts scrollende Rahmen wird hier nicht mehr gebraucht. */
+  .ligatabelle .table-scroll{ overflow-x:visible }
 }
 
 /* ------------------------------------------------------------------
@@ -4092,3 +4132,10 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
   .rk-marke .rk-wert{ font-size:21px }
 }
 @media (prefers-reduced-motion:reduce){ .rk-marke{ animation:none } }
+/* Ein Eintrag ohne Konto ist keiner zweiter Klasse - aber man soll
+   sehen, dass hinter dem Namen kein Profil steht. */
+.bl-gast{
+  display:inline-block; margin-left:5px; padding:0 5px; border-radius:99px;
+  font-size:9.5px; font-weight:700; letter-spacing:.03em;
+  color:var(--dim); background:color-mix(in srgb,var(--dim) 18%,transparent);
+}

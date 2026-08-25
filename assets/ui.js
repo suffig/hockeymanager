@@ -331,8 +331,13 @@ const UI = (() => {
     plus: [7, 15, 23, 32, 42],
     toi:  [15.5, 18.1, 20.8, 23.1, 25.2],
     wins: [8, 15, 22, 35, 49],
-    so:   [1, 2, 4, 6, 8],
-    sv:   [0.922, 0.934, 0.946, 0.948, 0.952]
+    /* Neu gemessen, nachdem die Fangquote auf echten Massstab kam:
+       vorher lagen alle fuenf Marken oberhalb der neuen Verteilung -
+       jede Torhuetersaison waere in der schlechtesten Stufe gelandet.
+       Die erste Marke bei den Zunullspielen steht auf 1 statt auf dem
+       gemessenen 0, weil eine Null als Schwelle nichts trennt. */
+    so:   [1, 2, 3, 6, 8],
+    sv:   [0.900, 0.909, 0.918, 0.924, 0.930]
   };
   /* Nur die Produktionswerte wandern mit der Ligastaerke. */
   const SKALIERT = { g:1, a:1, p:1, plus:1, wins:1, so:1 };
@@ -1874,21 +1879,44 @@ const UI = (() => {
     const kopf = isG
       ? '<tr><th>Liga</th><th>Saisons</th><th>Sp</th><th>S</th><th>Fq%</th><th>SO</th><th>Titel</th><th>Beste GES</th></tr>'
       : '<tr><th>Liga</th><th>Saisons</th><th>Sp</th><th>T</th><th>V</th><th>Pkt</th><th>P/Sp</th><th>Titel</th><th>Beste GES</th></tr>';
+    /* ------------------------------------------------------------------
+       data-l traegt die Spaltenueberschrift an jeder Zelle mit
+
+       Auf dem Telefon war die Tabelle 378 Pixel breit in einem Kasten
+       von 325 - 53 Pixel mussten seitwaerts gescrollt werden, und zwei
+       Spalten waren schon ausgeblendet. Statt eine dritte zu opfern,
+       bricht die Tabelle unter 560 Pixel in Karten um: eine je Liga,
+       mit den Zahlen in einem Raster darunter. Dafuer muss jede Zelle
+       ihre Ueberschrift selbst kennen, denn der Tabellenkopf ist dort
+       nicht mehr sichtbar.
+       ------------------------------------------------------------------ */
     const zeilen = res.ligen.map(l => isG
-      ? `<tr><td><span class="lgtag lg-${l.k}">${l.n}</span></td><td>${l.saisons}</td>
-           <td>${l.gp}</td><td>${l.wins}</td><td>${((l.sv||0)*100).toFixed(1)}</td>
-           <td>${l.so}</td><td>${l.titel || '–'}</td><td>${l.bestOvr}</td></tr>`
-      : `<tr><td><span class="lgtag lg-${l.k}">${l.n}</span></td><td>${l.saisons}</td>
-           <td>${l.gp}</td><td>${l.g}</td><td>${l.a}</td><td><b>${l.p}</b></td>
-           <td>${l.ppg}</td><td>${l.titel || '–'}</td><td>${l.bestOvr}</td></tr>`).join('');
+      ? `<tr><td class="lgz"><span class="lgtag lg-${l.k}">${l.n}</span></td>
+           <td data-l="Saisons">${l.saisons}</td>
+           <td data-l="Spiele">${l.gp}</td><td data-l="Siege">${l.wins}</td>
+           <td data-l="Fangquote">${((l.sv||0)*100).toFixed(1)}</td>
+           <td data-l="Shutouts">${l.so}</td>
+           <td data-l="Titel">${l.titel || '–'}</td>
+           <td data-l="Beste GES">${l.bestOvr}</td></tr>`
+      : `<tr><td class="lgz"><span class="lgtag lg-${l.k}">${l.n}</span></td>
+           <td data-l="Saisons">${l.saisons}</td>
+           <td data-l="Spiele">${l.gp}</td><td data-l="Tore">${l.g}</td>
+           <td data-l="Vorlagen">${l.a}</td><td data-l="Punkte"><b>${l.p}</b></td>
+           <td data-l="P/Spiel">${l.ppg}</td>
+           <td data-l="Titel">${l.titel || '–'}</td>
+           <td data-l="Beste GES">${l.bestOvr}</td></tr>`).join('');
     const t = res.totals;
     const summe = isG
-      ? `<tr class="total"><td>Gesamt</td><td>${res.seasons.length}</td><td>${t.gp}</td>
-         <td>${t.wins}</td><td>${(t.sv*100).toFixed(1)}</td><td>${t.so}</td>
-         <td>${ligaTitel}</td><td>${res.peak}</td></tr>`
-      : `<tr class="total"><td>Gesamt</td><td>${res.seasons.length}</td><td>${t.gp}</td>
-         <td>${t.g}</td><td>${t.a}</td><td>${t.p}</td><td>${t.ppg100}</td>
-         <td>${ligaTitel}</td><td>${res.peak}</td></tr>`;
+      ? `<tr class="total"><td class="lgz">Gesamt</td>
+         <td data-l="Saisons">${res.seasons.length}</td><td data-l="Spiele">${t.gp}</td>
+         <td data-l="Siege">${t.wins}</td><td data-l="Fangquote">${(t.sv*100).toFixed(1)}</td>
+         <td data-l="Shutouts">${t.so}</td><td data-l="Titel">${ligaTitel}</td>
+         <td data-l="Beste GES">${res.peak}</td></tr>`
+      : `<tr class="total"><td class="lgz">Gesamt</td>
+         <td data-l="Saisons">${res.seasons.length}</td><td data-l="Spiele">${t.gp}</td>
+         <td data-l="Tore">${t.g}</td><td data-l="Vorlagen">${t.a}</td>
+         <td data-l="Punkte">${t.p}</td><td data-l="P/Spiel">${t.ppg100}</td>
+         <td data-l="Titel">${ligaTitel}</td><td data-l="Beste GES">${res.peak}</td></tr>`;
     return `<div class="table-scroll"><table class="stats ligatab">
       <thead>${kopf}</thead><tbody>${zeilen}${summe}</tbody></table></div>`;
   }
