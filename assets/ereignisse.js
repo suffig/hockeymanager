@@ -224,7 +224,10 @@ const EREIGNISSE = (() => {
       text:'Er redet von Marktwert, Vergleichsgehältern und davon, dass man Härte zeigen müsse. '
          + 'Der Sportdirektor hat dir gestern noch persönlich gesagt, wie wichtig du für den Umbau bist. '
          + 'Zwei Wahrheiten, ein Stift.',
-      bedingung: st => st.age >= 25 && st.vertragJahre <= 1,
+      /* Das Fenster war ein einziges Vertragsjahr und traf deshalb
+         fast nie den Moment, in dem ein Ereignis gezogen wird -
+         gemessen 1,0 Prozent aller Laufbahnen. */
+      bedingung: st => st.age >= 23 && st.vertragJahre <= 2,
       optionen:[
         { t:'Hart verhandeln lassen', chance:50, hinweis:'Mehr Geld oder verbrannte Erde',
           /* Ihn machen lassen staerkt den Draht - er merkt sich, wer
@@ -600,7 +603,11 @@ const EREIGNISSE = (() => {
       text:'Die Liga pausiert, der Verband ruft, und dein Rücken meldet sich seit Januar '
          + 'jeden Morgen zuerst. Der Klubarzt sagt nichts Verbindliches, aber er sagt es '
          + 'auf eine Art, die man versteht.',
-      bedingung: st => st.natDebuet && st.age >= 26 && st.verletzungsjahre >= 1,
+      /* Der Ruecken gehoert zur Geschichte und bleibt Bedingung. Das
+         Alter war nur ein Zusatzzaun: mit natDebuet und Verschleiss
+         steht ohnehin schon fest, dass jemand ein paar Jahre hinter
+         sich hat. Gemessen erschien das Ereignis in 0,5 Prozent. */
+      bedingung: st => st.natDebuet && st.age >= 24 && st.verletzungsjahre >= 1,
       optionen:[
         { t:'Fahren', chance:60, hinweis:'So eine Chance kommt alle vier Jahre',
           gut:{ ruf:8, moral:5, trait:{ playoff:5 },

@@ -2323,7 +2323,16 @@ const PUCKERO = (() => {
         return baueEreignis(e0, letzteSaison);
       }
 
-      if (r() > 0.7) return null;                        // nicht jede Saison
+      /* ------------------------------------------------------------------
+         Wie oft ueberhaupt etwas passiert
+
+         Bei 0,7 blieb fast jede dritte Saison ohne ein einziges
+         Ereignis, und eine Laufbahn sah gemessen nur zehn verschiedene
+         von 101 geschriebenen - ein Zehntel des Inhalts. Ereignisse
+         sind aber die Stellen, an denen man etwas entscheidet; eine
+         Saison ohne eines ist eine Saison, in der man zusieht.
+         ------------------------------------------------------------------ */
+      if (r() > 0.85) return null;                       // nicht jede Saison
 
       /* Nicht jedes Ereignis ist gleich wichtig: Was aus einer frueheren
          Entscheidung erwaechst oder zum Charakter passt, kommt bevorzugt.
@@ -4791,8 +4800,21 @@ const PUCKERO = (() => {
             + (L.familie === 'kinder' ? 7 : L.familie === 'partner' ? 3 : 0));
           if (preis) moralAendern(-(preis));
           L.wurzeln = Math.round(clamp(L.wurzeln * 0.35 + 8, 0, 100));
-          /* Kinder in der Schule ziehen nicht jedes Mal mit. */
-          if (L.familie === 'kinder' && a.club.lg !== st.club.lg && r() < 0.30){
+          /* ------------------------------------------------------------
+             Kinder in der Schule ziehen nicht jedes Mal mit
+
+             Die alte Bedingung verlangte einen Ligawechsel und dann
+             noch einen Wurf unter 30 Prozent. Gemessen trat der Fall
+             nie ein: das Ereignis "Zwei Wohnungen, zwei Laender"
+             erschien in 0,0 Prozent aller Laufbahnen, obwohl es
+             geschrieben und gewichtet dasteht.
+
+             Der Ligawechsel war ausserdem das falsche Mass - von der
+             DEL in die DEL2 zieht eine Familie mit, in eine andere
+             Zeitzone nicht. Jetzt entscheidet, ob es ins Ausland geht.
+             ------------------------------------------------------------ */
+          const insAusland = !istHeimatLiga(a.club.lg, player.nation);
+          if (L.familie === 'kinder' && insAusland && r() < 0.45){
             L.partnerMit = false;
           } else if (a.club.lg === homeLg){
             L.partnerMit = true;
