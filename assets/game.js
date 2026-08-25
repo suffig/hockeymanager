@@ -416,7 +416,10 @@ function CareerGame(root, cfg){
     const runden = DRAFT.RUNDEN;
     const dots = Array.from({ length: runden },
       (_, n) => `<span class="dot ${n <= S.runde ? 'on' : ''}"></span>`).join('');
-    const ovr = PUCKERO.overall(S.player);
+    /* Dieselbe Rechnung wie die erste Saison - eine Laufbahn beginnt
+       mit achtzehn. Vorher stand hier der nackte Mittelwert, und die
+       Zahl sprang beim ersten Saisonbericht. */
+    const ovr = PUCKERO.wertungMitAlter(S.player, 18);
 
     root.innerHTML = `
       <div class="panel-head">
@@ -518,7 +521,10 @@ function CareerGame(root, cfg){
 
   /* ---------- Karrierestart ---------- */
   function renderStart(){
-    const ovr = PUCKERO.overall(S.player);
+    /* Dieselbe Rechnung wie die erste Saison - eine Laufbahn beginnt
+       mit achtzehn. Vorher stand hier der nackte Mittelwert, und die
+       Zahl sprang beim ersten Saisonbericht. */
+    const ovr = PUCKERO.wertungMitAlter(S.player, 18);
     const nat = PUCKERO.nation(S.player.nation);
     root.innerHTML = `
       <div class="panel-head">
@@ -993,7 +999,12 @@ function CareerGame(root, cfg){
   /* Kopfstreifen statt voller Spielerkarte - bleibt beim Scrollen stehen */
   function streifen(st, letzte, isG){
     const p = S.player, nat = PUCKERO.nation(p.nation);
-    const ovr = letzte ? letzte.ovr : PUCKERO.overall(p);
+    /* Vor der ersten Saison gibt es keine gespielte Wertung. Hier stand
+       PUCKERO.overall(p) - der nackte Mittelwert der Werte, ohne
+       Alterskurve. Gemessen lag der elf Punkte neben dem, was die
+       erste Saison dann anzeigte. wertungMitAlter rechnet dasselbe wie
+       die Saison. */
+    const ovr = letzte ? letzte.ovr : PUCKERO.wertungMitAlter(p, st.age);
     const l = st.lauf;
     const zahl = (ik, wert, titel) => `<span class="ms-zahl" title="${titel}">
       ${UI.ikone(ik, 13)}<b>${wert}</b></span>`;
@@ -1035,7 +1046,12 @@ function CareerGame(root, cfg){
   /* Linke Spalte: Spielerkarte, Aktionen, Ligatabelle */
   function spielerkarte(st, letzte, isG){
     const p = S.player, nat = PUCKERO.nation(p.nation);
-    const ovr = letzte ? letzte.ovr : PUCKERO.overall(p);
+    /* Vor der ersten Saison gibt es keine gespielte Wertung. Hier stand
+       PUCKERO.overall(p) - der nackte Mittelwert der Werte, ohne
+       Alterskurve. Gemessen lag der elf Punkte neben dem, was die
+       erste Saison dann anzeigte. wertungMitAlter rechnet dasselbe wie
+       die Saison. */
+    const ovr = letzte ? letzte.ovr : PUCKERO.wertungMitAlter(p, st.age);
     const wert = letzte ? letzte.marktwert : 0;
     const l = st.lauf;
     const trophaeen = Object.values(st.trophies).reduce((a,x)=>a+x.x,0);

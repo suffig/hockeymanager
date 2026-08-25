@@ -109,7 +109,7 @@ const EREIGNISSE = (() => {
       ] },
 
     /* ---------- Spielsituationen ---------- */
-    { id:'spiel1', kat:'spiel', szene:'eis', tag:'Letzte Minute',
+    { id:'spiel1', kat:'spiel', szene:'eis', tag:'Letzte Minute', nurPos:['C','LW','RW','D'],   // spiel1: der Torhueter ist draussen - dann steht man selbst nicht im Tor
       titel:'Der Torhüter ist draußen, ihr liegt einen Treffer zurück',
       /* Der laengste Ereignistext im Spiel - mit vier Optionen sprengte
          er auf dem Telefon den Schirm. Eine Zeile kuerzer, dasselbe Bild. */
@@ -325,7 +325,7 @@ const EREIGNISSE = (() => {
       ] },
 
     /* ---------- Ritual ---------- */
-    { id:'ritual1', kat:'privat', szene:'kabine', tag:'Vor dem Spiel',
+    { id:'ritual1', kat:'privat', szene:'kabine', tag:'Vor dem Spiel', nurPos:['C','LW','RW','D'],   // ritual1: sechzehn Tore mit demselben Holz
       titel:'Dein Schläger ist gebrochen – der, mit dem alles begann',
       text:'Sechzehn Tore in dieser Saison, alle mit demselben Holz. Jetzt liegt er in zwei Teilen '
          + 'in der Kabine, und der Zeugwart hält einen neuen hoch, exakt baugleich, frisch aus dem Karton. '
@@ -679,7 +679,7 @@ const EREIGNISSE = (() => {
       ] },
 
     /* ---------- Rekordjagd ---------- */
-    { id:'rekord1', gewicht:2.5, kat:'spiel', szene:'eis', tag:'Auf Rekordkurs',
+    { id:'rekord1', gewicht:2.5, kat:'spiel', szene:'eis', tag:'Auf Rekordkurs', nurPos:['C','LW','RW','D'],   // rekord1: ein Punkt zum Vereinsrekord, vierte Reihe draussen
       titel:'Dir fehlt ein Punkt zum Vereinsrekord – und das Spiel ist längst entschieden',
       text:'Fünf Tore Vorsprung, viereinhalb Minuten übrig, und der Trainer hat die vierte Reihe '
          + 'draußen. Du sitzt auf der Bank und weißt genau, wie viele Punkte dir fehlen. '
@@ -822,7 +822,7 @@ const EREIGNISSE = (() => {
           schlecht:{ ruf:-9, moral:-9, text:'Einer von euch muss gehen. Du bist es nicht – aber es fühlt sich nicht wie ein Sieg an.' } }
       ] },
 
-    { id:'tr_pakt', kat:'trainer', szene:'eis', tag:'Vertrauenssache',
+    { id:'tr_pakt', kat:'trainer', szene:'eis', tag:'Vertrauenssache', nurPos:['C','LW','RW','D'],   // tr_pakt: die Reihen selbst zusammenstellen
       benoetigt:'trainerpakt',
       titel:'{trainer} macht dich zum verlängerten Arm auf dem Eis',
       text:'Er will, dass du in engen Spielen die Reihen selbst zusammenstellst. '
@@ -1267,7 +1267,7 @@ const EREIGNISSE = (() => {
           schlecht:{ ruf:-3, text:'Man nickt freundlich und ändert nichts.' } }
       ] },
 
-    { id:'wf_stimme', kat:'presse', szene:'presse', tag:'Wortführer',
+    { id:'wf_stimme', kat:'presse', szene:'presse', tag:'Wortführer', nurPos:['C','LW','RW','D'],   // wf_stimme: die erste Reihe gefordert
       benoetigt:'wortfuehrer',
       titel:'Du hast die erste Reihe gefordert – jetzt willst du auch reden',
       text:'Nach der vierten Niederlage in Folge stehen zwanzig Mikrofone im Gang, '
@@ -1328,7 +1328,7 @@ const EREIGNISSE = (() => {
           schlecht:{ moral:-7, text:'Du willst zu viel, spielst verkrampft, und niemand ruft an.' } }
       ] },
 
-    { id:'st_formtief', kat:'privat', szene:'stadt', tag:'Formtief', mehrfach:true,
+    { id:'st_formtief', kat:'privat', szene:'stadt', tag:'Formtief', mehrfach:true, nurPos:['C','LW','RW','D'],   // st_formtief: vierzehn Spiele ohne Scorerpunkt
       titel:'Vierzehn Spiele ohne Scorerpunkt',
       text:'Du machst nichts anders als vorher. Du trainierst mehr, schläfst schlechter, '
          + 'und der Puck findet trotzdem jeden Weg außer den ins Tor. '
@@ -1336,11 +1336,15 @@ const EREIGNISSE = (() => {
       bedingung: (st, se) => st.age >= 22 && se && se.gp > 20,
       optionen:[
         { t:'Mehr trainieren als alle anderen', chance:55, hinweis:'Der offensichtliche Weg',
-          gut:{ attr:{ praezision:4, schuss:3, reflexe:4 }, form:0.06,
+          /* Hier stand reflexe:4 - ein Torhueterwert. Bei einem
+             Feldspieler gibt es das Feld nicht, die Zusage lief also
+             ins Leere. Ersetzt durch Puckkontrolle. */
+          gut:{ attr:{ praezision:4, schuss:3, puck:4 }, form:0.06,
                 text:'Nach drei Wochen fällt einer rein, und danach fallen sie alle.' },
           schlecht:{ risiko:7, moral:-5, text:'Du läufst dir die Beine wund und wirst nur müder.' } },
         { t:'Einen Sportpsychologen aufsuchen', chance:70, hinweis:'Ungewöhnlich, aber wirksam',
-          gut:{ attr:{ nerven:6, konstanz:4 }, moral:8,
+          /* konstanz gibt es nur beim Torhueter - dieselbe Luecke. */
+          gut:{ attr:{ nerven:6, uebersicht:4 }, moral:8,
                 text:'Zwei Sitzungen, ein Satz, der hängen bleibt. Der Kopf war das Problem, nicht die Hände.' },
           schlecht:{ ruf:-3, text:'Es spricht sich herum und wird zu einer Geschichte, die du nicht wolltest.' } },
         { t:'Eine Woche komplett abschalten', chance:60, hinweis:'Gegen jeden Instinkt',

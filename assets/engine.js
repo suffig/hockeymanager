@@ -265,6 +265,18 @@ const PUCKERO = (() => {
          Ausnahmespieler. Die Grenze bleibt verborgen; spuerbar wird
          sie daran, dass die Spruenge kleiner werden. */
       potenzial: zieheGrenze(r),
+      /* ----------------------------------------------------------------
+         Der Scheitelpunkt des Koerpers gehoert zum Spieler
+
+         Er wurde bisher erst in createCareer gewuerfelt. Die
+         Charaktererstellung konnte die Wertung deshalb nicht so
+         ausrechnen, wie das Spiel sie spaeter zeigt - sie zeigte den
+         nackten Mittelwert der Werte, das Spiel den mit der
+         Alterskurve. Jetzt steht er von Anfang an fest, und beide
+         Stellen rechnen dieselbe Zahl. Torhueter reifen spaeter.
+         ---------------------------------------------------------------- */
+      scheitel: clamp((pos(opt.pos).group === 'goalie' ? 29 : 27)
+                      + ri(r, -3, 4) + (r() - 0.5) * 1.5, 23, 33),
       attrs,
       traits: { robust:0, langlebig:0, jung:0, playoff:0 },
       eigenschaften: [],
@@ -383,21 +395,64 @@ const PUCKERO = (() => {
     return Math.round(clamp(sum / wsum, 1, 99));
   }
 
+  /* ------------------------------------------------------------------
+     Die Wertung, wie sie im Spiel steht
+
+     overall() liefert den nackten Mittelwert der Werte. Was das Spiel
+     anzeigt, ist der Wert nach der Alterskurve - gemessen lagen die
+     beiden im Schnitt elf Punkte auseinander, und die
+     Charaktererstellung zeigte deshalb eine andere Zahl als die erste
+     Saison. Diese Funktion rechnet, was die Saison rechnet.
+     ------------------------------------------------------------------ */
+  function wertungMitAlter(player, age){
+    const form = formFactor(age != null ? age : 18, player.traits,
+                            (player.wirkung || {}).lernkurve, player.scheitel);
+    return overall(player, devAttrs(player.attrs, form));
+  }
+
   /* ---------------- Alterskurve ---------------- */
   function formFactor(age, traits, lernkurve, scheitel){
     const t = traits || {};
     const lk = (lernkurve || 0) * 0.004;
     // Jeder Spieler hat seinen eigenen Scheitelpunkt – manche bluehen mit 24 auf,
     // andere erst mit 31. Das macht Laufbahnen spuerbar unterschiedlich.
-    const peak = (scheitel || 27) - (t.jung || 0) * 0.06 + (t.langlebig || 0) * 0.05;
+    /* Der eigentliche Hebel der Eigenschaft: wer frueh reif ist,
+       erreicht seinen Scheitel frueher. Verstaerkt, weil der direkte
+       Zuschlag auf die Form jetzt gedeckelt ist. */
+    const peak = (scheitel || 27) - (t.jung || 0) * 0.12 + (t.langlebig || 0) * 0.05;
     /* Frueher trug allein diese Kurve den Aufstieg: mit achtzehn stand
        ein Spieler bei 0,63 und mit siebenundzwanzig bei 1,0, ganz
        gleich, was er dazwischen tat. Damit waren zweiundneunzig Prozent
        der Anlage schon am ersten Tag ausgeschoepft und Training wie
        Ereignisse aenderten kaum etwas. Jetzt ist die Kurve flach - der
        Weg nach oben fuehrt ueber die Arbeit an den Werten. */
-    const early = 1 - Math.pow(clamp(peak - age, 0, 20) / 11, 2) * 0.22
-                    + (t.jung || 0) * 0.004 * clamp(peak - age, 0, 20);
+    /* ----------------------------------------------------------------
+       Der Abstand zum Scheitel wird bei elf Jahren gekappt
+
+       Die Kurve ist absichtlich flach: elf Jahre vor dem Scheitel steht
+       ein Spieler bei 0,78, am Scheitel bei 1,0. Der Abstand lief aber
+       bis zwanzig Jahre weiter, und quadratisch. Wessen Koerper erst
+       mit dreiunddreissig seinen Scheitel hat - bei Torhuetern der
+       Regelfall, ihre Spanne beginnt bei 29 -, der stand mit achtzehn
+       bei 0,27 und wurde als ein Viertel seines spaeteren Selbst
+       bewertet. Gemessen stuerzte jede zehnte Laufbahn so von einer
+       Wertung um 50 auf 17 ab, ueberwiegend Torhueter.
+
+       Elf Jahre sind die Spanne, auf die der Rest der Kurve geeicht
+       ist. Weiter zurueck macht niemanden schwaecher - ein
+       Achtzehnjaehriger ist ein Achtzehnjaehriger, ganz gleich, wann
+       sein Koerper fertig sein wird.
+       ---------------------------------------------------------------- */
+    const vorSprung = clamp(peak - age, 0, 11);
+    /* Der Frueh- beziehungsweise Spaetreife-Zuschlag ist gedeckelt.
+       "jung" reicht von -6 bis +18; mal 0,004 mal elf Jahre ergab das
+       zwischen -0,26 und +0,79 - die ganze Alterskurve spannt aber nur
+       0,22. Ein Spaetzuender wurde damit mit achtzehn auf 0,58 gedrueckt
+       und ein Fruehreifer sass sofort am Deckel. Die Eigenschaft
+       verschiebt den Scheitelpunkt ohnehin schon (siehe peak); hier
+       moduliert sie nur noch. */
+    const reife = clamp((t.jung || 0) * 0.004 * vorSprung, -0.08, 0.08);
+    const early = 1 - Math.pow(vorSprung / 11, 2) * 0.22 + reife;
     const late  = 1 - Math.pow(clamp(age - peak, 0, 25) / 11, 1.9) * 0.62
                     + (t.langlebig || 0) * 0.004 * clamp(age - peak, 0, 25);
     const basis = age <= peak ? early + lk * clamp(peak - age, 0, 12) : late;
@@ -418,8 +473,14 @@ const PUCKERO = (() => {
   function trainingsGewinn(age){
     /* Angehoben, seit die Alterskurve flach ist: was der Spieler im
        Sommer tut, ist jetzt der Hauptantrieb seiner Entwicklung. */
-    if (age <= 22) return 11;  // junge Spieler entwickeln sich sprunghaft
-    if (age <= 27) return 7;
+    /* Angehoben, nachdem der Startwert richtig gemessen wird: vorher
+       stuerzte jede zehnte Laufbahn beim ersten Saisonbericht auf ein
+       Drittel ab, und der Zuwachs bis zum Gipfel sah dadurch groesser
+       aus, als er war. Mit sauberem Startwert lagen 20 Prozent aller
+       Laufbahnen unter zwoelf Punkten Zuwachs - gemessen mit den alten
+       Werten waren es 12. */
+    if (age <= 22) return 13;  // junge Spieler entwickeln sich sprunghaft
+    if (age <= 27) return 8;
     if (age <= 31) return 4;
     return 2;                  // spaete Jahre sind reines Halten
   }
@@ -713,8 +774,13 @@ const PUCKERO = (() => {
       training: null
     };
 
-    // Individueller Scheitelpunkt: Torhueter reifen spaeter als Stuermer
-    st.scheitel = clamp((isG ? 29 : 27) + ri(r, -3, 4) + (r() - 0.5) * 1.5, 23, 33);
+    /* Individueller Scheitelpunkt: Torhueter reifen spaeter als Stuermer.
+       Er steht jetzt am Spieler (siehe newPlayer) - gewuerfelt wird nur
+       noch fuer Laufbahnen, die vor dieser Aenderung gespeichert
+       wurden. Der Wurf bleibt an derselben Stelle im Zufallsstrom,
+       damit sich gespeicherte Laufbahnen unveraendert nachspielen. */
+    const scheitelAlt = clamp((isG ? 29 : 27) + ri(r, -3, 4) + (r() - 0.5) * 1.5, 23, 33);
+    st.scheitel = player.scheitel != null ? player.scheitel : scheitelAlt;
     st.jugend = null;   // wird direkt nach der Initialisierung gefuellt
 
     // Nur noch eine aeussere Grenze – wann wirklich Schluss ist,
@@ -2262,7 +2328,12 @@ const PUCKERO = (() => {
           w *= 8 + wartet * 2.5;
         }
         if (x.nurEig)    w *= 3.5;      // passt zum Charakter
-        if (x.nurPos)    w *= 2.5;      // passt zur Position
+        /* Der Aufschlag gilt engen Positionsereignissen - einem Bully
+           fuer Center, einem Penalty fuer Torhueter. Ein Ereignis, das
+           nur die Torhueter ausschliesst, nennt vier von fuenf
+           Positionen und ist damit kein Sonderfall; es bekaeme sonst
+           denselben Aufschlag und wuerde die Mischung verzerren. */
+        if (x.nurPos && x.nurPos.length <= 2) w *= 2.5;
         /* Ereignisse, aus denen ein Erzaehlstrang erwachsen kann, sind
            der Anfang von allem, was spaeter zurueckkommt. Ohne Vorrang
            lagen sie gemessen nur 3,2-mal je Laufbahn ueberhaupt vor,
@@ -2647,7 +2718,29 @@ const PUCKERO = (() => {
            entsprechend war man in 91 Prozent der Saisons Stammtorhueter.
            Jetzt entscheidet der Abstand zum zweiten Mann. */
         const tr = st.torwartrivale;
-        const duell = tr ? clamp(tr.abstand, -0.7, 0.7) * 0.50 : 0;
+        /* ------------------------------------------------------------
+           Wie gut du selbst bist, entscheidet den Zweikampf mit
+
+           Der Zweikampf hing an zwei Dingen: einem Wuerfel und der
+           Staerke des Klubs. Die eigene Wertung kam nicht vor - der
+           Kommentar bei der Erzeugung des Rivalen behauptete zwar, er
+           werde "relativ zu dir" gewuerfelt, die Formel dort kennt
+           deine Wertung aber gar nicht.
+
+           Gemessen war die Rolle deshalb fast unabhaengig von der
+           Leistung: wer zwoelf Punkte ueber der Eintrittshuerde seiner
+           Liga lag, sass in 21 Prozent der Saisons auf der Bank -
+           genauso oft wie einer unterhalb der Huerde. Mit 82 in der DEL
+           Ersatzmann zu sein ist Unsinn; dort ist das Weltklasse.
+
+           Jetzt zaehlt der Abstand zur Huerde der eigenen Liga. Der
+           Rivale bleibt ein echter Gegner - in der NHL, wo die Huerde
+           bei 86 liegt, muss man sich das Tor weiter verdienen.
+           ------------------------------------------------------------ */
+        const huerde = LG_MIN[st.club.lg] !== undefined ? LG_MIN[st.club.lg] : 58;
+        const eigenerStand = clamp((ovr - huerde) / 12, -0.6, 1.0);
+        const duell = (tr ? clamp(tr.abstand, -0.7, 0.7) * 0.50 : 0)
+                    + eigenerStand * 0.40;
         const anteil = clamp(0.50 + duell + kante * 0.08
                              + (rg.anteil || 0) * 1.6 * rStand
                              + rPass * 0.07, 0.12, 0.96);
@@ -5290,6 +5383,7 @@ const PUCKERO = (() => {
   return {
     rng, hashSeed, ri, pick, shuffle, clamp, round1,
     pos, nation, league, clubsOf, attrsOf, lgAvgStr, istHeimatLiga, hatHeimatLiga,
+    wertungMitAlter,
     newPlayer, autoDraft,
     draftFrage, applyKarte, karteWert, wirkungNeu,
     overall, formFactor, devAttrs,
