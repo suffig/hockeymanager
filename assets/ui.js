@@ -263,15 +263,43 @@ const UI = (() => {
   }
 
   /* ---------- Bausteine ---------- */
+  /* ------------------------------------------------------------------
+     Die Farbskala der Werte
+
+     Die Grenzen stehen auf den gemessenen Quantilen aller Einzelwerte
+     ueber 56000 Beobachtungen (p25=49, p50=60, p75=69, p90=76,
+     p97=81), nicht auf einem Gefuehl. Der erste Entwurf setzte Gold
+     bei 88 an - das liegt ueber dem 99. Perzentil, es waere also nie
+     erschienen, und beim Draft war umgekehrt alles rot.
+     ------------------------------------------------------------------ */
+  function wertKlasse(v){
+    return v >= 81 ? 'w-elite'      // oberste drei Prozent
+         : v >= 72 ? 'w-stark'      // oberstes Fuenftel
+         : v >= 61 ? 'w-solide'     // obere Haelfte
+         : v >= 46 ? 'w-mittel'
+         : 'w-schwach';             // unteres Fuenftel
+  }
+
   function attrRows(player, attrs){
     const list = PUCKERO.attrsOf(player.pos);
     const a = attrs || player.attrs;
     return list.map(x => {
-      const v = a[x.k] || 0;
-      const cls = v >= 82 ? 'hi' : (v <= 45 ? 'lo' : '');
+      /* Gerundet, und zwar hier statt im Zustand: seit die Werte durch
+         das Talentsystem in Bruchteilen wachsen, stand in der Spalte
+         "63.47826086956522" - drei Zeilen breit, und die ganze Seite
+         liess sich dadurch nach rechts schieben. */
+      const v = Math.round(a[x.k] || 0);
+      /* ------------------------------------------------------------
+         Farbe nach Wert
+
+         Fuenf Stufen statt zwei. Die Grenzen sind die, die auch die
+         Wertungsraenge im Spiel benutzen, damit eine 82 hier dasselbe
+         bedeutet wie eine 82 dort.
+         ------------------------------------------------------------ */
+      const cls = wertKlasse(v);
       return `<div class="attr"><span class="n">${x.n}</span>
         <span class="bar"><i class="${cls}" style="width:${Math.min(100, v)}%"></i></span>
-        <span class="v">${v}</span></div>`;
+        <span class="v ${cls}">${v}</span></div>`;
     }).join('');
   }
 
@@ -1867,7 +1895,7 @@ const UI = (() => {
   const clampP = v => Math.max(0, Math.min(100, Math.round(v || 0)));
 
   return {
-    lebenKarte, turnierKarte, staerkeWandel, einflussLeiste, koerperBand,
+    lebenKarte, turnierKarte, staerkeWandel, einflussLeiste, koerperBand, wertKlasse,
  header, footer, mount, themaSetzen, themaLesen, attrRows, ovrBadge, seasonCard, statsTable,
            wappenBild, pokalBild,
            trophyList, klubKarten, natKarte, ligaBilanz, shareText, rankLeiste, karriereKarte,

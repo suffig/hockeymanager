@@ -92,43 +92,51 @@ const PUCKERO_DATA = (() => {
 
   /* ---------- Ligen ----------
      level    = sportliches Niveau (beeinflusst die Punkteausbeute)
-     prestige = Gewicht einer Meisterschaft in der Legendenwertung          */
+     prestige = Gewicht einer Meisterschaft in der Legendenwertung
+     salary   = Gehaltsniveau im Verhaeltnis zur NHL
+
+     Die Gehaltsfaktoren waren viel zu flach: gemessen lagen die
+     Mediane bei NHL 14,1 / KHL 7,6 / Schweiz 4,6 / SHL 4,0 / DEL 3,1
+     Millionen. So verdient in Europa niemand. Der Abstand zur NHL ist
+     in Wahrheit um ein Vielfaches groesser - eine KHL-Spitzenkraft
+     kommt auf rund ein Fuenftel eines NHL-Stars, ein DEL-Spieler eher
+     auf ein Zwanzigstel. Danach sind sie jetzt gesetzt.                    */
   const LEAGUES = [
     { k:'NHL',  n:'NHL',                land:'Nordamerika',  level:100, prestige:100, salary:1.0,
       title:'Stanley Cup',              titleShort:'Stanley Cup' },
-    { k:'KHL',  n:'KHL',                land:'Osteuropa',    level:82,  prestige:62,  salary:.72,
+    { k:'KHL',  n:'KHL',                land:'Osteuropa',    level:82,  prestige:62,  salary:.20,
       title:'Gagarin Cup',              titleShort:'Gagarin Cup' },
-    { k:'SHL',  n:'SHL',                land:'Schweden',     level:78,  prestige:58,  salary:.42,
+    { k:'SHL',  n:'SHL',                land:'Schweden',     level:78,  prestige:58,  salary:.055,
       title:'Le-Mat-Pokal',             titleShort:'Le-Mat-Pokal' },
-    { k:'NL',   n:'National League',    land:'Schweiz',      level:74,  prestige:52,  salary:.48,
+    { k:'NL',   n:'National League',    land:'Schweiz',      level:74,  prestige:52,  salary:.085,
       title:'Schweizer Meisterschaft',  titleShort:'NL-Titel' },
-    { k:'LII',  n:'Liiga',              land:'Finnland',     level:73,  prestige:50,  salary:.34,
+    { k:'LII',  n:'Liiga',              land:'Finnland',     level:73,  prestige:50,  salary:.045,
       title:'Kanada-Malja',             titleShort:'Kanada-Malja' },
-    { k:'DEL',  n:'DEL',                land:'Deutschland',  level:70,  prestige:46,  salary:.38,
+    { k:'DEL',  n:'DEL',                land:'Deutschland',  level:70,  prestige:46,  salary:.055,
       title:'Deutsche Meisterschaft',   titleShort:'DEL-Titel' },
-    { k:'CZE',  n:'Extraliga',          land:'Tschechien',   level:69,  prestige:44,  salary:.30,
+    { k:'CZE',  n:'Extraliga',          land:'Tschechien',   level:69,  prestige:44,  salary:.038,
       title:'Tschechische Meisterschaft', titleShort:'Extraliga-Titel' },
-    { k:'AHL',  n:'AHL',                land:'Nordamerika',  level:58,  prestige:14,  salary:.14,
+    { k:'AHL',  n:'AHL',                land:'Nordamerika',  level:58,  prestige:14,  salary:.026,
       title:'Calder Cup',               titleShort:'Calder Cup' },
-    { k:'ICE',  n:'ICE Hockey League',  land:'Österreich',  level:66,  prestige:30,  salary:.24,
+    { k:'ICE',  n:'ICE Hockey League',  land:'Österreich',  level:66,  prestige:30,  salary:.030,
       title:'ICE-Meisterschaft',        titleShort:'ICE-Titel' },
-    { k:'SVKL', n:'Slovenská extraliga', land:'Slowakei',     level:64,  prestige:26,  salary:.20,
+    { k:'SVKL', n:'Slovenská extraliga', land:'Slowakei',     level:64,  prestige:26,  salary:.022,
       title:'Slowakische Meisterschaft',titleShort:'SVK-Titel' },
-    { k:'VHL',  n:'VHL',                 land:'Russland',     level:63,  prestige:22,  salary:.18,
+    { k:'VHL',  n:'VHL',                 land:'Russland',     level:63,  prestige:22,  salary:.020,
       title:'Bratina-Pokal',            titleShort:'Bratina-Pokal' },
-    { k:'ALL',  n:'HockeyAllsvenskan',   land:'Schweden',     level:63,  prestige:21,  salary:.17,
+    { k:'ALL',  n:'HockeyAllsvenskan',   land:'Schweden',     level:63,  prestige:21,  salary:.018,
       title:'Allsvenskan-Sieg',         titleShort:'Allsvenskan' },
-    { k:'SL',   n:'Swiss League',        land:'Schweiz',      level:61,  prestige:20,  salary:.19,
+    { k:'SL',   n:'Swiss League',        land:'Schweiz',      level:61,  prestige:20,  salary:.022,
       title:'Swiss-League-Titel',       titleShort:'SL-Titel' },
-    { k:'DEL2', n:'DEL2',                land:'Deutschland',  level:59,  prestige:18,  salary:.15,
+    { k:'DEL2', n:'DEL2',                land:'Deutschland',  level:59,  prestige:18,  salary:.017,
       title:'DEL2-Meisterschaft',       titleShort:'DEL2-Titel' },
-    { k:'DK',   n:'Metal Ligaen',        land:'Dänemark',    level:57,  prestige:17,  salary:.13,
+    { k:'DK',   n:'Metal Ligaen',        land:'Dänemark',    level:57,  prestige:17,  salary:.014,
       title:'Dänische Meisterschaft',  titleShort:'DK-Titel' },
-    { k:'MES',  n:'Mestis',              land:'Finnland',     level:58,  prestige:16,  salary:.12,
+    { k:'MES',  n:'Mestis',              land:'Finnland',     level:58,  prestige:16,  salary:.013,
       title:'Mestis-Titel',             titleShort:'Mestis' },
-    { k:'CZE2', n:'Chance liga',         land:'Tschechien',   level:58,  prestige:16,  salary:.12,
+    { k:'CZE2', n:'Chance liga',         land:'Tschechien',   level:58,  prestige:16,  salary:.013,
       title:'Chance-liga-Titel',        titleShort:'Chance liga' },
-    { k:'ECHL', n:'ECHL',                land:'Nordamerika',  level:52,  prestige:10,  salary:.08,
+    { k:'ECHL', n:'ECHL',                land:'Nordamerika',  level:52,  prestige:10,  salary:.009,
       title:'Kelly Cup',                titleShort:'Kelly Cup' },
     /* ------------------------------------------------------------
        Die Juniorenligen
@@ -142,28 +150,28 @@ const PUCKERO_DATA = (() => {
        jugend:true markiert sie fuer die Engine - dort hing bisher
        ein Dutzend Abfragen am festen Schluessel 'JUN'.
        ------------------------------------------------------------ */
-    { k:'JCHL', n:'CHL',                land:'Kanada',       level:42,  prestige:7,   salary:.03,
+    { k:'JCHL', n:'CHL',                land:'Kanada',       level:42,  prestige:7,   salary:.004,
       jugend:true,
       title:'Memorial Cup',             titleShort:'Memorial Cup' },
-    { k:'JUSA', n:'USHL',               land:'USA',          level:40,  prestige:6,   salary:.03,
+    { k:'JUSA', n:'USHL',               land:'USA',          level:40,  prestige:6,   salary:.004,
       jugend:true,
       title:'Clark Cup',                titleShort:'Clark Cup' },
-    { k:'JSWE', n:'J20 Nationell',      land:'Schweden',     level:41,  prestige:6,   salary:.03,
+    { k:'JSWE', n:'J20 Nationell',      land:'Schweden',     level:41,  prestige:6,   salary:.004,
       jugend:true,
       title:'J20-Meisterschaft',        titleShort:'J20-Titel' },
-    { k:'JFIN', n:'U20 SM-sarja',       land:'Finnland',     level:40,  prestige:6,   salary:.03,
+    { k:'JFIN', n:'U20 SM-sarja',       land:'Finnland',     level:40,  prestige:6,   salary:.004,
       jugend:true,
       title:'U20-Meisterschaft',        titleShort:'U20-Titel' },
-    { k:'JRUS', n:'MHL',                land:'Russland',     level:40,  prestige:6,   salary:.03,
+    { k:'JRUS', n:'MHL',                land:'Russland',     level:40,  prestige:6,   salary:.004,
       jugend:true,
       title:'Charlamow-Pokal',          titleShort:'Charlamow-Pokal' },
-    { k:'JCZE', n:'Extraliga juniorů',  land:'Tschechien',   level:38,  prestige:5,   salary:.03,
+    { k:'JCZE', n:'Extraliga juniorů',  land:'Tschechien',   level:38,  prestige:5,   salary:.004,
       jugend:true,
       title:'Junioren-Extraliga',       titleShort:'Junioren-Extraliga' },
-    { k:'JGER', n:'DNL',                land:'Deutschland',  level:36,  prestige:5,   salary:.03,
+    { k:'JGER', n:'DNL',                land:'Deutschland',  level:36,  prestige:5,   salary:.004,
       jugend:true,
       title:'DNL-Meisterschaft',        titleShort:'DNL-Titel' },
-    { k:'JSUI', n:'U20-Elit',           land:'Schweiz',      level:37,  prestige:5,   salary:.03,
+    { k:'JSUI', n:'U20-Elit',           land:'Schweiz',      level:37,  prestige:5,   salary:.004,
       jugend:true,
       title:'U20-Elit-Titel',           titleShort:'U20-Elit' }
   ];

@@ -3564,3 +3564,34 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
     animation:none;transition:none;opacity:0;
   }
 }
+
+/* ==================================================================
+   Die Farbskala der Werte
+
+   Bisher gab es zwei Stufen: ueber 82 hell, unter 45 gedaempft, alles
+   dazwischen gleich. Damit sahen 46 und 81 identisch aus, obwohl
+   zwischen ihnen eine ganze Laufbahn liegt. Fuenf Stufen, an
+   denselben Grenzen wie die Wertungsraenge im Spiel.
+   ================================================================== */
+:root{
+  --w-elite:#ffc861;   /* Gold  - Weltklasse */
+  --w-stark:#3ee08f;   /* Gruen - deutlich ueber dem Schnitt */
+  --w-solide:#38d1ff;  /* Blau  - solide Profistaerke */
+  --w-mittel:#8ea1c4;  /* Grau  - Durchschnitt */
+  --w-schwach:#ff6b7a; /* Rot   - Schwaeche */
+}
+.attr .v.w-elite,   .wert.w-elite   { color:var(--w-elite) }
+.attr .v.w-stark,   .wert.w-stark   { color:var(--w-stark) }
+.attr .v.w-solide,  .wert.w-solide  { color:var(--w-solide) }
+.attr .v.w-mittel,  .wert.w-mittel  { color:var(--w-mittel) }
+.attr .v.w-schwach, .wert.w-schwach { color:var(--w-schwach) }
+
+.attr .bar i.w-elite  { background:linear-gradient(90deg,#e0a63c,var(--w-elite)) }
+.attr .bar i.w-stark  { background:linear-gradient(90deg,#2bb673,var(--w-stark)) }
+.attr .bar i.w-solide { background:linear-gradient(90deg,#2a9fd0,var(--w-solide)) }
+.attr .bar i.w-mittel { background:linear-gradient(90deg,#5f7396,var(--w-mittel)) }
+.attr .bar i.w-schwach{ background:linear-gradient(90deg,#c4505c,var(--w-schwach)) }
+
+/* Eine Zahl darf nie die Spalte sprengen - selbst wenn irgendwo doch
+   einmal ein ungerundeter Wert durchkommt. */
+.attr .v{ max-width:3.2em; overflow:hidden; white-space:nowrap }

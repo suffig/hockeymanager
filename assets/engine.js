@@ -508,6 +508,7 @@ const PUCKERO = (() => {
       sommer: null,           // offene Entscheidung fuer die Sommerpause
       kapitaensfrage: null,   // offenes Angebot fuer das C
       kapitaenGefragt: false,
+      kapitaenSperre: 0,      // Saisons, in denen das C nicht neu vergeben wird
       rivale: null,           // staerkster Spieler desselben Jahrgangs
       jahrgang: [],           // die ganze Draftklasse, einmal vorausberechnet
       jahrgangStand: null,    // Rangliste des laufenden Jahres
@@ -1708,6 +1709,27 @@ const PUCKERO = (() => {
       const letzte = st.seasons[st.seasons.length - 1];
       let person;
 
+      /* ----------------------------------------------------------------
+         Die Vorgabe darf einem Ausreisser nicht hinterherlaufen
+
+         Sie kam allein aus der letzten Saison. Nach einem
+         Ausnahmejahr - Sternstunde, erste Reihe, alles passt - stand
+         damit im Jahr darauf eine Zahl, die auch der Spieler selbst
+         nur einmal erreicht hatte. Genau das sind die "manchmal zu
+         hohen Ziele": im Schnitt werden 57 Prozent erfuellt, aber
+         nach einem Ausreisser praktisch keines.
+
+         Deshalb zaehlt jetzt der eigene Schnitt der letzten drei
+         Saisons mit. Ein einzelnes starkes Jahr hebt die Latte, aber
+         es setzt sie nicht allein. */
+      const letzteDrei = st.seasons.slice(-3).filter(x => x.gp);
+      const basis = (feld) => {
+        if (!letzteDrei.length) return 0;
+        const zuletzt = letzte[feld] || 0;
+        const schnitt = letzteDrei.reduce((a, x) => a + (x[feld] || 0), 0) / letzteDrei.length;
+        return zuletzt * 0.6 + schnitt * 0.4;
+      };
+
       if (!letzte || !letzte.gp){
         /* Erste Profisaison: niemand erwartet Zahlen, nur Einsatzzeit. */
         person = { art:'spiele', wert: 20, n:'20 Einsätze sammeln',
@@ -1732,19 +1754,23 @@ const PUCKERO = (() => {
          Zahl. In Wahrheit ist es andersherum: wer teuer ist, an dem
          wird anders gemessen. */
       const teuer = clamp(((st.gehaltFaktor || 1) - 1) * 0.30, 0, 0.12);
-      const faktor = (st.age < 24 ? 1.14 : st.age > 32 ? 0.9 : 1.03)
+      /* Etwas milder als zuvor (1,14 / 1,03 statt jetzt 1,09 / 0,99):
+         gemessen wurden die Scorervorgaben in 49 Prozent der Saisons
+         erfuellt, was fuer eine Vorgabe, an der auch Moral und Ansehen
+         haengen, zu streng ist. */
+      const faktor = (st.age < 24 ? 1.09 : st.age > 32 ? 0.88 : 0.99)
                    * ligaFaktor * (1 + teuer);
 
       if (isG){
-        const ziel = clamp(Math.round((letzte.wins || 10) * faktor), 6, 46);
+        const ziel = clamp(Math.round((basis('wins') || 10) * faktor), 6, 46);
         person = { art:'siege', wert: ziel, n: ziel + ' Siege', d:'Daran misst dich der Torwarttrainer.' };
       } else if (player.pos !== 'D' && st.seasons.length % 3 === 1){
-        const tore = clamp(Math.round((letzte.g || 5) * faktor), 4, 60);
+        const tore = clamp(Math.round((basis('g') || 5) * faktor), 4, 60);
         person = { art:'tore', wert: tore, n: tore + ' Tore',
                    d: teuer > 0.03 ? 'Für das Gehalt erwartet man Abschlüsse.'
                                    : 'Der Trainer will Abschlüsse sehen.' };
       } else {
-        const ziel = clamp(Math.round((letzte.p || 12) * faktor), 8, 115);
+        const ziel = clamp(Math.round((basis('p') || 12) * faktor), 8, 115);
         person = { art:'punkte', wert: ziel, n: ziel + ' Scorerpunkte',
                    d: teuer > 0.03 ? 'Wer so verdient, muss liefern.'
                                    : 'Deine Vorgabe für die Saison.' };
@@ -2484,7 +2510,18 @@ const PUCKERO = (() => {
       }
 
       /* Teamerfolg */
-      const einfluss = clamp((ovr - 80) * (isG ? 0.38 : 0.34), -7, 14);
+      /* ----------------------------------------------------------------
+         Was ein Einzelner ausmacht
+
+         Seit die Angebote nach Passung statt nach Ligaspitze verteilt
+         werden, spielt man bei einem Verein des eigenen Niveaus statt
+         automatisch bei einem der staerksten - realistischer, aber die
+         Titelquote fiel dadurch von 8,5 auf 4,7 Prozent. Die Antwort
+         ist nicht, die alte Bevorzugung zurueckzuholen, sondern dem
+         Spieler das Gewicht zu geben, das ein herausragender Mann
+         wirklich hat: er hebt eine mittlere Mannschaft. Der Nullpunkt
+         liegt jetzt tiefer und der Ausschlag nach oben ist groesser. */
+      const einfluss = clamp((ovr - 77) * (isG ? 0.52 : 0.46), -7, 19);
       /* Der Nullpunkt gehoert auf das gemessene Mittel, sonst ist der
          "Ausschlag" in Wahrheit ein Dauerzuschlag. Genau das war er:
          der Kommentar nannte 86 als Mittel, im Code stand 70, und
@@ -2503,13 +2540,13 @@ const PUCKERO = (() => {
       season.platz = (st.tabelle.find(t => t.eigen) || {}).platz || null;
       const ligaSchnitt = lgAvgStr(club.lg);
       const poBoost = (player.traits.playoff || 0) * 0.42;
-      /* Die Schwelle stand auf +2, geeicht gegen eine Welt, in der
-         jede Mannschaft ueber den falsch gesetzten Nullpunkt der
-         Moral dauerhaft rund zwei Punkte geschenkt bekam. Faellt der
-         Zuschlag weg, faellt die Quote mit - gemessen von 59,8 auf
-         52,0 Prozent, ohne dass sich am Spiel etwas geaendert haette.
-         Die Schwelle wandert deshalb um denselben Betrag mit. */
-      season.playoffs = teamPower > ligaSchnitt + 0.6;
+      /* Diese Schwelle wandert mit, sooft sich aendert, bei welchen
+         Vereinen ein Spieler landet - sie misst ja nicht das Spiel,
+         sondern eicht es. Zuletzt: seit die Angebote nach Passung
+         statt nach Ligaspitze verteilt werden, spielt man bei einem
+         Verein des eigenen Niveaus, und die Quote fiel von 59,6 auf
+         38,2 Prozent. Mit -1,6 statt +0,6 liegt sie wieder bei 59,1. */
+      season.playoffs = teamPower > ligaSchnitt - 1.6;
 
       if (season.playoffs){
         /* ---- Playoffs als Serienfolge ----
@@ -2584,21 +2621,43 @@ const PUCKERO = (() => {
       /* Einzelehrungen */
       if (lg.prestige >= 44){
         if (isG){
-          if (season.sv > 0.928 && kante > 1.00) season.awards.push('bestG');
-          if (season.sv > 0.936 && kante > 1.25 && r() < 0.4) season.awards.push('mvp');
+          /* Auch fuer Torhueter: eine Fangquotenwertung verlangt in
+             jeder echten Liga eine Mindestzahl an Spielen. Nur das
+             Torwartduo darf darunter bleiben - es ist gerade die
+             Auszeichnung fuer zwei, die sich die Saison teilen. */
+          const genugImTor = season.gp >= fullGp * 0.55;
+          if (genugImTor){
+            if (season.sv > 0.928 && kante > 1.00) season.awards.push('bestG');
+            if (season.sv > 0.936 && kante > 1.25 && r() < 0.4) season.awards.push('mvp');
+          }
           if (season.gaa < 2.20 && kante > 0.95 && r() < 0.5) season.awards.push('torwartDuo');
         } else {
           const ppg = season.p / season.gp;
-          if (ppg > 1.12 && kante > 0.9) season.awards.push('topscorer');
-          if (season.g / season.gp > 0.55 && kante > 0.85) season.awards.push('torjaeger');
-          if (season.a / season.gp > 0.72 && kante > 0.85) season.awards.push('vorlagen');
-          if (P.k === 'D' && ppg > 0.62 && kante > 0.85) season.awards.push('bestD');
-          if (kante > 1.05 && ppg > 1.15 && r() < 0.5) season.awards.push('mvp');
+          /* ------------------------------------------------------------
+             Eine Trophaee gewinnt man ueber die Saison, nicht ueber
+             den Schnitt
+
+             Alle diese Bedingungen rechneten in Punkten je Spiel. Wer
+             die halbe Saison verletzt war und in fuenfundzwanzig
+             Spielen dreissig Punkte machte, wurde damit Topscorer -
+             eine Torjaegerkanone bekommt aber, wer am Ende die meisten
+             Tore hat, nicht den besten Schnitt. Deshalb eine
+             Mindestbeteiligung; die Grenze liegt bei zwei Dritteln,
+             wie sie auch echte Ligen fuer ihre Wertungen ziehen. */
+          const genugGespielt = season.gp >= fullGp * 0.66;
+          if (genugGespielt){
+            if (ppg > 1.12 && kante > 0.9) season.awards.push('topscorer');
+            if (season.g / season.gp > 0.55 && kante > 0.85) season.awards.push('torjaeger');
+            if (season.a / season.gp > 0.72 && kante > 0.85) season.awards.push('vorlagen');
+            if (P.k === 'D' && ppg > 0.62 && kante > 0.85) season.awards.push('bestD');
+            if (kante > 1.05 && ppg > 1.15 && r() < 0.5) season.awards.push('mvp');
+          }
           // Selke: defensivstarker Stürmer mit ordentlicher Offensive
           const selkeBonus = (st.rolle && st.rolle.w && st.rolle.w.selke) || 0;
           if (P.k !== 'D' && (dev.defensive || 0) > 74 && kante > 0.75 && r() < 0.4 + selkeBonus)
             season.awards.push('selke');
-          if (season.plus >= 28 && kante > 0.8 && r() < 0.55) season.awards.push('plusminus');
+          if (genugGespielt && season.plus >= 28 && kante > 0.8 && r() < 0.55)
+            season.awards.push('plusminus');
           /* Die Fairplay-Auszeichnung war angelegt, hatte ein Wappen -
              und wurde nirgends vergeben. Sie geht an den, der ohne
              Strafbank auskommt und trotzdem trifft. */
@@ -2606,9 +2665,16 @@ const PUCKERO = (() => {
             season.awards.push('fairplay');
           if (missed === 0 && season.gp === fullGp && r() < 0.5) season.awards.push('ironman');
         }
-        if (kante > 0.62 && r() < 0.45) season.awards.push('allstar');
-        if (kante > 1.15 && r() < 0.55) season.awards.push('allstar1');
-        if (st.seasons.filter(s => league(s.lg).prestige >= 44).length === 0 && kante > 0.42)
+        /* Ein All-Star-Team waehlt man aus denen, die gespielt haben.
+           Gemessen kam jede fuenfte Berufung bei weniger als zwei
+           Dritteln der Saison zustande - dieselbe Luecke wie bei den
+           Scorerwertungen, nur an anderer Stelle. */
+        const dabeiGewesen = season.gp >= fullGp * 0.6;
+        if (dabeiGewesen && kante > 0.62 && r() < 0.45) season.awards.push('allstar');
+        if (dabeiGewesen && kante > 1.15 && r() < 0.55) season.awards.push('allstar1');
+        if (dabeiGewesen
+            && st.seasons.filter(s => league(s.lg).prestige >= 44).length === 0
+            && kante > 0.42)
           season.awards.push('rookie');
         if (missed > 16 && kante > 0.8 && r() < 0.35) season.awards.push('comeback');
       }
@@ -2657,8 +2723,14 @@ const PUCKERO = (() => {
       })();
 
       if (!stufe){
-        if (st.age >= 21 && st.age <= 33 && lg.prestige >= 44 && !st.natDebuet)
-          season.events.push({ t: 'Keine Nominierung für ' + nat.n, c: '' });
+        /* Frueher nur vor dem ersten Mal - wer schon dabei war und
+           diesmal nicht nominiert wird, erfuhr davon nichts und stand
+           vor einem Sommer ohne Erklaerung. */
+        if (st.age >= 21 && st.age <= 33 && lg.prestige >= 44){
+          season.events.push({ t: st.natDebuet
+            ? 'Diesmal ohne dich: keine Nominierung für ' + nat.n
+            : 'Keine Nominierung für ' + nat.n, c: st.natDebuet ? 'bad' : '' });
+        }
       } else {
         const olympia = stufe === 'A' && st.year % 4 === 0;
         const T = stufe === 'U18' ? D.TURNIERE.u18
@@ -2672,7 +2744,17 @@ const PUCKERO = (() => {
           season.events.push({ t: 'Für ' + T.n + ' abgesagt – der Sommer gehört dir', c: '' });
           st.natZusage = true;          // die Absage gilt nur fuer dieses Jahr
         }
-        const dabei = !abgesagt && (stufe !== 'A' || olympia || !season.title);
+        /* Ein tiefer Playoff-Lauf kostet die WM - das ist realistisch,
+           stand aber nirgends. Wer zugesagt hat und dann nicht faehrt,
+           bekam gar keine Rueckmeldung: kein Turnier, keine Zeile,
+           nichts. Das ist der haeufigste Grund, warum die
+           Nationalmannschaft sich anfuehlt, als passiere dort nichts. */
+        const titelSperrt = stufe === 'A' && !olympia && !!season.title;
+        if (titelSperrt){
+          season.events.push({ t: 'Der Titellauf kostet dich die ' + T.kurz
+            + ' – das Turnier läuft ohne dich', c: '' });
+        }
+        const dabei = !abgesagt && !titelSperrt;
         if (dabei){
           if (!st.natDebuet){
             st.natDebuet = { jahr: st.year + 1, stufe };
@@ -2751,11 +2833,18 @@ const PUCKERO = (() => {
 
           /* Die eigene Rolle im Team - sie ergibt sich aus dem Abstand
              zwischen der eigenen Wertung und dem Niveau der Nation. */
-          const abstand = ovr - (jugend ? 68 : 82);
+          /* Der Massstab war fest: 82 fuer jede Nation. Damit war ein
+             Spieler mit 81 auch bei Lettland nur Ergaenzungsspieler,
+             obwohl er dort der beste Mann waere - und in Kanada waere
+             er es tatsaechlich. Das Niveau der Nation gehoert also in
+             die Rechnung. */
+          const niveau = jugend ? 62 + nat.wm * 0.10 : 68 + nat.wm * 0.16;
+          const abstand = ovr - niveau;
           turnier.rolle = st.natKapitaen ? 'Kapitän'
-                        : abstand >= 6  ? 'Erste Reihe'
-                        : abstand >= 0  ? 'Stammkraft'
+                        : abstand >= 7  ? 'Erste Reihe'
+                        : abstand >= 1  ? 'Stammkraft'
                         : 'Ergänzungsspieler';
+          turnier.niveau = Math.round(niveau);
 
           if (medaille){
             const M = D.INTL[medaille];
@@ -2814,7 +2903,8 @@ const PUCKERO = (() => {
       /* Das C bekommt niemand, dessen Rolle gerade zur Debatte steht -
          die Mannschaft folgt keinem, den der Trainer selbst infrage
          stellt. Wer seine Rolle traegt, wird eher gefragt. */
-      if (!st.kapitaenSeit && !st.kapitaenGefragt
+      if (st.kapitaenSperre > 0) st.kapitaenSperre--;
+      if (!st.kapitaenSeit && !st.kapitaenGefragt && !st.kapitaenSperre
           && st.klubJahre >= (klubBindung() >= 0.6 ? 1 : 2) && st.age >= 25
           && kante > 0.65 && !istJugend(lg.k) && st.rollenStand !== 'bewaehrung'
           && r() < (st.rollenStand === 'saeule' ? 0.72 : 0.50)){
@@ -2894,8 +2984,27 @@ const PUCKERO = (() => {
         const risiko = clamp(gefahr * (1 - bindung * 0.55), 0, 0.55);
         if (risiko > 0 && r() < risiko){
           st.kapitaenSeit = null;
-          st.kapitaenGefragt = false;      // spaeter wieder moeglich
+          /* Nicht sofort wieder fragen. Ohne Sperrfrist stand im Jahr
+             darauf die Frage "willst du das C?" auf dem Schirm, obwohl
+             man es gerade erst abgegeben hatte - und der Verlust selbst
+             ging als eine Zeile unter vielen unter. Ein Verein gibt die
+             Binde nicht im Jahr darauf zurueck. */
+          st.kapitaenSperre = 3;
+          st.kapitaenGefragt = false;
           season.events.push({ t: 'Das C geht an einen anderen', c: 'bad' });
+          /* Als Folge gemeldet, damit es die Oberflaeche als eigenen
+             Moment zeigt statt als Zeile unter zwanzig anderen. */
+          st.letzteFolge = {
+            gelungen: false, text: schwach
+              ? 'Der Trainer nimmt dir die Binde. Er sagt, du sollst dich um dein '
+                + 'eigenes Spiel kümmern – das sei gerade genug.'
+              : 'Vor der Saison hängt ein anderes Trikot mit dem C im Spind. '
+                + 'Man hat es dir vorher gesagt, aber gefragt hat dich niemand.',
+            tag: 'Kabine', wahl: 'Das Kapitänsamt abgegeben',
+            wirkungen: [{ t: 'Kein Kapitän mehr', gut: false },
+                        { t: '-8 Moral', gut: false },
+                        { t: '-3 Ansehen', gut: false }]
+          };
           moralAendern(-8);
           st.ruf = clamp(st.ruf - 3, 20, 99);
           st.verlauf.push({ jahr: st.year, alter: st.age, art: 'kapitaen',
@@ -3173,7 +3282,12 @@ const PUCKERO = (() => {
          Liga bei zwei steht, spielt weiter, solange ihn jemand nimmt.
          Der Massstab ist bewusst das, was fuenf Jahre Leben kosten
          wuerden - keine absolute Zahl, sondern der Abstand dazu. */
-      const rueckhalt = clamp((st.leben.vermoegen - 8) / 30, -0.6, 1);
+      /* Der Nullpunkt liegt auf dem gemessenen Median. Er lag bei 8,
+         als in der DEL noch drei Millionen gezahlt wurden; seit die
+         Gehaelter stimmen, liegt der Median bei 3,6 - mit der alten
+         Schwelle waere praktisch jeder Spieler ausserhalb der NHL
+         dauerhaft "knapp bei Kasse" gewesen. */
+      const rueckhalt = clamp((st.leben.vermoegen - 4) / 20, -0.6, 1);
       const chance = clamp(
         ruecktrittsChance(st.age, naechsterOvr, player.traits.langlebig, verschleiss)
         * (1 + rueckhalt * 0.35), 0, 0.95);
@@ -3188,7 +3302,7 @@ const PUCKERO = (() => {
           /* Damit die Frage ehrlich ist: sie soll sagen, ob man es
              sich leisten kann. */
           vermoegen: st.leben.vermoegen,
-          abgesichert: st.leben.vermoegen >= 18,
+          abgesichert: st.leben.vermoegen >= 12,
           // Was ein weiteres Jahr kostet
           abbau: Math.round((3 + st.zusatzjahre * 1.6 + verschleiss * 0.8) * 10) / 10,
           risiko: Math.round((6 + st.zusatzjahre * 3 + verschleiss * 2))
@@ -3198,9 +3312,34 @@ const PUCKERO = (() => {
 
       /* Weitere Wege, wie eine Laufbahn endet */
       const letzte = st.seasons[st.seasons.length - 1];
-      const verletzungsRisiko = clamp(0.015 + (st.age - 28) * 0.007
-                                      - (player.traits.robust || 0) * 0.0012, 0, 0.10);
-      if (st.age >= 26 && r() < verletzungsRisiko){ ende('verletzung'); return; }
+      /* ----------------------------------------------------------------
+         Ein Karriereende aus dem Nichts
+
+         Gemessen endeten 13,3 Prozent aller Laufbahnen verletzungs-
+         bedingt, und bei 34 von 53 gab es in den beiden Saisons davor
+         ueberhaupt keine Verletzung. Das las sich wie ein Urteil ohne
+         Verhandlung: ein Wuerfel beendete die Laufbahn, und nichts im
+         Spiel hatte darauf hingedeutet.
+
+         Jetzt braucht es eine Vorgeschichte. Wer gerade schwer
+         getroffen wurde oder einen Koerper mit Altlasten hat, ist
+         gefaehrdet; wer zwei gesunde Jahre hinter sich hat, nicht.
+         ---------------------------------------------------------------- */
+      const letzteSaison = st.seasons[st.seasons.length - 1];
+      const frischVerletzt = letzteSaison && letzteSaison.verletzung
+                           && letzteSaison.verletzung.schwere >= 1;
+      const schwerFrisch = letzteSaison && letzteSaison.verletzung
+                         && letzteSaison.verletzung.spiele >= 20;
+      const vorgeschichte = (st.verletzungsjahre || 0) >= 3;
+      const verletzungsRisiko = (frischVerletzt || vorgeschichte)
+        ? clamp(0.010 + (st.age - 28) * 0.006
+                + (schwerFrisch ? 0.045 : 0)
+                + (st.verletzungsjahre || 0) * 0.012
+                - (player.traits.robust || 0) * 0.0012, 0, 0.16)
+        : 0;
+      if (st.age >= 26 && verletzungsRisiko && r() < verletzungsRisiko){
+        ende('verletzung'); return;
+      }
       if (letzte && letzte.title && st.age >= 33 && r() < 0.22){ ende('hoehepunkt'); return; }
       /* Frueher zwei feste Wuerfel: 6 Prozent "aus familiaeren
          Gruenden" und 12 Prozent Heimkehr, beide unabhaengig davon,
@@ -3387,7 +3526,20 @@ const PUCKERO = (() => {
         if (bleibt && klubBindung() >= 0.6) jahre = Math.min(5, jahre + 1);
         angebote.push({
           club, lgKey: club.lg, lgName: lg.n, bleibt: !!bleibt, rolle,
-          staerke: Math.round(staerke), trend: klubTrend(club), jahre,
+          /* "Teamstaerke 88" sagte nichts: die Zahl hat nur Bedeutung
+             im Verhaeltnis zum Schnitt der Liga, und der ist je Liga
+             ein anderer. Deshalb der Abstand dazu - wie im Auftakt
+             auch - und die eigene Wertung daneben, damit man sieht,
+             worauf man sich einlaesst. */
+          staerke: Math.round(staerke),
+          staerkeRel: Math.round(staerke - schnitt),
+          ligaSchnitt: Math.round(schnitt),
+          /* Was die Liga verlangt und was du mitbringst */
+          eigeneWertung: Math.round(bewertung),
+          ligaMin: LG_MIN[club.lg],
+          passung: LG_MIN[club.lg] === undefined ? null
+                 : Math.round(bewertung - LG_MIN[club.lg]),
+          trend: klubTrend(club), jahre,
           gehalt: round1(clamp((bewertung - 58) * 0.5, 0.05, 15) * lg.salary
                          * (bleibt ? 1.05 + klubBindung() * 0.16 : 1) + 0.05),
           bindung: bleibt ? klubBindung() : 0,
@@ -3407,7 +3559,7 @@ const PUCKERO = (() => {
       /* Wer nichts zurueckgelegt hat, schaut zuerst auf das Gehalt -
          eine Liga, die besser zahlt, rueckt nach vorn. Wer abgesichert
          ist, kann sich den Verein nach anderen Massstaeben aussuchen. */
-      const knapp = clamp((12 - st.leben.vermoegen) / 12, 0, 1) * (st.age >= 29 ? 1 : 0.4);
+      const knapp = clamp((5 - st.leben.vermoegen) / 5, 0, 1) * (st.age >= 29 ? 1 : 0.4);
       const gewichtet = moeglicheLigen.map(l => ({
         l, s: l.prestige + (l.k === homeLg ? 24 + st.leben.heimweh * 0.35 : 0)
               + (l.k === aktuell.lg ? 10 + st.leben.wurzeln * 0.12 : 0)
@@ -3418,10 +3570,39 @@ const PUCKERO = (() => {
         if (angebote.length >= 3) break;
         const pool = clubsOf(g.l.k).filter(c => c.n !== aktuell.n);
         if (!pool.length) continue;
-        const sortiert = pool.slice().sort((a, b) => b.str - a.str);
-        const spanne = clamp((bewertung - LG_MIN[g.l.k]) / 18, 0.2, 1);
-        const band = sortiert.slice(0, Math.max(1, Math.round(sortiert.length * spanne)));
-        nimm(pick(r, band), false);
+        /* ------------------------------------------------------------
+           Wer bietet ueberhaupt?
+
+           Frueher: nach fester Klubstaerke sortieren und aus dem
+           obersten Fuenftel ziehen. Damit kamen fuer einen Spieler
+           immer dieselben zwei, drei Vereine in Frage - die Liste war
+           statisch, weil sie an c.str hing und nicht am Zyklus, in dem
+           ein Verein gerade steckt.
+
+           Jetzt zaehlt die Naehe: ein Verein interessiert sich fuer
+           jemanden, der zu ihm passt. Ein Aufbauteam holt keinen
+           Weltklassemann, ein Titelkandidat keinen Ergaenzungsspieler.
+           Weil klubStaerke() den Zyklus kennt, aendert sich das Feld
+           von Jahr zu Jahr von selbst.
+           ------------------------------------------------------------ */
+        const schnittLg = ligaSchnittJetzt(g.l.k);
+        /* Wo in dieser Liga wuerde der Spieler stehen? */
+        /* Bewusst etwas ueber dem eigenen Niveau: ein Verein, der
+           jemanden holt, will besser werden, und ein Spieler nimmt
+           das beste Angebot. Ohne diesen Versatz landete jeder exakt
+           bei seinesgleichen - gemessen fielen die Titelquote von 8,5
+           auf 4,7 und die Playoffquote von 59,6 auf 38,2 Prozent,
+           weil niemand mehr bei einer starken Mannschaft unterkam. */
+        const passend = schnittLg + 5
+                      + clamp((bewertung - LG_MIN[g.l.k] - 6) * 0.55, -8, 12);
+        const bewertetePool = pool.map(c => ({
+          c,
+          /* Naehe zaehlt, aber nicht allein - sonst waere es wieder
+             deterministisch. Der Zufallsanteil ist bewusst gross. */
+          s: -Math.abs(klubStaerke(c) - passend) + r() * 11
+        })).sort((a2, b2) => b2.s - a2.s);
+        const band = bewertetePool.slice(0, Math.max(3, Math.ceil(pool.length * 0.4)));
+        nimm(pick(r, band).c, false);
       }
       if (!angebote.length) nimm(aktuell, true);
       return angebote;

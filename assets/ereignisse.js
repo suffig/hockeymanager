@@ -1236,10 +1236,19 @@ const EREIGNISSE = (() => {
     { id:'wf_treuelohn', kat:'trainer', szene:'buero', tag:'Treue',
       benoetigt:'treue',
       titel:'{klub} erinnert sich daran, dass du geblieben bist',
+      /* Der Strang "Treue" wird geoeffnet, wenn man an der Frist bei
+         einem Verein bleibt. Dieses Folgeereignis sprach danach aber
+         den *aktuellen* Verein an - wer inzwischen gewechselt hatte,
+         bekam von seinem neuen Klub gesagt, er erinnere sich daran,
+         dass man geblieben sei. Deshalb nur dort, wo es auch stimmt.
+         (Das Gegenstueck wf_abschied ist ausdruecklich fuer den Fall
+         gebaut, dass man woanders spielt, und bleibt wie es ist.) */
       text:'Damals hättest du gehen können, und alle wussten es. '
          + 'Jetzt sitzt die Vereinsführung dir gegenüber und redet von Verlässlichkeit, '
          + 'von einem Gesicht für den Verein – und davon, dass so etwas seinen Preis hat.',
-      bedingung: st => st.age >= 22 && st.klubJahre >= 2,
+      bedingung: st => st.age >= 22 && st.klubJahre >= 2
+                    && st.strangNamen && st.strangNamen.treue
+                    && st.club && st.strangNamen.treue.klub === st.club.n,
       optionen:[
         { t:'Den Preis benennen', chance:60, hinweis:'Treue darf etwas kosten',
           gut:{ ruf:8, moral:7,
@@ -1912,20 +1921,20 @@ const EREIGNISSE = (() => {
          + 'und der Makler redet, als w\u00e4re das eine Kleinigkeit. '
          + 'Auf dem Weg zur\u00fcck f\u00e4hrst du zweimal daran vorbei.',
       bedingung: st => st.leben && st.leben.wurzeln >= 55 && st.klubJahre >= 3
-                    && st.leben.vermoegen >= 6,
+                    && st.leben.vermoegen >= 2.5,
       optionen:[
         { t:'Kaufen und bauen', chance:78,
           hinweis:'Hier bleibst du \u2013 daf\u00fcr ist ein Teil des Geldes weg',
-          gut:{ leben:{ wurzeln:22, heimweh:-14, vermoegen:-5 }, moral:10,
+          gut:{ leben:{ wurzeln:22, heimweh:-14, vermoegen:-1.8 }, moral:10,
                 trait:{ langlebig:3 },
                 text:'Im zweiten Sommer steht es. Du sitzt abends drau\u00dfen und h\u00f6rst die Stra\u00dfenbahn zur Halle fahren.' },
-          schlecht:{ leben:{ vermoegen:-4 }, moral:-4,
+          schlecht:{ leben:{ vermoegen:-1.4 }, moral:-4,
                 text:'Der Bau zieht sich \u00fcber drei Jahre und du wohnst die meiste Zeit davon woanders.' } },
         { t:'Das Geld anlegen', chance:58,
           hinweis:'Beweglich bleiben und etwas daraus machen',
-          gut:{ leben:{ vermoegen:9 },
+          gut:{ leben:{ vermoegen:3 },
                 text:'Dein Berater hatte recht. Das passiert selten genug, dass du es dir merkst.' },
-          schlecht:{ leben:{ vermoegen:-6 }, moral:-5,
+          schlecht:{ leben:{ vermoegen:-2 }, moral:-5,
                 text:'Zwei Jahre sp\u00e4ter erkl\u00e4rt dir jemand am Telefon, warum das niemand vorhersehen konnte.' } },
         { t:'Nichts davon', chance:88,
           hinweis:'Nichts festlegen, was dich halten k\u00f6nnte',
@@ -1955,9 +1964,9 @@ const EREIGNISSE = (() => {
                 text:'Du bist da und doch nicht. Am Ende der Saison f\u00e4llt dir auf, wie viel du verpasst hast.' } },
         { t:'Die Familie mitnehmen, wo es geht', chance:60,
           hinweis:'Teuer, aber ihr seid zusammen',
-          gut:{ leben:{ heimweh:-16, vermoegen:-3, partnerMit:true }, moral:8,
+          gut:{ leben:{ heimweh:-16, vermoegen:-1, partnerMit:true }, moral:8,
                 text:'Ein Kinderwagen im Hotelfoyer sieht falsch aus und f\u00fchlt sich richtig an.' },
-          schlecht:{ leben:{ vermoegen:-3 }, moral:-4,
+          schlecht:{ leben:{ vermoegen:-1 }, moral:-4,
                 text:'Nach dem zweiten Versuch lasst ihr es. Es war f\u00fcr alle anstrengender als allein.' } }
       ] },
 
@@ -1967,23 +1976,23 @@ const EREIGNISSE = (() => {
       text:'Er hat eine Mappe dabei und nennt dich beim Vornamen. '
          + 'Zwei aus der Kabine haben schon unterschrieben, sagt er. '
          + 'Die Zahl unten rechts ist gr\u00f6\u00dfer als alles, was du je auf einem Kontoauszug gesehen hast.',
-      bedingung: st => st.leben && st.leben.vermoegen >= 12,
+      bedingung: st => st.leben && st.leben.vermoegen >= 4,
       optionen:[
         { t:'Einsteigen', chance:44, wagnis:true,
           hinweis:'Es kann sich verdoppeln \u2013 oder weg sein',
-          gut:{ leben:{ vermoegen:16 }, moral:5,
+          gut:{ leben:{ vermoegen:5.5 }, moral:5,
                 text:'Es geht auf. Du erz\u00e4hlst es niemandem, weil du wei\u00dft, wie knapp das war.' },
-          schlecht:{ leben:{ vermoegen:-14 }, moral:-9,
+          schlecht:{ leben:{ vermoegen:-4.5 }, moral:-9,
                 text:'Ein Jahr sp\u00e4ter ist er nicht mehr erreichbar. Die zwei aus der Kabine auch nicht mehr im Verein.' } },
         { t:'Einen kleinen Teil', chance:66,
           hinweis:'Mitmachen, ohne alles zu riskieren',
-          gut:{ leben:{ vermoegen:5 },
+          gut:{ leben:{ vermoegen:1.8 },
                 text:'Ein bisschen mehr, als auf dem Sparbuch gewesen w\u00e4re. Mehr wolltest du nicht.' },
-          schlecht:{ leben:{ vermoegen:-3 },
+          schlecht:{ leben:{ vermoegen:-1 },
                 text:'Weg, aber es tut nicht weh. Genau deshalb war es nur ein Teil.' } },
         { t:'Absagen', chance:90,
           hinweis:'Nichts riskieren',
-          gut:{ leben:{ vermoegen:2 },
+          gut:{ leben:{ vermoegen:0.7 },
                 text:'Du legst es an, wie es dir dein Vater erkl\u00e4rt h\u00e4tte. Langweilig, und es bleibt.' },
           schlecht:{ text:'Du sagst ab und liest zwei Jahre sp\u00e4ter, was daraus geworden ist.' } }
       ] }
