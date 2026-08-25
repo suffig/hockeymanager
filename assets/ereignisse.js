@@ -1181,7 +1181,14 @@ const EREIGNISSE = (() => {
       text:'Beim Bäcker wird nicht mehr gefragt, was du möchtest, sondern ob es wie immer sein soll. '
          + 'Ein Kind im {klub}-Trikot winkt dir vom Fenster des Busses. '
          + 'Es ist der Moment, in dem aus einem Arbeitsort eine Heimat wird.',
-      bedingung: st => st.klubJahre >= 4,
+      /* Frueher an einer festen Jahreszahl (vier Saisons) - damit fiel
+         das Ereignis durch, sobald sich die Wechselhaeufigkeit
+         aenderte. Jetzt haengt es an dem, worum es geht: dass der
+         Verein dich als seinen erkennt. */
+      bedingung: st => st.klubJahre >= 3
+        || !!(st.club && st.klubKonto && st.klubKonto[st.club.n]
+              && st.klubKonto[st.club.n].rang !== 'zugang'),
+      gewicht: 2.4,
       optionen:[
         { t:'Eine Wohnung kaufen', chance:75, hinweis:'Ein Bekenntnis',
           gut:{ moral:9, trait:{ langlebig:4 }, text:'Du bleibst noch Jahre. Der Klub weiß das zu schätzen.' },

@@ -383,10 +383,14 @@ const UI = (() => {
       const t = e.t || '';
       const art = /verpasst|Operation|Reha|Verletzung|schon wieder/i.test(t) ? 'verletzt'
                 : /Cup|Meisterschaft|Trophy|Pokal|Malja|Titel/i.test(t) ? 'trophaee'
-                : /Auszeichnung|All-Star|Topscorer|Torjäger|Wertvollster|Bester/i.test(t) ? 'ehrung'
+                /* Die Muster decken die tatsaechlichen Namen aus
+                   PUCKERO_DATA.AWARDS ab - beim ersten Versuch fielen
+                   "Rookie des Jahres" und "Meiste Vorlagen" durch. */
+                : /Auszeichnung|All-Star|Topscorer|Torsch|Wertvollster|Bester|Wenigste|Meiste|des Jahres|MVP|Trophy|Alle Spiele/i.test(t) ? 'ehrung'
                 : /Gold|Silber|Bronze|Weltmeisterschaft|Olympi/i.test(t) ? 'nation'
-                : /Wechsel|wechselt|übernimmt|muss gehen|verlängert/i.test(t) ? 'wechsel'
-                : /Kapitän|C geht|Vereinslegende|Gesicht des Vereins/i.test(t) ? 'amt'
+                : /Wechsel|wechselt|übernimmt|muss gehen|verlängert|Aufstieg zu|Abstieg/i.test(t) ? 'wechsel'
+                : /^Playoffs:|Finale|Halbfinale|Viertelfinale/i.test(t) ? 'playoff'
+                : /Kapitän|C geht|Vereinslegende|Gesicht des Vereins|Stammkraft/i.test(t) ? 'amt'
                 : /Draft|Rechte/i.test(t) ? 'draft'
                 : /Vater|Kind|Nachwuchs|nicht mehr allein/i.test(t) ? 'leben'
                 : '';

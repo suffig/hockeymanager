@@ -426,6 +426,7 @@ const PUCKERO = (() => {
       natZusage: true,        // stehst du zur Verfuegung?
       natRolle: null,         // 'fuehrung', wenn du sie eingefordert hast
       natAbsagen: 0,          // wie oft du abgesagt hast
+      natGefragt: false,      // offene Zusage, die noch beantwortet werden muss
       natKapitaen: false,     // Kapitaen der Nationalmannschaft
       entryDraft: null,       // Ergebnis des Entry Drafts
       draftRechte: null,      // wer deine Rechte haelt, und wie lange
@@ -868,6 +869,25 @@ const PUCKERO = (() => {
       if (r() > 0.45) return null;                     // nicht jedes Jahr
       if (!verbandFragtAn()) return null;              // wer absagt, wird seltener gefragt
 
+      /* ----------------------------------------------------------------
+         Gefragt wird nur, wer auch in Frage kommt
+
+         Der Verband fragte unabhaengig davon, ob er den Spieler
+         nachher ueberhaupt nominieren wuerde - gemessen fuehrten nur
+         22 Prozent aller Zusagen zu einem Turnier, der Rest endete mit
+         einer Erklaerung, warum es doch nichts wurde. Das ist keine
+         Anfrage, das ist eine Umfrage.
+
+         Die Schwelle ist dieselbe, an der spaeter auch wirklich
+         ausgewaehlt wird - mit etwas Spielraum nach unten, weil
+         zwischen Anfrage und Turnier noch eine Saison liegt und sich
+         ein Spieler darin auch steigern kann.
+         ---------------------------------------------------------------- */
+      const letzteS = st.seasons[st.seasons.length - 1];
+      const natB = (nation(player.nation) || {}).wm || 70;
+      const wertJetzt = letzteS ? letzteS.ovr : 0;
+      if (wertJetzt < 78 + (100 - natB) * 0.26 - 6) return null;
+
       const nat = nation(player.nation);
       const ctx = ereignisKontext();
       const olympia = (st.year + 1) % 4 === 0;
@@ -980,6 +1000,9 @@ const PUCKERO = (() => {
       wirkeLeben(e.leben, merke);
 
       st.natZusage = !!o.zusage;
+      /* Damit die Saison weiss, dass eine Zusage vorliegt, die
+         eingeloest oder erklaert werden muss. */
+      st.natGefragt = !!o.zusage;
       if (!o.zusage){ st.natAbsagen++; merke('Absage an den Verband', false); }
       if (o.fuehrung && gelungen){
         st.natKapitaen = true;
@@ -2736,10 +2759,16 @@ const PUCKERO = (() => {
       })();
 
       if (!stufe){
-        /* Frueher nur vor dem ersten Mal - wer schon dabei war und
-           diesmal nicht nominiert wird, erfuhr davon nichts und stand
-           vor einem Sommer ohne Erklaerung. */
-        if (st.age >= 21 && st.age <= 33 && lg.prestige >= 44){
+        /* Wer gefragt wurde und zugesagt hat, muss erfahren, was
+           daraus geworden ist - immer. Gemessen blieben sonst 20
+           Prozent aller Zusagen ohne jede Rueckmeldung: der Spieler
+           sagte zu, und dann kam einfach nichts. Die alte Bedingung
+           (Alter 21-35, Liga mit Ansehen) liess Junge und alle in
+           schwaecheren Ligen durchs Raster fallen. */
+        if (st.natGefragt){
+          season.events.push({ t: 'Trotz deiner Zusage nicht nominiert – '
+            + nat.n + ' fährt ohne dich', c: 'bad' });
+        } else if (st.age >= 21 && st.age <= 33 && lg.prestige >= 44){
           season.events.push({ t: st.natDebuet
             ? 'Diesmal ohne dich: keine Nominierung für ' + nat.n
             : 'Keine Nominierung für ' + nat.n, c: st.natDebuet ? 'bad' : '' });
@@ -2846,16 +2875,29 @@ const PUCKERO = (() => {
 
           /* Die eigene Rolle im Team - sie ergibt sich aus dem Abstand
              zwischen der eigenen Wertung und dem Niveau der Nation. */
-          /* Der Massstab war fest: 82 fuer jede Nation. Damit war ein
-             Spieler mit 81 auch bei Lettland nur Ergaenzungsspieler,
-             obwohl er dort der beste Mann waere - und in Kanada waere
-             er es tatsaechlich. Das Niveau der Nation gehoert also in
-             die Rechnung. */
-          const niveau = jugend ? 62 + nat.wm * 0.10 : 68 + nat.wm * 0.16;
+          /* ------------------------------------------------------------
+             Wer nominiert wird, ist kein Ergaenzungsspieler
+
+             Erst stand hier eine feste 82 fuer jede Nation, dann ein
+             Niveau aus der Staerke des Landes - gemessen waren
+             trotzdem 53 Prozent aller Nominierten "Ergaenzungsspieler",
+             also die Mehrheit. Das kann nicht stimmen: wer ueberhaupt
+             einberufen wird, gehoert zu den Besten seines Landes.
+
+             Der Massstab ist deshalb genau die Schwelle, ab der man
+             nominiert wird. Wer sie knapp nimmt, faehrt als Ergaenzung
+             mit; wer deutlich darueber liegt, spielt in der ersten
+             Reihe. Damit misst sich der Spieler an denen, die
+             tatsaechlich neben ihm stehen.
+             ------------------------------------------------------------ */
+          const niveau = jugend
+            ? (stufe === 'U18' ? 56 + (100 - nat.wm) * 0.10
+                               : 64 + (100 - nat.wm) * 0.14) - natBonus * 0.3
+            : 78 + (100 - nat.wm) * 0.26 - natBonus * 0.45;
           const abstand = ovr - niveau;
           turnier.rolle = st.natKapitaen ? 'Kapitän'
-                        : abstand >= 7  ? 'Erste Reihe'
-                        : abstand >= 1  ? 'Stammkraft'
+                        : abstand >= 6  ? 'Erste Reihe'
+                        : abstand >= 2  ? 'Stammkraft'
                         : 'Ergänzungsspieler';
           turnier.niveau = Math.round(niveau);
 
@@ -2898,7 +2940,9 @@ const PUCKERO = (() => {
           }
           season.nat = turnier;
         }
+        st.natGefragt = false;
       }
+      st.natGefragt = false;
 
       /* ---- Hoehepunkt der Saison ---- */
       (() => {
