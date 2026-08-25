@@ -1211,7 +1211,13 @@ function CareerGame(root, cfg){
     if (st.angebote)      return kopf + bilanz
                                + angeboteHtml(st.angebote, st.angebotsGrund,
                                               st.angebotsBelege, st.keineVerlaengerung,
-                                              { frei: st.beraterFrei, draht: st.beraterDraht });
+                                              /* lauf, nicht st: beraterFrei und
+                                                 beraterDraht sind Getter des
+                                                 Laufobjekts. Auf dem Rohzustand
+                                                 sind beide undefined, und der
+                                                 Knopf erschien nie. */
+                                              { frei: lauf.beraterFrei,
+                                                draht: lauf.beraterDraht });
     if (st.rollenwahl)    return kopf + (alsApp ? '' : bilanz)
                                + rollenHtml(st.rollenwahl, st.club);
     if (st.training)      return kopf + bilanz + trainingHtml(st.training, st.age);
