@@ -54,6 +54,48 @@ const PUCKERO = (() => {
   }
   const attrsOf = posKey => D.ATTRS[pos(posKey).group];
 
+  /* ------------------------------------------------------------------
+     Was ein Spieler verdient
+
+     Vorher stand hier eine Gerade: (Wertung - 58) mal 0,5, gedeckelt
+     bei 15. In der NHL (Ligafaktor 1,0) hiess das 11 Millionen fuer
+     eine Wertung von 80 und den Deckel ab 88. Gemessen verdiente das
+     untere Viertel aller NHL-Spieler 12,1 Millionen und der Median
+     14,1 - also praktisch jeder das Hoechstgehalt. Dieselbe Krankheit
+     wie bei der Fangquote: eine Gerade, die oben an die Wand laeuft.
+
+     In Wirklichkeit steigen Gehaelter nicht gerade, sondern steil erst
+     ganz oben: ein Ergaenzungsspieler bekommt eine Million, ein guter
+     Zweitreihenspieler drei bis vier, ein Erstreihenspieler sechs bis
+     sieben, und nur eine Handvoll kommt ueber zwoelf. Diese Kurve
+     bildet das ab - mit dem Ergebnis, dass sich Wertungspunkte oben
+     lohnen und unten das Ueberleben sichern.
+
+     Die Formel steht an genau EINER Stelle, weil sie an zwei
+     gebraucht wird: fuer das Angebot vor der Saison und fuer die
+     Auszahlung danach. Zwei Kopien waeren zwei Gelegenheiten
+     auseinanderzulaufen - und genau das war die Beanstandung
+     "Wertung bei Vertragsangeboten stimmt nicht".
+     ------------------------------------------------------------------ */
+  function gehaltBasis(wertung, lg){
+    if (!lg) return 0;
+    /* Gemessen an der Eintrittshuerde der Liga, nicht an einer festen
+       Zahl. Der Grund steht in LG_MIN: die NHL verlangt eine Wertung
+       von 86. Die alte Gerade (Wertung minus 58, mal 0,5) war damit
+       schon beim schwaechsten NHL-Spieler bei 14 von hoechstens 15 -
+       deshalb verdiente dort praktisch jeder das Hoechstgehalt. Wer
+       gerade so in eine Liga passt, bekommt jetzt deren Grundgehalt;
+       was darueber liegt, zahlt sich steigend aus. */
+    const basis = lg.jugend ? 55 : (LG_MIN[lg.k] !== undefined ? LG_MIN[lg.k] : 58);
+    /* Vierzehn Punkte ueber der Huerde waren zu breit: der Spitzenwert
+       einer Laufbahn liegt im Median bei 80 und im obersten Zehntel
+       bei 90, in der NHL bewegt sich also fast alles zwischen 86 und
+       96. Mit zehn Punkten Spanne trifft die Kurve dieses Fenster -
+       Grundgehalt an der Huerde, Hoechstgehalt bei rund 96. */
+    const spanne = clamp((wertung - basis) / 10, 0, 1.05);
+    return lg.salary * (3.5 + Math.pow(spanne, 2) * 10.5);
+  }
+
   /* Der gemessene Median der Moral ueber alle Laufbahnen. Er ist der
      Nullpunkt fuer alles, was von der Moral abhaengt - so wirkt sie
      als Unterschied zwischen Spielern und nicht als Zuschlag oder
@@ -3205,7 +3247,7 @@ const PUCKERO = (() => {
       else if (r() < 0.35)                      season.story = pick(r, D.STORY.neutral);
       st.klubJahre++;
 
-      season.salary = round1((clamp((ovr - 58) * 0.5, 0.05, 15) * lg.salary + 0.05)
+      season.salary = round1((gehaltBasis(ovr, lg) + 0.05)
                              * (st.gehaltFaktor || 1));
       season.marktwert = marktwert(ovr, st.age);
       st.formBonus *= 0.5;          // Nachwirkung klingt ab
@@ -3800,7 +3842,13 @@ const PUCKERO = (() => {
          Gehaelter stimmen, liegt der Median bei 3,6 - mit der alten
          Schwelle waere praktisch jeder Spieler ausserhalb der NHL
          dauerhaft "knapp bei Kasse" gewesen. */
-      const rueckhalt = clamp((st.leben.vermoegen - 4) / 20, -0.6, 1);
+      /* Die Schwellen stammten aus der Zeit, in der ein NHL-Spieler 14
+         Millionen im Jahr verdiente. Nach der Gehaltsreform liegt das
+         Vermoegen waehrend einer Laufbahn im Median bei 0,9 Millionen
+         und im obersten Zehntel bei 7,1 - gegen eine Schwelle von 4
+         gemessen war praktisch jeder mittellos, und die Zahl trennte
+         nichts mehr. Neu geeicht auf die gemessene Verteilung. */
+      const rueckhalt = clamp((st.leben.vermoegen - 1) / 8, -0.6, 1);
       const chance = clamp(
         ruecktrittsChance(st.age, naechsterOvr, player.traits.langlebig, verschleiss)
         * (1 + rueckhalt * 0.35), 0, 0.95);
@@ -3819,7 +3867,7 @@ const PUCKERO = (() => {
           /* Damit die Frage ehrlich ist: sie soll sagen, ob man es
              sich leisten kann. */
           vermoegen: st.leben.vermoegen,
-          abgesichert: st.leben.vermoegen >= 12,
+          abgesichert: st.leben.vermoegen >= 5,
           // Was ein weiteres Jahr kostet
           abbau: Math.round((3 + st.zusatzjahre * 1.6 + verschleiss * 0.8) * 10) / 10,
           risiko: Math.round((6 + st.zusatzjahre * 3 + verschleiss * 2))
@@ -3911,7 +3959,7 @@ const PUCKERO = (() => {
             st.ruecktrittsfrage = {
               alter: st.age, ovr: naechsterOvr, verschleiss,
               zusatzjahre: st.zusatzjahre,
-              vermoegen: L.vermoegen, abgesichert: L.vermoegen >= 12,
+              vermoegen: L.vermoegen, abgesichert: L.vermoegen >= 5,
               grund: g.k,
               abbau: Math.round((3 + st.zusatzjahre * 1.6 + verschleiss * 0.8) * 10) / 10,
               risiko: Math.round((6 + st.zusatzjahre * 3 + verschleiss * 2))
@@ -4124,7 +4172,7 @@ const PUCKERO = (() => {
           passung: LG_MIN[club.lg] === undefined ? null
                  : Math.round(bewertung - LG_MIN[club.lg]),
           trend: klubTrend(club), jahre,
-          gehalt: round1(clamp((bewertung - 58) * 0.5, 0.05, 15) * lg.salary
+          gehalt: round1(gehaltBasis(bewertung, lg)
                          * (bleibt ? 1.05 + klubBindung() * 0.16 : 1) + 0.05),
           bindung: bleibt ? klubBindung() : 0,
           klubRang: bleibt && st.klubKonto[club.n] ? st.klubKonto[club.n].rang : null,
@@ -4171,7 +4219,7 @@ const PUCKERO = (() => {
       /* Wer nichts zurueckgelegt hat, schaut zuerst auf das Gehalt -
          eine Liga, die besser zahlt, rueckt nach vorn. Wer abgesichert
          ist, kann sich den Verein nach anderen Massstaeben aussuchen. */
-      const knapp = clamp((5 - st.leben.vermoegen) / 5, 0, 1) * (st.age >= 29 ? 1 : 0.4);
+      const knapp = clamp((3 - st.leben.vermoegen) / 3, 0, 1) * (st.age >= 29 ? 1 : 0.4);
       const gewichtet = moeglicheLigen.map(l => ({
         l, s: l.prestige + (l.k === homeLg ? 24 + st.leben.heimweh * 0.35 : 0)
               + (l.k === aktuell.lg ? 10 + st.leben.wurzeln * 0.12 : 0)
