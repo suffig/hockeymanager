@@ -1512,6 +1512,13 @@ const UI = (() => {
     w.addEventListener('click', e => { if (e.target === w) zu(); });
   }
 
+  /* Eine Stelle fuer die Frage, ob der Nutzer Bewegung moechte -
+     bisher stand dieselbe Abfrage an fuenf Stellen im Code. */
+  function wenigerBewegung(){
+    return !!(window.matchMedia
+           && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+
   function konfetti(anzahl){
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const farben = ['#38d1ff','#ffc861','#7c6bff','#3ee08f','#ff6b7a'];
@@ -1591,7 +1598,19 @@ const UI = (() => {
            <td>${t.g}</td><td>${t.a}</td><td>${t.p}</td><td>${t.plus > 0 ? '+' : ''}${t.plus}</td>
            <td>${t.ppg}</td><td>${t.gwg}</td><td>${t.shots}</td><td>${t.shotPct}</td><td>–</td>
            <td>${t.pim}</td></tr>`;
-    return `<div class="table-scroll"><table class="stats">
+    /* ------------------------------------------------------------------
+       Fuenfzehn Spalten auf einem Telefon
+
+       Die Tabelle ist 809 Pixel breit und stand in einem Fenster von
+       325 - technisch erreichbar, weil die Huelle seitlich scrollt,
+       aber man wischt sich durch fuenfzehn Spalten, um eine Zeile zu
+       lesen. Auf schmalen Geraeten bleiben deshalb die sieben
+       Spalten, die eine Saison ausmachen; die uebrigen stehen weiter
+       in der Detailansicht jeder Saisonkarte und auf groesseren
+       Bildschirmen. Die Variante steht als Klasse an der Tabelle,
+       weil Torhueter und Feldspieler verschiedene Spalten haben.
+       ------------------------------------------------------------------ */
+    return `<div class="table-scroll"><table class="stats ${isG ? 'tor' : 'feld'}">
       <thead>${head}</thead><tbody>${rows}${tot}</tbody></table></div>
       <p class="small mt">Sp Spiele · ${isG ? 'S/N/OT Siege, Niederlagen, nach Verlängerung · Fq% Fangquote · GTS Gegentorschnitt · SO Shutouts'
         : 'T Tore · V Vorlagen · PP Powerplaytore · SW Siegtore · Sch Schüsse · Q% Schussquote · ET Eiszeit je Spiel · SM Strafminuten'}</p>`;
@@ -1995,7 +2014,7 @@ const UI = (() => {
   const clampP = v => Math.max(0, Math.min(100, Math.round(v || 0)));
 
   return {
-    lebenKarte, turnierKarte, staerkeWandel, einflussLeiste, koerperBand, wertKlasse, bilanzKlasse, frage,
+    lebenKarte, turnierKarte, staerkeWandel, einflussLeiste, koerperBand, wertKlasse, bilanzKlasse, frage, wenigerBewegung,
  header, footer, mount, themaSetzen, themaLesen, attrRows, ovrBadge, seasonCard, statsTable,
            wappenBild, pokalBild,
            trophyList, klubKarten, natKarte, ligaBilanz, shareText, rankLeiste, karriereKarte,

@@ -408,21 +408,61 @@ const DRAFT = (() => {
     return raus;
   }
 
+  /* ------------------------------------------------------------------
+     Keine Eigenschaft zweimal im selben Draft
+
+     Die vier Fragen wurden unabhaengig voneinander gezogen, und
+     dieselbe Eigenschaft steht auf mehreren Karten - "Medienliebling"
+     auf sechs, "Lernwillig" auf sechs. Bei zwoelf gezogenen Karten war
+     eine Doppelung damit praktisch sicher: gemessen enthielten 600 von
+     600 Draftangeboten mindestens eine.
+
+     Das ist nicht nur unschoen, es ist eine gebrochene Zusage. Wer
+     eine Eigenschaft schon hat, bekommt sie beim zweiten Mal nicht
+     noch einmal - die Karte verspricht also etwas, das sie nicht
+     liefert.
+
+     Deshalb wird Karte fuer Karte gezogen, und jede vergebene
+     Eigenschaft gilt sofort als vergeben - auch innerhalb derselben
+     Frage. Dort entstand die Doppelung naemlich zuerst: in der
+     Herkunft tragen "Eliteakademie" und "Eine Familie voller Spieler"
+     beide "lernwillig". Reicht der Vorrat nicht, wird aufgefuellt: es
+     muessen immer drei Karten zur Wahl stehen.
+     ------------------------------------------------------------------ */
+  function ohneWiederholung(liste, seed, wieviele, gewichte, schonDa){
+    const roh = ziehe(liste, seed, liste.length, gewichte);
+    const raus = [];
+    const soll = wieviele || 3;
+    const nimm = (nurFrisch) => {
+      for (const k of roh){
+        if (raus.indexOf(k) >= 0) continue;
+        if (nurFrisch && (k.eig || []).some(id => schonDa.has(id))) continue;
+        raus.push(k);
+        (k.eig || []).forEach(id => schonDa.add(id));
+        if (raus.length >= soll) return true;
+      }
+      return raus.length >= soll;
+    };
+    if (!nimm(true)) nimm(false);
+    return raus;
+  }
+
   function fragen(posGruppe, seed, nation){
     const s0 = String(seed || 'eiszeit');
+    const schonDa = new Set();
     return [
       { id:'herkunft',  frage:'Wo hast du Eishockey gelernt?',
         text:'Die ersten Jahre prägen mehr als jedes Profitraining.',
-        karten: ziehe(HERKUNFT, s0 + ':h', 3, HERKUNFT_LAND[nation]) },
+        karten: ohneWiederholung(HERKUNFT, s0 + ':h', 3, HERKUNFT_LAND[nation], schonDa) },
       { id:'waffe',     frage:'Was ist deine Waffe?',
         text:'Wofür holt dich ein Trainer aufs Eis, wenn es eng wird?',
-        karten: mische(WAFFE[posGruppe] || WAFFE.skater, s0 + ':w', 3) },
+        karten: ohneWiederholung(WAFFE[posGruppe] || WAFFE.skater, s0 + ':w', 3, null, schonDa) },
       { id:'charakter', frage:'Wer bist du in der Kabine?',
         text:'Zwanzig Männer, ein Raum. Deine Rolle darin entscheidet mehr, als du denkst.',
-        karten: mische(CHARAKTER, s0 + ':c', 3) },
+        karten: ohneWiederholung(CHARAKTER, s0 + ':c', 3, null, schonDa) },
       { id:'preis',     frage:'Was kostet dich dein Spiel?',
         text:'Niemand bekommt alles. Wähle, womit du leben willst.',
-        karten: mische(PREIS, s0 + ':p', 3) }
+        karten: ohneWiederholung(PREIS, s0 + ':p', 3, null, schonDa) }
     ];
   }
 

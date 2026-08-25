@@ -191,6 +191,73 @@ function CareerGame(root, cfg){
     }
   }
 
+  /* ------------------------------------------------------------------
+     Eine Eigenschaft mit ihrer Wirkung
+
+     Sie stand als Name mit Zeichen da, die Erklaerung nur im
+     Titelattribut - auf dem Telefon also gar nicht. Dabei ist gerade
+     das die Frage, die man beim Draft hat: was bringt mir das? Jetzt
+     steht die Wirkung darunter, und wer eine Eigenschaft zweimal
+     zugesagt bekommen hat, sieht das auch.
+     ------------------------------------------------------------------ */
+  const EIG_WORT = {
+    moralStart:'Startmoral', rufStart:'Ansehen zu Beginn',
+    training:'Trainingsertrag', ereignis:'Entscheidungen',
+    heimbonus:'Heimatliga', natBonus:'Nationalteam',
+    lernkurve:'Lernkurve', grenze:'Talentgrenze',
+    robust:'Robustheit', langlebig:'Haltbarkeit',
+    jung:'Frühreife', playoff:'Playoff-Stärke'
+  };
+
+  function eigChip(id, stufe){
+    const e = DRAFT.EIGENSCHAFTEN[id];
+    if (!e) return '';
+    const n = stufe || ((S.player && S.player.eigStufe) ? S.player.eigStufe[id] : 1) || 1;
+    const wirkung = Object.entries(e.w || {})
+      .map(([k, v]) => (EIG_WORT[k] || k) + ' ' + (v > 0 ? '+' : '') + v)
+      .join(' · ');
+    return `<span class="eig ${n > 1 ? 'verstaerkt' : ''}" title="${esc(e.d)}">
+      <span class="eig-kopf">${e.icon} ${esc(e.n)}${n > 1
+        ? '<b class="eig-stufe">×' + n + '</b>' : ''}</span>
+      ${wirkung ? '<span class="eig-w">' + esc(wirkung) + '</span>' : ''}
+    </span>`;
+  }
+
+  /* Der Streifen, der die Saison ueberbrueckt. */
+  function saisonLaeuft(v, fertig){
+    const w = document.createElement('div');
+    w.className = 'saisonlauf';
+    w.innerHTML = `
+      <div class="sl-blatt">
+        <div class="sl-wappen">${UI.wappenBild(v.klub, 56)}</div>
+        <b class="sl-klub">${esc(v.klub)}</b>
+        <span class="sl-jahr">Saison ${v.jahr}/${String(v.jahr + 1).slice(2)}</span>
+        <div class="sl-bahn"><i></i></div>
+        <span class="sl-hinweis">Antippen zum Überspringen</span>
+      </div>`;
+    document.body.appendChild(w);
+    requestAnimationFrame(() => w.classList.add('an'));
+    let erledigt = false;
+    const schliessen = () => {
+      if (erledigt) return;
+      erledigt = true;
+      clearTimeout(uhr);
+      w.classList.remove('an');
+      setTimeout(() => w.remove(), 180);
+      fertig();
+    };
+    const uhr = setTimeout(schliessen, 900);
+    /* Der Klick, der den Streifen oeffnet, erreicht ihn selbst noch -
+       gemessen war er nach rund hundert Millisekunden wieder weg,
+       statt nach neunhundert. Die erste Viertelsekunde nimmt er
+       deshalb keine Klicks an. */
+    const auf = Date.now();
+    w.addEventListener('click', () => {
+      if (Date.now() - auf < 250) return;
+      schliessen();
+    });
+  }
+
   /* ---------- Identität ---------- */
   function renderIdent(){
     const i = S.ident;
@@ -389,8 +456,7 @@ function CareerGame(root, cfg){
             ${S.player.eigenschaften.length ? `<div class="mt">
               <h4 class="small" style="letter-spacing:.1em;margin:0 0 8px">EIGENSCHAFTEN</h4>
               <div class="eig-liste">${S.player.eigenschaften.map(id => {
-                const e = DRAFT.EIGENSCHAFTEN[id];
-                return e ? `<span class="eig" title="${esc(e.d)}">${e.icon} ${esc(e.n)}</span>` : '';
+                return eigChip(id);
               }).join('')}</div></div>` : ''}
           </div>
         </div>
@@ -469,8 +535,7 @@ function CareerGame(root, cfg){
             <p class="small">${nat.flag} ${nat.n} · ${PUCKERO.pos(S.player.pos).n}
               · 18 Jahre · Juniorenliga</p>
             <div class="eig-liste mt">${(S.player.eigenschaften || []).map(id => {
-              const e = DRAFT.EIGENSCHAFTEN[id];
-              return e ? `<span class="eig" title="${esc(e.d)}">${e.icon} ${esc(e.n)}</span>` : '';
+              return eigChip(id);
             }).join('')}</div>
             <p class="small mt">${S.player.picks.map(x => esc(x.n)).join(' · ')}</p>
           </div>
@@ -1823,8 +1888,27 @@ function CareerGame(root, cfg){
       lauf.choose(+el.dataset.angebot); neu();
     });
 
+    /* ----------------------------------------------------------------
+       Die Saison braucht einen Moment
+
+       Man tippte auf "Saison beginnen", und das Ergebnis stand da -
+       zweiundfuenfzig Spiele in null Millisekunden. Der Klick, um den
+       sich das ganze Spiel dreht, fuehlte sich dadurch an wie das
+       Umblaettern einer Seite.
+
+       Jetzt laeuft ein kurzer Streifen durch: der Verein, das Jahr,
+       und eine Leiste, die sich fuellt. Neunhundert Millisekunden,
+       abbrechbar durch Antippen - lang genug, dass etwas passiert
+       ist, kurz genug, dass es beim zehnten Mal nicht stoert.
+       ---------------------------------------------------------------- */
     const w = root.querySelector('#weiter');
-    if (w) w.onclick = () => { st.letzteFolge = null; lauf.playSeason(); neu(); };
+    if (w) w.onclick = () => {
+      st.letzteFolge = null;
+      const v = lauf.vorschau;
+      const weiter = () => { lauf.playSeason(); renderKarriere(); };
+      if (!mobil() || !v || UI.wenigerBewegung()) return weiter();
+      saisonLaeuft(v, weiter);
+    };
     const bw = root.querySelector('#bericht-weiter');
     if (bw) bw.onclick = () => { lauf.schliesseBericht(); neu(); };
     /* ----------------------------------------------------------------

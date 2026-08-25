@@ -201,12 +201,31 @@ const PUCKERO = (() => {
                 heimbonus:0, natBonus:0, lernkurve:0, grenze:0 };
     player.traits = { robust:0, langlebig:0, jung:0, playoff:0 };
     if (typeof DRAFT === 'undefined'){ player.wirkung = w; return player; }
+    /* ----------------------------------------------------------------
+       Eine Eigenschaft zum zweiten Mal
+
+       Die Vorraete im Draft sind klein (neun bis zehn Karten je
+       Frage), und dieselbe Eigenschaft steht auf mehreren davon.
+       Gemessen waehlten 41,6 Prozent der Spieler zwei Karten, die
+       dieselbe Eigenschaft zusagen - und die zweite verfiel still,
+       weil die Liste nur eindeutige Eintraege fuehrt. Die Karte
+       versprach also etwas, das sie nicht lieferte.
+
+       Jetzt wird sie eingeloest, aber nicht voll: beim zweiten Mal
+       zur Haelfte, beim dritten zu einem Viertel. So bleibt die
+       Zusage gueltig, ohne dass sich ein Wert verdoppelt.
+       ---------------------------------------------------------------- */
+    const stufen = player.eigStufe || {};
     (player.eigenschaften || []).forEach(id => {
       const e = DRAFT.EIGENSCHAFTEN[id];
       if (!e) return;
+      const wieOft = Math.max(1, stufen[id] || 1);
+      let anteil = 0;
+      for (let i = 0; i < wieOft; i++) anteil += Math.pow(0.5, i);
       Object.entries(e.w).forEach(([k, v]) => {
-        if (player.traits[k] !== undefined) player.traits[k] += v;
-        else w[k] = (w[k] || 0) + v;
+        const wert = Math.round(v * anteil * 10) / 10;
+        if (player.traits[k] !== undefined) player.traits[k] += wert;
+        else w[k] = (w[k] || 0) + wert;
       });
     });
     player.wirkung = w;
@@ -224,11 +243,17 @@ const PUCKERO = (() => {
       attrHeben(player, k, v);   // Werte, die es auf dieser Position nicht gibt, prallen ab
     });
     player.eigenschaften = player.eigenschaften || [];
+    player.eigStufe = player.eigStufe || {};
+    const verstaerkt = [];
     (karte.eig || []).forEach(id => {
       if (!player.eigenschaften.includes(id)) player.eigenschaften.push(id);
+      else verstaerkt.push(id);
+      /* Wie oft sie zugesagt wurde - danach richtet sich die Staerke. */
+      player.eigStufe[id] = (player.eigStufe[id] || 0) + 1;
     });
     wirkungNeu(player);
-    player.picks.push({ id: karte.id, n: karte.n, tag: karte.tag, eig: karte.eig || [] });
+    player.picks.push({ id: karte.id, n: karte.n, tag: karte.tag,
+                        eig: karte.eig || [], verstaerkt });
     return player;
   }
 
