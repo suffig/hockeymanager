@@ -1874,8 +1874,12 @@ const UI = (() => {
   function ligaBilanz(res){
     if (!res.ligen || !res.ligen.length) return '';
     const isG = res.isG;
-    const ligaTitel = res.trophies.filter(x => String(x.k).indexOf('lg_') === 0)
-                                  .reduce((a, x) => a + x.x, 0);
+    /* Die Zeilen schreiben einen Gedankenstrich, wenn kein Titel dasteht -
+       die Summenzeile schrieb eine 0. Zwei Schreibweisen fuer dieselbe
+       Aussage in derselben Tabelle. */
+    const ligaTitelZahl = res.trophies.filter(x => String(x.k).indexOf('lg_') === 0)
+                                      .reduce((a, x) => a + x.x, 0);
+    const ligaTitel = ligaTitelZahl || '–';
     const kopf = isG
       ? '<tr><th>Liga</th><th>Saisons</th><th>Sp</th><th>S</th><th>Fq%</th><th>SO</th><th>Titel</th><th>Beste GES</th></tr>'
       : '<tr><th>Liga</th><th>Saisons</th><th>Sp</th><th>T</th><th>V</th><th>Pkt</th><th>P/Sp</th><th>Titel</th><th>Beste GES</th></tr>';
