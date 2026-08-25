@@ -356,12 +356,64 @@ const DRAFT = (() => {
     return kopie.slice(0, wieviele || 3);
   }
 
-  function fragen(posGruppe, seed){
+  /* ------------------------------------------------------------------
+     Wo einer Eishockey gelernt hat, haengt am Land
+
+     Die Herkunftskarten wurden rein zufaellig gezogen - ein Schweizer
+     konnte "Strasse und Weiher" bekommen und ein Kanadier "Vom
+     Inlinehockey". Beides gibt es, aber nicht ueberall gleich haeufig.
+     Die Zahl ist ein Gewicht, keine Sperre: jede Herkunft bleibt
+     ueberall moeglich, nur eben unterschiedlich wahrscheinlich.
+     ------------------------------------------------------------------ */
+  const HERKUNFT_LAND = {
+    /*                klein akad strasse familie spaet inline ausland */
+    CAN: { h_klein:3.0, h_akademie:0.8, h_strasse:3.0, h_familie:2.2, h_spaet:0.5, h_inline:0.5, h_ausland:1.0 },
+    USA: { h_klein:1.4, h_akademie:2.2, h_strasse:1.0, h_familie:1.4, h_spaet:1.4, h_inline:2.6, h_ausland:1.0 },
+    SWE: { h_klein:2.0, h_akademie:2.6, h_strasse:2.2, h_familie:1.6, h_spaet:0.8, h_inline:0.8, h_ausland:1.0 },
+    FIN: { h_klein:2.4, h_akademie:2.2, h_strasse:2.4, h_familie:1.4, h_spaet:0.8, h_inline:0.6, h_ausland:0.8 },
+    RUS: { h_klein:1.6, h_akademie:3.0, h_strasse:2.0, h_familie:1.6, h_spaet:0.6, h_inline:0.6, h_ausland:0.8 },
+    CZE: { h_klein:2.2, h_akademie:2.2, h_strasse:1.6, h_familie:2.0, h_spaet:0.8, h_inline:1.2, h_ausland:0.8 },
+    SVK: { h_klein:2.4, h_akademie:1.6, h_strasse:1.6, h_familie:1.8, h_spaet:1.0, h_inline:1.2, h_ausland:1.2 },
+    GER: { h_klein:2.2, h_akademie:1.4, h_strasse:0.7, h_familie:1.2, h_spaet:2.0, h_inline:2.4, h_ausland:1.6 },
+    SUI: { h_klein:2.4, h_akademie:1.8, h_strasse:0.7, h_familie:1.2, h_spaet:1.6, h_inline:1.4, h_ausland:1.6 },
+    AUT: { h_klein:2.6, h_akademie:1.0, h_strasse:0.8, h_familie:1.0, h_spaet:2.2, h_inline:1.6, h_ausland:1.6 },
+    LAT: { h_klein:2.6, h_akademie:1.2, h_strasse:2.0, h_familie:1.4, h_spaet:1.2, h_inline:0.8, h_ausland:1.8 },
+    DEN: { h_klein:2.4, h_akademie:1.2, h_strasse:0.9, h_familie:1.0, h_spaet:2.2, h_inline:1.4, h_ausland:1.8 },
+    NOR: { h_klein:2.6, h_akademie:1.0, h_strasse:2.2, h_familie:1.0, h_spaet:1.8, h_inline:0.9, h_ausland:1.6 }
+  };
+
+  /* Gewichtet ziehen, ohne Wiederholung. */
+  function ziehe(liste, seed, wieviele, gewichte){
+    if (!gewichte) return mische(liste, seed, wieviele);
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < seed.length; i++){
+      h ^= seed.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0;
+    }
+    const zufall = () => {
+      h += 0x6D2B79F5; let t = h;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    const rest = liste.slice(), raus = [];
+    while (raus.length < (wieviele || 3) && rest.length){
+      const summe = rest.reduce((a, x) => a + (gewichte[x.id] || 1), 0);
+      let ziel = zufall() * summe, i = 0;
+      for (; i < rest.length; i++){
+        ziel -= (gewichte[rest[i].id] || 1);
+        if (ziel <= 0) break;
+      }
+      raus.push(rest.splice(Math.min(i, rest.length - 1), 1)[0]);
+    }
+    return raus;
+  }
+
+  function fragen(posGruppe, seed, nation){
     const s0 = String(seed || 'eiszeit');
     return [
       { id:'herkunft',  frage:'Wo hast du Eishockey gelernt?',
         text:'Die ersten Jahre prägen mehr als jedes Profitraining.',
-        karten: mische(HERKUNFT, s0 + ':h', 3) },
+        karten: ziehe(HERKUNFT, s0 + ':h', 3, HERKUNFT_LAND[nation]) },
       { id:'waffe',     frage:'Was ist deine Waffe?',
         text:'Wofür holt dich ein Trainer aufs Eis, wenn es eng wird?',
         karten: mische(WAFFE[posGruppe] || WAFFE.skater, s0 + ':w', 3) },

@@ -1998,6 +1998,181 @@ const EREIGNISSE = (() => {
       ] }
   );
 
+  /* ==================================================================
+     Was aus dem Draft, dem Verein und dem Koerper folgt
+
+     Die neuen Systeme - Draftrechte, Vereinsrang, Altlasten,
+     Bonusklauseln - erzeugen Lagen, zu denen es bisher nichts zu
+     entscheiden gab. Diese Ereignisse haengen genau daran: ihre
+     Bedingungen fragen den Zustand ab, den diese Systeme fuehren, und
+     die meisten oeffnen oder beantworten einen Strang.
+     ================================================================== */
+
+  LISTE.push(
+    { id:'dr_wartet', kat:'karriere', szene:'buero', tag:'Deine Rechte',
+      gewicht: 3.6,
+      titel:'{klub} ist nicht der Verein, der deine Rechte hält',
+      text:'Sie haben dich vor Jahren gezogen und seitdem jeden deiner Berichte gelesen. '
+         + 'Jetzt liegt eine Einladung zum Trainingslager auf dem Tisch – ohne Zusage, '
+         + 'ohne Vertrag. Zwei Wochen, in denen sie sehen wollen, ob sich das Warten gelohnt hat.',
+      bedingung: st => !!(st.draftRechte && st.club
+                    && st.draftRechte.klub !== st.club.n
+                    && st.year <= st.draftRechte.bis && st.age <= 24),
+      optionen:[
+        { t:'Hinfahren und alles geben', chance:52, wagnis:true,
+          hinweis:'Sie sehen dich – im Guten wie im Schlechten',
+          folgt:'draftpick',
+          gut:{ ruf:8, moral:9, attr:{ nerven:3 },
+                text:'Am zehnten Tag sagt der General Manager einen Satz, den du dir merkst: '
+                   + '"Wir haben nicht umsonst gewartet."' },
+          schlecht:{ moral:-7, ruf:-4,
+                text:'Das Tempo ist ein anderes. Nach zwei Wochen bedankt man sich höflich, '
+                   + 'und niemand spricht von einem nächsten Mal.' } },
+        { t:'Absagen, die Saison zählt mehr', chance:74,
+          hinweis:'Der eigene Verein rechnet es dir an',
+          gut:{ moral:5, rolle:1,
+                text:'Dein Trainer weiß es zu schätzen, dass du den Sommer hier verbringst.' },
+          schlecht:{ ruf:-5,
+                text:'Drüben notiert man es. Solche Notizen verschwinden nicht.' } },
+        { t:'Den Berater vorschicken', chance:58,
+          hinweis:'Erst reden, dann fahren',
+          gut:{ ruf:4, moral:3,
+                text:'Er kommt mit einer Zusage zurück: kein Trainingslager, sondern ein Termin '
+                   + 'im Herbst. Auf Augenhöhe.' },
+          schlecht:{ moral:-5,
+                text:'Sie wollten dich sehen, nicht deinen Berater. Die Einladung verfällt.' } }
+      ] },
+
+    { id:'dr_einlösung', kat:'karriere', szene:'buero', tag:'Endlich',
+      benoetigt:'draftpick',
+      titel:'Der Verein, der auf dich gewartet hat, macht ernst',
+      text:'Seit dem Trainingslager sind Monate vergangen, in denen nichts passierte. '
+         + 'Jetzt sitzt derselbe Mann wieder da, diesmal mit einem Blatt Papier, '
+         + 'auf dem eine Zahl und eine Jahreszahl stehen.',
+      bedingung: st => st.age >= 20,
+      optionen:[
+        { t:'Sofort unterschreiben', chance:78,
+          hinweis:'Der Weg, für den du gedraftet wurdest',
+          gut:{ ruf:7, moral:11, trait:{ playoff:3 },
+                text:'Du unterschreibst, ohne die zweite Seite zu lesen. Manche Wege gehen '
+                   + 'nur einmal auf.' },
+          schlecht:{ moral:-4,
+                text:'Es dauert länger als gedacht, bis alles steht – aber es steht.' } },
+        { t:'Nachverhandeln', chance:46, wagnis:true,
+          hinweis:'Mehr herausholen – oder das Fenster schließen',
+          gut:{ ruf:5, moral:6,
+                text:'Sie gehen mit. Wer so lange wartet, gibt nicht im letzten Moment auf.' },
+          schlecht:{ moral:-10, ruf:-6,
+                text:'Sie ziehen das Angebot zurück. Zwei Wochen später hörst du, dass sie '
+                   + 'einen anderen genommen haben.' } }
+      ] },
+
+    { id:'kl_naheDran', kat:'karriere', szene:'kabine', tag:'Die Klausel',
+      gewicht: 4.2,
+      titel:'Drei Spiele vor Schluss fehlt dir noch etwas zur Klausel',
+      text:'Die Zahl steht seit dem Sommer im Vertrag, und bis Weihnachten hast du nicht '
+         + 'daran gedacht. Jetzt denkst du an nichts anderes. In der Kabine weiß es inzwischen '
+         + 'jeder, und ein paar spielen dir absichtlich den Puck zu.',
+      bedingung: st => !!(st.bonus && st.bonus.art !== 'titel'),
+      optionen:[
+        { t:'Alles auf die Zahl setzen', chance:44, wagnis:true,
+          hinweis:'Es geht um deinen Vertrag – aber die Mannschaft merkt es',
+          gut:{ moral:10, form:0.06,
+                text:'Im vorletzten Spiel fällt sie. Die Bank steht auf, und du weißt nicht, '
+                   + 'ob wegen des Tores oder wegen der Klausel.' },
+          schlecht:{ moral:-9, rolle:-1,
+                text:'Du spielst an dir selbst vorbei. Der Trainer sagt in der Drittelpause '
+                   + 'nur: "Spiel Eishockey, nicht Mathematik."' } },
+        { t:'Die Klausel Klausel sein lassen', chance:70,
+          hinweis:'Wer das Spiel spielt, trifft meistens auch',
+          gut:{ moral:6, rolle:1, attr:{ nerven:3 },
+                text:'Du hörst auf zu rechnen. Zwei Spiele später steht die Zahl trotzdem – '
+                   + 'so, wie es immer geht, wenn man aufhört, sie zu wollen.' },
+          schlecht:{ moral:-4,
+                text:'Es fehlt am Ende genau eines. Nicht mehr.' } }
+      ] },
+
+    { id:'lg_ansprache', kat:'kabine', szene:'kabine', tag:'Die Ansprache',
+      gewicht: 4.2,
+      titel:'Vor dem entscheidenden Spiel schauen alle zu dir',
+      text:'Niemand hat dich gefragt. Der Trainer hat gesagt, was zu sagen war, und dann '
+         + 'ist es still geworden – die Art von Stille, in der zwanzig Leute darauf warten, '
+         + 'dass der spricht, der am längsten hier ist.',
+      bedingung: st => !!(st.klubKonto && st.club
+                    && st.klubKonto[st.club.n]
+                    && ['gesicht','legende'].includes(st.klubKonto[st.club.n].rang)),
+      optionen:[
+        { t:'Aufstehen und reden', chance:62,
+          hinweis:'Was du sagst, tragen sie aufs Eis',
+          gut:{ moral:11, ruf:5, rolle:1, trait:{ playoff:4 },
+                text:'Du sagst vier Sätze, und keiner davon handelt vom Gegner. '
+                   + 'Danach geht diese Mannschaft anders durch den Gang.' },
+          schlecht:{ moral:-6,
+                text:'Es kommt anders heraus als gedacht. Die Stille danach ist dieselbe wie vorher.' } },
+        { t:'Sitzen bleiben und dich fertigmachen', chance:76,
+          hinweis:'Vorangehen kann man auch ohne Worte',
+          gut:{ moral:5, form:0.05,
+                text:'Du sagst nichts und bist als Erster auf dem Eis. Das reicht auch.' },
+          schlecht:{ moral:-3, rolle:-1,
+                text:'Später fragt dich einer, warum du nichts gesagt hast. Du hast keine Antwort.' } }
+      ] },
+
+    { id:'ko_altlast', kat:'koerper', szene:'arzt', tag:'Die alte Stelle',
+      gewicht: 4.2,
+      titel:'Dieselbe Stelle meldet sich, wieder mitten in der Saison',
+      text:'Es ist kein neuer Schmerz. Es ist der, den du kennst, an dem Ort, den du kennst, '
+         + 'und du weißt beim ersten Schritt, was los ist. Der Arzt sagt, man könne spritzen '
+         + 'und weiterspielen – oder es diesmal richtig machen.',
+      bedingung: st => Object.values(st.altlasten || {}).some(n => n >= 2),
+      optionen:[
+        { t:'Spritzen und weiterspielen', chance:64, wagnis:true,
+          hinweis:'Die Mannschaft braucht dich jetzt',
+          gut:{ ruf:5, moral:4, verschleiss:1,
+                text:'Es trägt bis zum Saisonende. Was danach kommt, ist ein Problem für danach.' },
+          schlecht:{ moral:-11, verschleiss:2, risiko:8,
+                text:'Im dritten Spiel danach reißt es richtig. Diesmal geht es nicht mit einer Spritze.' } },
+        { t:'Es diesmal richtig machen', chance:72,
+          hinweis:'Wochen fehlen – dafür kommt es vielleicht nicht wieder',
+          gut:{ leben:{}, moral:6, trait:{ robust:4 },
+                text:'Acht Wochen, drei davon ohne Eis. Danach ist es das erste Mal seit Jahren still.' },
+          schlecht:{ moral:-6,
+                text:'Die Pause bringt nichts, was die Spritze nicht auch gebracht hätte.' } }
+      ] },
+
+    { id:'jg_spitze', kat:'karriere', szene:'stadt', tag:'Der Jahrgang',
+      gewicht: 3.4,
+      titel:'{rivale} gibt ein Interview, in dem dein Name fällt',
+      text:'Er wird nach dem Jahrgang gefragt und sagt, es sei nie ein Rennen gewesen. '
+         + 'Dann fällt dein Name, und zwar in einem Nebensatz. '
+         + 'Genau so, wie man jemanden erwähnt, den man nicht für gefährlich hält.',
+      bedingung: st => !!st.rivale && st.age >= 22,
+      optionen:[
+        { t:'Öffentlich zurückschießen', chance:48, wagnis:true,
+          hinweis:'Die Presse liebt es – die Kabine nicht unbedingt',
+          folgt:'rivalitaet',
+          gut:{ ruf:9, moral:7,
+                text:'Dein Satz steht am nächsten Morgen größer als seiner. Ab jetzt schauen '
+                   + 'alle auf die Spiele zwischen euch.' },
+          schlecht:{ ruf:-6, moral:-6,
+                text:'Es klingt gekränkt, nicht souverän. Er kommentiert es nicht einmal.' } },
+        { t:'Auf dem Eis antworten', chance:60,
+          hinweis:'Langsamer, aber es hält länger',
+          folgt:'rivalitaet',
+          gut:{ moral:8, form:0.07, attr:{ nerven:3 },
+                text:'Du sagst kein Wort und legst die beste Saison deines Lebens hin. '
+                   + 'Am Ende fragt ihn jemand noch einmal nach dem Jahrgang.' },
+          schlecht:{ moral:-5,
+                text:'Der Vorsatz war gut. Die Saison wurde es nicht.' } },
+        { t:'Es einfach stehen lassen', chance:80,
+          hinweis:'Nicht jede Provokation ist eine',
+          gut:{ moral:3, attr:{ nerven:2 },
+                text:'Du liest es einmal und legst das Telefon weg. Es beschäftigt dich '
+                   + 'weniger, als du gedacht hättest.' },
+          schlecht:{ moral:-3,
+                text:'Es beschäftigt dich doch. Wochenlang.' } }
+      ] }
+  );
+
   return { LISTE, WAGNISSE };
 })();
 

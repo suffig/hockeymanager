@@ -668,12 +668,19 @@ footer.site a:hover{color:var(--text)}
 .altersraster.breit .ar-koerper.offen{max-height:none;overflow:visible}
 .altersraster.breit .lgtag{padding:1px 5px;text-align:center}
 @media (max-width:680px){
+  /* Acht Zellen, sechs Spalten - und ausgeblendet war nur eine. Damit
+     blieben sieben Eintraege fuer sechs Plaetze uebrig, und der letzte
+     (die Vorlagen) rutschte in die naechste Zeile. Auf dem Telefon
+     fallen deshalb zwei Spalten weg: die Liga steht schon am Verein,
+     und die Tabellenplatzierung ist die entbehrlichste der Zahlen. */
   .altersraster.breit .ar-kopf,
   .altersraster.breit .ar-zeile{
-    grid-template-columns:34px minmax(0,1fr) 34px 30px 28px 28px;
+    grid-template-columns:32px minmax(0,1fr) 32px 30px 30px 30px;
   }
   .altersraster.breit .lgtag,
-  .altersraster.breit .ar-kopf span:nth-child(3){display:none}
+  .altersraster.breit .ar-kopf span:nth-child(3),
+  .altersraster.breit .ar-kopf span:nth-child(5),
+  .altersraster.breit .ar-zeile > span:nth-child(5){display:none}
 }
 
 /* ==========================================================
@@ -3595,3 +3602,106 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
 /* Eine Zahl darf nie die Spalte sprengen - selbst wenn irgendwo doch
    einmal ein ungerundeter Wert durchkommt. */
 .attr .v{ max-width:3.2em; overflow:hidden; white-space:nowrap }
+
+/* ------------------------------------------------------------------
+   Rueckfrage vor Unumkehrbarem
+   ------------------------------------------------------------------ */
+.frage-schicht{
+  position:fixed;inset:0;z-index:120;display:flex;align-items:center;
+  justify-content:center;padding:20px;
+  background:rgba(3,6,12,.72);backdrop-filter:blur(3px);
+  opacity:0;transition:opacity .2s;
+}
+.frage-schicht.an{opacity:1}
+.frage-blatt{
+  width:100%;max-width:340px;padding:18px 18px 15px;
+  border:1px solid var(--line);border-radius:16px;background:var(--card);
+  box-shadow:var(--shadow);
+  transform:scale(.94);transition:transform .24s cubic-bezier(.2,1.3,.4,1);
+}
+.frage-schicht.an .frage-blatt{transform:none}
+.fr-titel{display:block;font-size:16px;margin-bottom:7px}
+.fr-text{font-size:13px;color:var(--muted);line-height:1.45;margin:0 0 15px}
+.fr-knoepfe{display:flex;gap:8px}
+.fr-knoepfe .btn{flex:1}
+@media (prefers-reduced-motion:reduce){
+  .frage-schicht,.frage-blatt{transition:none}
+}
+
+/* Angebotskarten: eigene Wertung und Vereinsrang */
+.eigenwert{
+  display:flex;align-items:baseline;gap:9px;margin:10px 0 4px;padding:8px 11px;
+  border:1px solid var(--line);border-radius:11px;background:var(--card);
+}
+.eigenwert .ew-n{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
+.eigenwert .ew-v{font-family:var(--display);font-size:26px;line-height:1}
+.eigenwert .ew-d{font-size:11px;color:var(--muted);margin-left:auto;text-align:right}
+.jk-rang{
+  font-size:10px;color:var(--gold);display:flex;align-items:center;
+  justify-content:center;gap:4px;margin-top:2px;
+}
+.jk-abstand{display:block;font-size:10px;color:var(--dim);margin-top:1px}
+
+
+/* ==================================================================
+   Ereignisse bekommen ein Gesicht
+
+   Sie standen als gleiche Zeilen untereinander, hoechstens gruen oder
+   rot. Eine Verletzung sieht jetzt anders aus als eine Trophaee, und
+   sie kommen nacheinander herein statt alle auf einmal - so liest man
+   sie auch nacheinander.
+   ================================================================== */
+.season .ev{ animation:evRein .34s cubic-bezier(.2,.9,.3,1) both }
+@keyframes evRein{
+  from{ opacity:0; transform:translateX(-7px) }
+  to  { opacity:1; transform:none }
+}
+
+/* Die Zeichen ersetzen den allgemeinen Stern bzw. das Kreuz */
+.season .events .ev.ev-verletzt::before,
+.season .ev.ev-verletzt::before{ content:"\1FA79  "; color:var(--red) }
+.season .events .ev.ev-trophaee::before,
+.season .ev.ev-trophaee::before{ content:"\1F3C6  "; color:var(--gold) }
+.season .events .ev.ev-ehrung::before,
+.season .ev.ev-ehrung::before{ content:"\2B50  "; color:var(--gold) }
+.season .events .ev.ev-nation::before,
+.season .ev.ev-nation::before{ content:"\1F3F3  "; }
+.season .events .ev.ev-wechsel::before,
+.season .ev.ev-wechsel::before{ content:"\21C4  "; color:var(--accent) }
+.season .events .ev.ev-amt::before,
+.season .ev.ev-amt::before{ content:"\1F396  "; }
+.season .events .ev.ev-draft::before,
+.season .ev.ev-draft::before{ content:"\1F4CB  "; }
+.season .events .ev.ev-leben::before,
+.season .ev.ev-leben::before{ content:"\2764  "; color:var(--accent-2) }
+
+/* Eine Verletzung zuckt einmal - kurz, nicht albern. */
+.season .ev.ev-verletzt{
+  animation:evRein .34s cubic-bezier(.2,.9,.3,1) both,
+            evZucken .5s ease .38s;
+}
+@keyframes evZucken{
+  0%,100%{ transform:none }
+  25%    { transform:translateX(3px) }
+  55%    { transform:translateX(-2px) }
+}
+/* Eine Trophaee bekommt einen Schimmer, der einmal darueberlaeuft. */
+.season .ev.ev-trophaee{
+  position:relative; overflow:hidden;
+  animation:evRein .34s cubic-bezier(.2,.9,.3,1) both;
+}
+.season .ev.ev-trophaee::after{
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(100deg, transparent 35%,
+    color-mix(in srgb,var(--gold) 34%,transparent) 50%, transparent 65%);
+  transform:translateX(-100%);
+  animation:evSchimmer 1.1s ease .45s;
+}
+@keyframes evSchimmer{ to{ transform:translateX(120%) } }
+.season .ev.ev-ehrung{ color:var(--gold) }
+
+@media (prefers-reduced-motion:reduce){
+  .season .ev,.season .ev.ev-verletzt,.season .ev.ev-trophaee,
+  .season .ev.ev-trophaee::after{ animation:none }
+}
+.jk-staerke{font-size:11.5px;margin-top:3px;line-height:1.3}

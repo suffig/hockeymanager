@@ -192,7 +192,7 @@ const PUCKERO = (() => {
      Fuenf Fragen, jede Antwort verschiebt Werte und gibt Eigenschaften. */
   function draftFrage(player, runde){
     if (typeof DRAFT === 'undefined') return null;
-    const alle = DRAFT.fragen(pos(player.pos).group, player.seed);
+    const alle = DRAFT.fragen(pos(player.pos).group, player.seed, player.nation);
     return alle[runde] || null;
   }
 
@@ -428,6 +428,8 @@ const PUCKERO = (() => {
       natAbsagen: 0,          // wie oft du abgesagt hast
       natKapitaen: false,     // Kapitaen der Nationalmannschaft
       entryDraft: null,       // Ergebnis des Entry Drafts
+      draftRechte: null,      // wer deine Rechte haelt, und wie lange
+      draftRuf: false,        // hat der Klub schon angerufen?
       bericht: null,          // Rueckblick direkt nach der Saison
       rolle: null,            // gewaehlte Rolle im aktuellen Vertrag
       rollenwahl: null,       // offene Rollenfrage
@@ -1199,6 +1201,14 @@ const PUCKERO = (() => {
                     merke((e.form > 0 ? '+' : '') + Math.round(e.form * 100) + '% Form', e.form > 0); }
 
       wirkeLeben(e.leben, merke);
+      /* Verschleiss war bislang nur im Sommerhandler vorgesehen - in
+         einem gewoehnlichen Ereignis waere er stumm verpufft, so wie
+         schon einmal die Moral. Beide Wege koennen den Koerper
+         belasten, also kennen ihn auch beide. */
+      if (e.verschleiss){
+        st.verletzungsjahre = (st.verletzungsjahre || 0) + e.verschleiss;
+        merke('Der Körper trägt es mit', false);
+      }
 
       /* Ein geglückter Wechsel bringt dich sofort zum neuen Klub */
       if (gelungen && o.zielKlub){
@@ -1753,7 +1763,10 @@ const PUCKERO = (() => {
          kostete nichts und brachte nichts ausser einer groesseren
          Zahl. In Wahrheit ist es andersherum: wer teuer ist, an dem
          wird anders gemessen. */
-      const teuer = clamp(((st.gehaltFaktor || 1) - 1) * 0.30, 0, 0.12);
+      const teuer = clamp(((st.gehaltFaktor || 1) - 1) * 0.30, 0, 0.12)
+      /* Ein Erstrundenpick wird die ersten Jahre daran gemessen, dass
+         er einer war - danach zaehlt nur noch, was er spielt. */
+        + ((st.entryDraft && st.entryDraft.runde === 1 && st.age <= 24) ? 0.05 : 0);
       /* Etwas milder als zuvor (1,14 / 1,03 statt jetzt 1,09 / 0,99):
          gemessen wurden die Scorervorgaben in 49 Prozent der Saisons
          erfuellt, was fuer eine Vorgabe, an der auch Moral und Ansehen
@@ -3158,19 +3171,52 @@ const PUCKERO = (() => {
               formFactor(st.scheitel, player.traits,
                          (player.wirkung || {}).lernkurve, st.scheitel))) * 0.3;
         const wert = potenzial + (season.p || season.wins || 0) * 0.10 + (r() - 0.5) * 12;
-        let runde = 0, pick2 = 0, klub = null;
-        if (wert > 70){
-          runde = wert > 88 ? 1 : wert > 82 ? ri(r, 1, 2) : wert > 76 ? ri(r, 2, 4) : ri(r, 4, 7);
+        let runde = 0, pick2 = 0, klub = null, liga = 'NHL';
+        /* Die Schwelle lag bei 70 - damit wurden 92 Prozent gezogen und
+           "ungedraftet" bedeutete nichts. Ein Draftplatz soll etwas
+           heissen, also muss man ihn verfehlen koennen. */
+        if (wert > 79){
+          runde = wert > 94 ? 1 : wert > 89 ? ri(r, 1, 2) : wert > 84 ? ri(r, 2, 4) : ri(r, 4, 7);
           pick2 = ri(r, 1, 32);
-          const nhl = clubsOf('NHL').slice().sort((a, b) => a.str - b.str);
-          klub = nhl[clamp(Math.round((pick2 - 1) * (nhl.length / 32)), 0, nhl.length - 1)];
+          /* ------------------------------------------------------------
+             Auch die KHL zieht
+
+             Gezogen wurde bisher ausschliesslich in die NHL. Die KHL
+             hat ihren eigenen Draft, und fuer einen Russen oder Letten
+             ist er der naheliegendere Weg - fuer einen Kanadier
+             umgekehrt praktisch keiner. Wer spaet gezogen wird, landet
+             eher dort als bei einem NHL-Klub.
+             ------------------------------------------------------------ */
+          const khlNah = { RUS: 0.62, LAT: 0.40, SVK: 0.20, CZE: 0.16, FIN: 0.10,
+                           SWE: 0.08, GER: 0.08, AUT: 0.10, DEN: 0.06, NOR: 0.06,
+                           SUI: 0.06, CAN: 0.02, USA: 0.02 };
+          const khlChance = (khlNah[player.nation] || 0.05) + (runde >= 4 ? 0.12 : 0);
+          liga = r() < khlChance ? 'KHL' : 'NHL';
+          const pool = clubsOf(liga).slice().sort((a, b) => a.str - b.str);
+          klub = pool[clamp(Math.round((pick2 - 1) * (pool.length / 32)), 0, pool.length - 1)];
           st.ruf = clamp(st.ruf + (runde === 1 ? 10 : runde <= 3 ? 5 : 2), 20, 95);
-          season.events.push({ t: 'Entry Draft: Runde ' + runde + ', Position ' + pick2
+          season.events.push({ t: (liga === 'KHL' ? 'KHL-Draft: ' : 'Entry Draft: ')
+                                 + 'Runde ' + runde + ', Position ' + pick2
                                  + ' – ' + klub.n, c: 'good' });
         } else {
           season.events.push({ t: 'Im Entry Draft nicht gezogen', c: 'bad' });
         }
-        st.entryDraft = { runde, pick: pick2, klub: klub ? klub.n : null, ungezogen: !runde };
+        st.entryDraft = { runde, pick: pick2, klub: klub ? klub.n : null,
+                          liga, ungezogen: !runde };
+        /* ------------------------------------------------------------
+           Wer dich zieht, haelt deine Rechte
+
+           Bisher war der Draft eine Zeile und eine Handvoll Ansehen -
+           der Verein, der einen gezogen hatte, meldete sich nie wieder.
+           Dabei ist genau das der Sinn der Sache: er hat in dich
+           investiert und wartet. Vier Jahre lang holt er dich, sobald
+           du in die Naehe kommst - und akzeptiert dabei eine Wertung,
+           bei der ihn ein Fremder nicht interessieren wuerde. Je hoeher
+           die Runde, desto mehr Geduld hat er.
+           ------------------------------------------------------------ */
+        if (klub){
+          st.draftRechte = { klub: klub.n, liga, runde, bis: st.year + 4 };
+        }
 
         /* Ein Spieler desselben Jahrgangs, an dem du dich messen wirst.
            Seine Laufbahn wird einmal vorausberechnet – dabei darf er selbst
@@ -3547,6 +3593,34 @@ const PUCKERO = (() => {
           prestige: lg.prestige
         });
       };
+
+      /* Der Verein, der die Rechte haelt, meldet sich - sobald es
+         halbwegs passt und solange die Frist laeuft. Er nimmt eine
+         Wertung in Kauf, die sonst nicht reichen wuerde: bei einem
+         Erstrundenpick acht Punkte, bei einem Spaeten drei. */
+      const dr = st.draftRechte;
+      if (dr && st.year <= dr.bis && aktuell.n !== dr.klub){
+        const geduld = dr.runde === 1 ? 8 : dr.runde <= 3 ? 5 : 3;
+        if (bewertung >= LG_MIN[dr.liga] - geduld){
+          const rechteKlub = clubsOf(dr.liga).find(c => c.n === dr.klub);
+          if (rechteKlub){
+            nimm(rechteKlub, false);
+            const letzterEintrag = angebote[angebote.length - 1];
+            if (letzterEintrag){
+              letzterEintrag.draftRecht = true;
+              letzterEintrag.rolle = 'Holt dich als Draftpick';
+            }
+            if (!st.draftRuf){
+              st.draftRuf = true;
+              /* macheAngebote laeuft ausserhalb der Saisonschleife und
+                 kennt kein season - die Engine hat fuer genau diesen
+                 Fall eine nachgereichte Notiz. */
+              st.offeneNotiz = { t: dr.klub + ' meldet sich – sie halten deine Rechte '
+                + 'seit dem Draft', c: 'good' };
+            }
+          }
+        }
+      }
 
       // 1. Verbleib, sofern die aktuelle Liga noch reicht
       /* Wer beim Verein etwas bedeutet, bekommt praktisch immer ein
@@ -4402,6 +4476,7 @@ const PUCKERO = (() => {
         laenderBilanz: st.laenderBilanz,
         natDebuet: st.natDebuet,
         entryDraft: st.entryDraft,
+        draftRechte: st.draftRechte,
         rolle: st.rolle,
         potenzial: player.potenzial,
         ausgeschoepft: einschaetzung().ausgeschoepft,

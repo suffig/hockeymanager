@@ -369,7 +369,30 @@ const UI = (() => {
     /* Ohne Klappe stehen weiterhin alle Zahlen nebeneinander. */
     const line = kompakt ? kern : kern + weitere;
 
-    const evs = s.events.map(e => `<div class="ev ${e.c}">${e.t}</div>`).join('');
+    /* ------------------------------------------------------------------
+       Nicht jedes Ereignis ist dasselbe
+
+       Sie standen alle als gleiche Zeile da, hoechstens gruen oder rot.
+       Dabei ist eine Verletzung etwas anderes als eine Trophaee und die
+       wieder etwas anderes als ein Wechsel. Die Art wird am Text
+       erkannt - das ist unschoener als ein Feld an der Quelle, aber es
+       greift auch fuer alle Ereignisse, die anderswo erzeugt werden,
+       ohne dass an fuenfzig Stellen etwas nachgetragen werden muss.
+       ------------------------------------------------------------------ */
+    const evs = s.events.map((e, i) => {
+      const t = e.t || '';
+      const art = /verpasst|Operation|Reha|Verletzung|schon wieder/i.test(t) ? 'verletzt'
+                : /Cup|Meisterschaft|Trophy|Pokal|Malja|Titel/i.test(t) ? 'trophaee'
+                : /Auszeichnung|All-Star|Topscorer|Torjäger|Wertvollster|Bester/i.test(t) ? 'ehrung'
+                : /Gold|Silber|Bronze|Weltmeisterschaft|Olympi/i.test(t) ? 'nation'
+                : /Wechsel|wechselt|übernimmt|muss gehen|verlängert/i.test(t) ? 'wechsel'
+                : /Kapitän|C geht|Vereinslegende|Gesicht des Vereins/i.test(t) ? 'amt'
+                : /Draft|Rechte/i.test(t) ? 'draft'
+                : /Vater|Kind|Nachwuchs|nicht mehr allein/i.test(t) ? 'leben'
+                : '';
+      return `<div class="ev ${e.c} ${art ? 'ev-' + art : ''}"
+        style="animation-delay:${Math.min(0.5, 0.05 * i)}s">${e.t}</div>`;
+    }).join('');
     const nat = s.nat ? `<div class="story" style="border-left-color:var(--gold);background:rgba(255,200,97,.08)">
         ${s.nat.kurz} ${s.nat.jahr} mit der Nationalmannschaft – ${s.nat.platz}
         ${isG ? '(' + s.nat.gp + ' Spiele, ' + s.nat.wins + ' Siege)'
@@ -986,6 +1009,8 @@ const UI = (() => {
                    d:'Aus einem Konflikt wurde ein Vertrauensverhältnis.' },
     weggefaehrte:{ n:'Der Weggefährte',ik:'gruppe',
                    d:'Du hast dich für einen Mitspieler eingesetzt, als es zählte.' },
+    draftpick:   { n:'Der Draftpick',  ik:'ziel',
+                   d:'Der Verein, der deine Rechte hielt, hat dich gesehen.' },
     wechsler:    { n:'Der Wechsel',    ik:'flug',
                    d:'Du hast an der Frist den Verein verlassen.' },
     treue:       { n:'Die Treue',      ik:'schild',
@@ -1412,6 +1437,37 @@ const UI = (() => {
   }
 
   /* ---------- Konfetti ---------- */
+  /* ------------------------------------------------------------------
+     Eine Rueckfrage vor dem, was sich nicht zurueckholen laesst
+
+     Es gab keine - "Rest automatisch" spielte auf einen Fehlgriff hin
+     die ganze restliche Laufbahn durch. Bewusst kein window.confirm:
+     das sieht auf dem Telefon aus wie ein Systemfehler und sagt nicht,
+     was genau passieren wird.
+     ------------------------------------------------------------------ */
+  function frage(opt, beiJa){
+    const alt = document.querySelector('.frage-schicht');
+    if (alt) alt.remove();
+    const w = document.createElement('div');
+    w.className = 'frage-schicht';
+    w.innerHTML = `<div class="frage-blatt">
+      <b class="fr-titel">${esc(opt.titel || 'Sicher?')}</b>
+      <p class="fr-text">${esc(opt.text || '')}</p>
+      <div class="fr-knoepfe">
+        <button class="btn btn-ghost fr-nein">${esc(opt.nein || 'Abbrechen')}</button>
+        <button class="btn btn-primary fr-ja">${esc(opt.ja || 'Ja')}</button>
+      </div>
+    </div>`;
+    document.body.appendChild(w);
+    requestAnimationFrame(() => w.classList.add('an'));
+    const zu = () => { w.classList.remove('an'); setTimeout(() => w.remove(), 200); };
+    w.querySelector('.fr-nein').onclick = zu;
+    w.querySelector('.fr-ja').onclick = () => { zu(); beiJa && beiJa(); };
+    /* Ein Tipp neben das Blatt bricht ab - nicht umgekehrt, damit
+       niemand versehentlich zustimmt. */
+    w.addEventListener('click', e => { if (e.target === w) zu(); });
+  }
+
   function konfetti(anzahl){
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const farben = ['#38d1ff','#ffc861','#7c6bff','#3ee08f','#ff6b7a'];
@@ -1895,7 +1951,7 @@ const UI = (() => {
   const clampP = v => Math.max(0, Math.min(100, Math.round(v || 0)));
 
   return {
-    lebenKarte, turnierKarte, staerkeWandel, einflussLeiste, koerperBand, wertKlasse,
+    lebenKarte, turnierKarte, staerkeWandel, einflussLeiste, koerperBand, wertKlasse, frage,
  header, footer, mount, themaSetzen, themaLesen, attrRows, ovrBadge, seasonCard, statsTable,
            wappenBild, pokalBild,
            trophyList, klubKarten, natKarte, ligaBilanz, shareText, rankLeiste, karriereKarte,

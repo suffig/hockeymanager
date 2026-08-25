@@ -749,6 +749,11 @@ function CareerGame(root, cfg){
               if (b) b.style.display = 'none'; },
       /* Beschreibungen in Listen - die Marken darunter tragen das
          Wesentliche. */
+      /* .jk-land traegt inzwischen nur noch den Trendchip - die
+         Teamstaerke steht in .jk-staerke und bleibt stehen. Sie war
+         eine Zeit lang mit ausgeblendet, und damit fehlte auf dem
+         Angebotsbildschirm ausgerechnet die Angabe, nach der man
+         entscheidet. */
       () => k.querySelectorAll('.rk-text > .small, .jk-land').forEach(x => x.style.display = 'none'),
       /* Der Kopfstreifen mit Wert, Moral und Verein. Waehrend einer
          Entscheidung traegt er nichts bei, was nicht auch im
@@ -1715,10 +1720,39 @@ function CareerGame(root, cfg){
       </div>`;
   }
 
+  /* ------------------------------------------------------------------
+     Was "Teamstaerke 88" bedeutet
+
+     Nichts, solange man nicht weiss, wo der Schnitt der Liga liegt -
+     und der ist in jeder Liga ein anderer. Deshalb der Abstand dazu,
+     in Worten, wie ihn auch der Saisonauftakt benutzt.
+     ------------------------------------------------------------------ */
+  function staerkeChip(a){
+    const d = a.staerkeRel;
+    if (d === undefined) return 'Teamstärke <b>' + a.staerke + '</b>';
+    const wort = d >= 6 ? 'Titelkandidat' : d >= 0 ? 'Playoff-Team'
+               : d >= -6 ? 'Mittelfeld' : 'Aufbauteam';
+    const farbe = d >= 6 ? 'var(--gold)' : d >= 0 ? 'var(--green)'
+                : d >= -6 ? 'var(--muted)' : 'var(--red)';
+    return `<b style="color:${farbe}">${wort}</b>
+      <span class="jk-abstand">${d > 0 ? '+' : ''}${d} zum Ligaschnitt</span>`;
+  }
+
   function angeboteHtml(angebote, grund, belege){
+    /* Die eigene Wertung gehoert neben die Angebote: ohne sie ist
+       "die DEL verlangt 72" eine Zahl ohne Gegenueber. */
+    const eigene = angebote.length ? angebote[0].eigeneWertung : null;
     return `
       <div class="anim">
         <h2 style="margin-bottom:6px">Angebote für die kommende Saison</h2>
+        ${eigene != null ? `<div class="eigenwert">
+          <span class="ew-n">Deine Wertung</span>
+          <b class="ew-v ${UI.wertKlasse(eigene)}" data-zahl="${eigene}">0</b>
+          <span class="ew-d">${angebote.map(a => a.passung != null
+              ? esc(a.lgName) + ' ' + (a.passung >= 0 ? '✓' : a.passung)
+              : '').filter(Boolean).filter((x, i, arr) => arr.indexOf(x) === i)
+              .slice(0, 3).join(' · ')}</span>
+        </div>` : ''}
         <p class="lead" style="font-size:15px">${esc(grund || 'Dein Vertrag läuft aus.')}</p>
         ${(belege && belege.length) ? `<div class="belege staffel">
           ${belege.map(x => `<div class="beleg ${x.gut === true ? 'gut'
@@ -1730,11 +1764,15 @@ function CareerGame(root, cfg){
         <div class="grid g3 mt-l stagger">
           ${angebote.map((a, i) => `
             <button class="jugendkarte" data-angebot="${i}">
-              <div class="jk-liga">${a.bleibt ? 'Verbleib' : a.rolle} · ${esc(a.lgName)}</div>
+              <div class="jk-liga">${a.bleibt ? 'Verbleib · ' : a.draftRecht
+                ? 'Draftrechte · ' : ''}${esc(a.lgName)}</div>
               <div class="jk-wappen">${UI.wappenBild(a.club.n, 58)}</div>
               <div class="jk-name">${esc(a.club.n)}</div>
-              <div class="jk-land">Teamstärke <b style="color:var(--accent)">${a.staerke}</b>
-                ${a.trend ? trendChip(a.trend) : ''}</div>
+              ${a.klubRang && a.klubRang !== 'zugang'
+                ? `<div class="jk-rang">${UI.ikone('krone', 11)} ${a.klubRang === 'legende'
+                    ? 'Deine Vereinslegende' : 'Gesicht des Vereins'}</div>` : ''}
+              <div class="jk-staerke">${staerkeChip(a)}</div>
+              <div class="jk-land">${a.trend ? trendChip(a.trend) : ''}</div>
               <div class="jk-minuten">${a.gehalt.toFixed(1)} Mio/Jahr · ${a.jahre}
                 ${a.jahre === 1 ? 'Jahr' : 'Jahre'}</div>
             </button>`).join('')}
@@ -1789,8 +1827,27 @@ function CareerGame(root, cfg){
     if (w) w.onclick = () => { st.letzteFolge = null; lauf.playSeason(); neu(); };
     const bw = root.querySelector('#bericht-weiter');
     if (bw) bw.onclick = () => { lauf.schliesseBericht(); neu(); };
+    /* ----------------------------------------------------------------
+       "Rest automatisch" ist nicht rueckgaengig zu machen
+
+       Ein Fehlgriff auf diesen Knopf spielt die ganze restliche
+       Laufbahn in einem Zug durch - jede Entscheidung faellt der
+       Berater, und zurueck geht es nicht. Fuer so etwas gehoert eine
+       Rueckfrage davor, und zwar eine, die sagt, was genau passiert.
+       ---------------------------------------------------------------- */
     const rest = root.querySelector('#rest');
-    if (rest) rest.onclick = () => beendeKarriere(lauf.runToEnd());
+    if (rest) rest.onclick = () => {
+      const jahre = Math.max(1, (lauf.maxAge || 40) - st.age);
+      UI.frage({
+        titel: 'Den Rest automatisch spielen?',
+        text: 'Von hier an entscheidet der Berater alles allein – Verträge, '
+            + 'Ereignisse, Wechsel. Das können noch bis zu ' + jahre
+            + (jahre === 1 ? ' Jahr' : ' Jahre') + ' sein, und rückgängig '
+            + 'machen lässt es sich nicht.',
+        ja: 'Ja, durchlaufen lassen',
+        nein: 'Weiter selbst entscheiden'
+      }, () => beendeKarriere(lauf.runToEnd()));
+    };
     const b = root.querySelector('#bilanz');
     if (b) b.onclick = () => beendeKarriere(lauf.result());
     const rs = root.querySelector('#restart');
