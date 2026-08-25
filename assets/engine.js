@@ -772,6 +772,17 @@ const PUCKERO = (() => {
       offeneNotizen: [],      // Meldungen, die die naechste Saison zeigt
       angebotsGrund: null,
       angebotsBelege: null,
+      /* ----------------------------------------------------------------
+         Der Draht zum Berater
+
+         Er kam bisher nur im Text vor: "Dein Berater sagt, eine
+         Forderung sei drin." Jetzt ist er eine Groesse, die Ereignisse
+         heben und senken - und wer einen guten Draht hat, kann sich
+         einmal je Angebotsrunde neue Angebote einholen lassen.
+         ---------------------------------------------------------------- */
+      beraterDraht: 30,        // 0-100
+      beraterGenutzt: false,   // in dieser Angebotsrunde schon nachgefragt?
+      angebotsBasis: null,     // womit die aktuellen Angebote entstanden sind
       /* Warum der eigene Verein diesmal kein Angebot gemacht hat. */
       keineVerlaengerung: null,
       training: null
@@ -2463,6 +2474,9 @@ const PUCKERO = (() => {
                             : 'Deine Rolle wackelt', w.rolle > 0);
         if (w.form)   merke((w.form > 0 ? '+' : '') + Math.round(w.form * 100) + '% Form', w.form > 0);
         if (w.risiko) merke('+' + w.risiko + ' Verletzungsrisiko', false);
+        if (w.berater) merke(w.berater > 0
+          ? 'Besserer Draht zu deinem Berater' : 'Dein Berater ist verstimmt',
+          w.berater > 0);
       }
       if (!folge.wirkungen.length) merke('Keine bleibende Wirkung', true);
 
@@ -2477,6 +2491,7 @@ const PUCKERO = (() => {
         if (w.rolle) rollenGutschrift(w.rolle);
         if (w.form) st.formBonus += w.form;
         if (w.risiko) st.risikoBonus += w.risiko / 100;
+        if (w.berater) st.beraterDraht = clamp(st.beraterDraht + w.berater, 0, 100);
       }
       st.verlauf.push({
         jahr: st.year, alter: st.age, art: 'ereignis',
@@ -3838,6 +3853,11 @@ const PUCKERO = (() => {
            ------------------------------------------------------------ */
         st.letzteFolge = {
           gelungen: !!runde,
+          /* Eigene Buehne statt des gruenen "Gelungen"-Blattes: der
+             Draft ist keine Entscheidung, die glueckt oder misslingt,
+             sondern ein Abend, an dem ein Name faellt. */
+          draft: { runde, pick: pick2, gesamt, klub: klub ? klub.n : null,
+                   liga, gezogen: !!runde },
           tag: liga === 'KHL' ? 'KHL-Draft' : 'Entry Draft',
           wahl: runde
             ? 'Nr. ' + gesamt + ' – ' + klub.n
@@ -3860,7 +3880,7 @@ const PUCKERO = (() => {
                   + 'Naechstes Jahr stehst du wieder auf der Liste.'),
           wirkungen: runde
             ? [{ t: 'Runde ' + runde + ', Pick ' + pick2, gut: true },
-               { t: klub.n + ' haelt deine Rechte bis ' + (st.year + 4), gut: true },
+               { t: klub.n + ' hält deine Rechte bis ' + (st.year + 4), gut: true },
                { t: '+' + (gesamt <= 10 ? 12 : runde === 1 ? 9 : runde <= 3 ? 5 : 2)
                     + ' Ansehen', gut: true }]
             : [{ t: st.age >= 20 ? 'Free Agent' : 'Naechstes Jahr wieder', gut: false }]
@@ -4194,6 +4214,10 @@ const PUCKERO = (() => {
       }
       st.angebotsGrund = grund;
       st.angebotsBelege = belegeFuerAngebot(bewertung, grund, zuSchwach, zuGross, juniorEnde);
+      /* Womit die Angebote entstanden sind - der Berater braucht das,
+         wenn er noch einmal herumtelefonieren soll. */
+      st.angebotsBasis = { bewertung, eigenWert: naechsterOvr };
+      st.beraterGenutzt = false;
       st.angebote = macheAngebote(bewertung, naechsterOvr);
     }
 
@@ -4291,6 +4315,8 @@ const PUCKERO = (() => {
       st.vertragJahre = 0;
       st.angebotsGrund = 'Nach der Rücktrittsentscheidung wird neu verhandelt.';
       st.angebotsBelege = belegeFuerAngebot(bewertung, st.angebotsGrund, false, false, false);
+      st.angebotsBasis = { bewertung, eigenWert };
+      st.beraterGenutzt = false;
       st.angebote = macheAngebote(bewertung, eigenWert);
     }
 
@@ -4619,6 +4645,37 @@ const PUCKERO = (() => {
       }
     }
 
+    /* ------------------------------------------------------------------
+       Der Berater telefoniert noch einmal herum
+
+       Einmal je Angebotsrunde, und nur bei gutem Draht. Die neuen
+       Angebote entstehen aus derselben Grundlage - es ist kein besseres
+       Blatt, sondern ein zweites. Dass der eigene Verein wieder dabei
+       ist, haengt wie beim ersten Mal an den Gruenden, die er hat.
+
+       Der Draht leidet ein wenig: wer seinen Berater herumschickt,
+       verbraucht etwas von dem, was ihn traegt.
+       ------------------------------------------------------------------ */
+    function beraterKannNachfragen(){
+      return !!st.angebote && !st.beraterGenutzt && !!st.angebotsBasis
+          && st.beraterDraht >= 55;
+    }
+
+    function beraterNachfragen(){
+      if (!beraterKannNachfragen()) return false;
+      st.beraterGenutzt = true;
+      st.beraterDraht = clamp(st.beraterDraht - 8, 0, 100);
+      const b = st.angebotsBasis;
+      const vorher = (st.angebote || []).map(a => a.club.n);
+      st.keineVerlaengerung = null;
+      st.angebote = macheAngebote(b.bewertung, b.eigenWert);
+      /* Damit die Runde sich wirklich anders anfuehlt, treten die
+         eben gezeigten Vereine zurueck - dieselbe Regel wie zwischen
+         zwei Saisons. */
+      st.zuletztAngeboten = vorher.concat(st.zuletztAngeboten || []).slice(0, 6);
+      return true;
+    }
+
     /* ---- Angebot annehmen ---- */
     function choose(index){
       if (!st.angebote) return false;
@@ -4661,6 +4718,12 @@ const PUCKERO = (() => {
       }
       st.entscheidungen.push(a.club.n);
       st.vertragJahre = a.jahre;
+      /* Jeder gemeinsam ausgehandelte Vertrag baut den Draht auf - die
+         Beziehung waechst durch Arbeit, nicht durch Zufall. Ohne das
+         waere der Berater eine Groesse, die praktisch nie ihre Schwelle
+         erreicht: sie startet bei 30, gebraucht werden 55, und das
+         einzige Ereignis dazu verlangt Alter 25 und ein Vertragsende. */
+      st.beraterDraht = clamp(st.beraterDraht + 6, 0, 100);
       // Die Rolle wird bei einem Wechsel neu verhandelt – bei einer Verlaengerung
       // bleibt sie bestehen, sofern schon eine festgelegt wurde.
       if (!a.bleibt || !st.rolle){
@@ -5411,6 +5474,9 @@ const PUCKERO = (() => {
       st,
       get fertig(){ return st.fertig; },
       get angebote(){ return st.angebote; },
+      get beraterDraht(){ return st.beraterDraht; },
+      get beraterFrei(){ return beraterKannNachfragen(); },
+      beraterNachfragen,
       get training(){ return st.training; },
       get ereignis(){ return st.ereignis; },
       get wechselfrist(){ return st.wechselfrist; },

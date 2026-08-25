@@ -227,11 +227,14 @@ const EREIGNISSE = (() => {
       bedingung: st => st.age >= 25 && st.vertragJahre <= 1,
       optionen:[
         { t:'Hart verhandeln lassen', chance:50, hinweis:'Mehr Geld oder verbrannte Erde',
-          gut:{ ruf:5, text:'Der Klub zahlt. Der Sportdirektor lächelt beim Handschlag etwas dünn.' },
-          schlecht:{ moral:-8, ruf:-5, text:'Die Verhandlung platzt öffentlich. Die Fans stellen sich hinter den Klub.' } },
+          /* Ihn machen lassen staerkt den Draht - er merkt sich, wer
+             ihm den Ruecken freihaelt. */
+          gut:{ ruf:5, berater:14, text:'Der Klub zahlt. Der Sportdirektor lächelt beim Handschlag etwas dünn.' },
+          schlecht:{ moral:-8, ruf:-5, berater:-6, text:'Die Verhandlung platzt öffentlich. Die Fans stellen sich hinter den Klub.' } },
         { t:'Selbst mit dem Sportdirektor sprechen', chance:70, hinweis:'Direkt und ohne Zwischenstufe',
-          gut:{ ruf:6, moral:6, attr:{ nerven:2 }, text:'Ihr einigt euch in zwanzig Minuten. Beide Seiten fühlen sich fair behandelt.' },
-          schlecht:{ text:'Es bleibt beim ersten Angebot. Immerhin ohne Streit.' } },
+          /* An ihm vorbei zu verhandeln kostet ihn sein Geschaeft. */
+          gut:{ ruf:6, moral:6, berater:-10, attr:{ nerven:2 }, text:'Ihr einigt euch in zwanzig Minuten. Beide Seiten fühlen sich fair behandelt.' },
+          schlecht:{ berater:-4, text:'Es bleibt beim ersten Angebot. Immerhin ohne Streit.' } },
         { t:'Gehalt senken für eine längere Laufzeit', chance:75, hinweis:'Sicherheit statt Maximum',
           gut:{ moral:7, trait:{ langlebig:3 }, text:'Der Klub baut um dich herum. Diese Ruhe ist Gold wert.' },
           schlecht:{ ruf:-2, text:'Zwei Jahre später ist der Vertrag ein Klotz am Bein.' } }

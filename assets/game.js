@@ -901,6 +901,48 @@ function CareerGame(root, cfg){
     const knapp = folge.gelungen && folge.chance !== undefined && folge.chance <= 35;
     const pech  = !folge.gelungen && folge.chance !== undefined && folge.chance >= 70;
 
+    /* ----------------------------------------------------------------
+       Der Draftabend hat sein eigenes Blatt
+
+       Vorher lief er durch dieselbe Schablone wie jede Entscheidung -
+       gruener Haken, "Gelungen", Prozentbalken. Aber im Draft
+       entscheidet man nichts; man sitzt da und wartet, ob der eigene
+       Name faellt. Deshalb Gold, die Nummer gross, und der Verein
+       darunter.
+       ---------------------------------------------------------------- */
+    if (folge.draft){
+      const d = folge.draft;
+      w.innerHTML = `
+        <div class="folge-blatt draftblatt ${d.gezogen ? 'gezogen' : 'ungezogen'}">
+          <div class="db-marke">${UI.ikone('krone', 15)} ${esc(folge.tag)}</div>
+          ${d.gezogen ? `
+            <div class="db-nummer"><span>Nr.</span><b>${d.gesamt}</b></div>
+            <div class="db-klub">${UI.wappenBild(d.klub, 54)}<span>${esc(d.klub)}</span></div>
+            <div class="db-runde">Runde ${d.runde} · Position ${d.pick}</div>`
+          : `<div class="db-nummer leer"><b>—</b></div>
+             <div class="db-klub"><span>${esc(folge.wahl || 'Nicht gezogen')}</span></div>`}
+          <p class="db-text">${esc(folge.text || '')}</p>
+          ${(folge.wirkungen || []).length ? `<div class="db-wirkungen">
+            ${folge.wirkungen.map(x => `<span class="beleg ${x.gut ? 'gut' : 'schlecht'}">
+              ${esc(x.t)}</span>`).join('')}</div>` : ''}
+          <button class="btn btn-primary btn-block">Weiter</button>
+        </div>`;
+      document.body.appendChild(w);
+      folgeOffen = w;
+      /* Dieselbe Mechanik wie beim gewoehnlichen Folgeblatt - sonst
+         bleibt die Schicht offen, weil folgeSchliessen folgeOffen
+         auswertet. */
+      w.addEventListener('click', () => weiterNachFolge());
+      requestAnimationFrame(() => {
+        w.classList.add('an');
+        /* Eine Wahl in der ersten Runde ist der Abend, von dem ein
+           Achtzehnjaehriger sein Leben lang erzaehlt. */
+        if (d.gezogen && d.runde === 1 && typeof UI.konfetti === 'function')
+          setTimeout(() => UI.konfetti(d.gesamt <= 10 ? 46 : 30), 320);
+      });
+      return;
+    }
+
     w.innerHTML = `
       <div class="folge-blatt ${folge.gelungen ? 'gut' : 'schlecht'} ${knapp ? 'knapp' : ''}">
         <div class="fb-kopf">
@@ -1168,7 +1210,8 @@ function CareerGame(root, cfg){
     if (st.kapitaensfrage)return kopf + bilanz + kapitaenHtml(st.kapitaensfrage);
     if (st.angebote)      return kopf + bilanz
                                + angeboteHtml(st.angebote, st.angebotsGrund,
-                                              st.angebotsBelege, st.keineVerlaengerung);
+                                              st.angebotsBelege, st.keineVerlaengerung,
+                                              { frei: st.beraterFrei, draht: st.beraterDraht });
     if (st.rollenwahl)    return kopf + (alsApp ? '' : bilanz)
                                + rollenHtml(st.rollenwahl, st.club);
     if (st.training)      return kopf + bilanz + trainingHtml(st.training, st.age);
@@ -1862,7 +1905,7 @@ function CareerGame(root, cfg){
       <span class="jk-abstand">${d > 0 ? '+' : ''}${d} zum Ligaschnitt</span>`;
   }
 
-  function angeboteHtml(angebote, grund, belege, keine){
+  function angeboteHtml(angebote, grund, belege, keine, berater){
     /* Nur noch die eigene Wertung. Daneben stand eine Zeile mit der
        Passung je Liga ("DEL ✓", "SHL -3"), gerechnet aus einer anderen
        Bezugsgroesse als der Zahl im Kopf der Seite - nebeneinander
@@ -1890,6 +1933,14 @@ function CareerGame(root, cfg){
           </div>`).join('')}
         </div>` : ''}
         <p class="small mt">Ein starker Klub bringt Titel, ein schwächerer mehr Eiszeit.</p>
+        ${berater && berater.frei ? `<button class="beraterknopf" data-berater>
+          ${UI.ikone('fluestern', 15)}
+          <span class="bk-text">
+            <b>Deinen Berater herumtelefonieren lassen</b>
+            <span>Draht ${berater.draht}/100 · einmal je Verhandlung ·
+              kostet etwas vom Draht</span>
+          </span>
+        </button>` : ''}
         <div class="grid g3 mt-l stagger">
           ${angebote.map((a, i) => `
             <button class="jugendkarte" data-angebot="${i}">
@@ -1948,6 +1999,13 @@ function CareerGame(root, cfg){
     root.querySelectorAll('[data-weiter]').forEach(el => el.onclick = () => {
       lauf.entscheideRuecktritt(el.dataset.weiter === '1'); neu();
     });
+    const bk = root.querySelector('[data-berater]');
+    if (bk) bk.onclick = () => {
+      if (lauf.beraterNachfragen()){
+        UI.toast('Dein Berater hat sich noch einmal umgehört');
+        neu();
+      }
+    };
     root.querySelectorAll('[data-angebot]').forEach(el => el.onclick = () => {
       lauf.choose(+el.dataset.angebot); neu();
     });

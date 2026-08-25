@@ -268,12 +268,19 @@ const KONTO = (() => {
         { profil_id: null, gastname: g.name }, nachDb(satz)));
       if (error){
         /* Die Bremse in der Datenbank meldet sich als Regelverstoss -
-           das ist kein Fehler, sondern eine Antwort. */
-        const zuOft = /row-level security|policy/i.test(error.message || '');
-        return { ok:false, grund: zuOft
-          ? 'Unter diesem Namen wurden gerade sehr viele Laufbahnen eingetragen. '
-            + 'Versuch es später noch einmal oder nimm einen anderen Namen.'
-          : error.message };
+           das ist kein Fehler, sondern eine Antwort. Dieselbe Regel
+           weist aber auch Zahlen ausserhalb der erlaubten Bereiche ab,
+           und beides sah bisher gleich aus: es stand immer die Sperre
+           da, auch wenn der Name gar nicht das Problem war. Deshalb
+           steht der Grund jetzt dabei - sonst ist er nicht zu finden. */
+        const regel = /row-level security|policy/i.test(error.message || '');
+        return { ok:false, grund: regel
+          ? 'Die Bestenliste hat den Eintrag abgewiesen. Das passiert, wenn unter '
+            + 'diesem Namen gerade sehr viele Laufbahnen eingetragen wurden – '
+            + 'dann hilft ein anderer Name oder etwas Geduld. Wenn das nicht der '
+            + 'Fall ist, liegt es an der Datenbank: dort muss db/06_gast_eintrag.sql '
+            + 'in der aktuellen Fassung ausgeführt sein.'
+          : ('Die Bestenliste meldet: ' + error.message) };
       }
       gastnameMerken(g.name);
       return { ok:true, name:g.name };

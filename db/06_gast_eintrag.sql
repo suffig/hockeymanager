@@ -100,10 +100,21 @@ create policy karriere_gast_eintragen on public.karriere
     -- Phantasiezahlen anfuehrt
     -- coalesce ueberall: eine Pruefung gegen NULL ergibt NULL, und die
     -- Regel liesse die Zeile dann durch, statt sie abzuweisen.
-    and coalesce(saisons, 0)      between 1 and 30
-    and coalesce(legendenwert, 0) between 0 and 4000
-    and coalesce(punkte, 0)    between 0 and 3000
-    and coalesce(trophaeen, 0) between 0 and 60
+    --
+    -- Die Grenzen waren zu eng gesetzt und wiesen echte Laufbahnen ab.
+    -- "punkte" haelt beim Feldspieler die Scorerpunkte, beim Torhueter
+    -- die Siege - die alte Obergrenze von 3000 traf deshalb nur
+    -- Feldspieler, und zwar genau die guten. Gemessen ueber 500
+    -- Laufbahnen: p99 bei 2426, hoechster Wert 3358. Ein Torhueter kam
+    -- nie in die Naehe, was genau zu der Beobachtung passt, dass der
+    -- Eintrag als Torhueter ging und als Feldspieler nicht.
+    -- Auch die uebrigen Grenzen sind grosszuegiger, damit eine lange
+    -- Laufbahn nicht am Zaun haengenbleibt: 28 Saisons und 35
+    -- Trophaeen wurden gemessen, erlaubt waren 30 und 60.
+    and coalesce(saisons, 0)      between 1 and 40
+    and coalesce(legendenwert, 0) between 0 and 9000
+    and coalesce(punkte, 0)    between 0 and 6000
+    and coalesce(trophaeen, 0) between 0 and 120
     and coalesce(hoehepunkt, 0) between 1 and 99
     and public.gast_darf_eintragen(gastname)
   );
