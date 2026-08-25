@@ -1460,6 +1460,30 @@ function CareerGame(root, cfg){
   }
 
   /* Weitermachen oder aufhoeren – wird ab jetzt jedes Jahr gefragt */
+  /* ------------------------------------------------------------------
+     Warum die Frage gerade jetzt kommt
+
+     Familie, Heimweh und der Ruecktritt nach einem Titel beendeten die
+     Laufbahn frueher ohne Rueckfrage - man las eine Zeile und war
+     Rentner. Jetzt sind es Fragen, und dann muessen sie auch sagen,
+     woher sie kommen: "Ist es Zeit aufzuhoeren?" passt nicht, wenn der
+     Anlass ein Kind ist oder ein gerade gewonnener Titel.
+     ------------------------------------------------------------------ */
+  const ANLASS = {
+    familie: { titel: 'Zu Hause wird gefragt',
+      text: 'Es ist keine schlechte Saison gewesen, und der Klub würde verlängern. '
+          + 'Aber zu Hause zählt inzwischen jemand die Abende mit, an denen du nicht da bist – '
+          + 'und diesmal wird es ausgesprochen.' },
+    heimkehr: { titel: 'Nach Hause – oder weiter?',
+      text: 'Die Jahre in der Fremde haben sich gelohnt, und sie haben etwas gekostet. '
+          + 'Jetzt liegt der Gedanke näher als je zuvor: aufhören und heimfahren, '
+          + 'statt noch eine Saison anzuhängen, wo niemand deinen Namen richtig ausspricht.' },
+    hoehepunkt: { titel: 'Auf dem Gipfel aufhören?',
+      text: 'Der Pokal steht noch in der Kabine, und du bist der Mann, der ihn geholt hat. '
+          + 'Manche gehen genau jetzt und bleiben so in Erinnerung. '
+          + 'Andere kommen wieder und versuchen es noch einmal.' }
+  };
+
   function ruecktrittHtml(f, st){
     const szene = (typeof SZENE !== 'undefined') ? SZENE.bild('kabine') : '';
     const koerper = f.verschleiss >= 3 ? 'Der Körper hat viel mitgemacht.'
@@ -1475,11 +1499,13 @@ function CareerGame(root, cfg){
             ${f.zusatzjahre ? `<span class="pill">${f.zusatzjahre}. Zusatzjahr</span>` : ''}
           </div>
           <h2 style="font-family:var(--font);font-size:calc(23px * var(--txt, 1));font-weight:750">
-            ${f.zusatzjahre ? 'Noch ein Jahr?' : 'Ist es Zeit aufzuhören?'}</h2>
+            ${ANLASS[f.grund] ? ANLASS[f.grund].titel
+              : (f.zusatzjahre ? 'Noch ein Jahr?' : 'Ist es Zeit aufzuhören?')}</h2>
           <p style="color:var(--muted);margin:0 0 10px">
-            Die Beine werden schwerer, die Wege länger. ${koerper}
-            Der Klub würde dich behalten, aber niemand würde sich wundern,
-            wenn du jetzt Schluss machst.</p>
+            ${ANLASS[f.grund] ? ANLASS[f.grund].text
+              : 'Die Beine werden schwerer, die Wege länger. ' + koerper
+                + ' Der Klub würde dich behalten, aber niemand würde sich wundern, '
+                + 'wenn du jetzt Schluss machst.'}</p>
           <div class="rt-werte">
             <div class="kk-zelle"><span>Gesamtwertung</span><b>${f.ovr}</b></div>
             <div class="kk-zelle"><span>Verschleiß</span><b>${f.verschleiss}</b></div>

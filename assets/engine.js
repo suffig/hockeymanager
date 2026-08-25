@@ -94,6 +94,26 @@ const PUCKERO = (() => {
   const JUGEND = new Set(D.LEAGUES.filter(l => l.jugend).map(l => l.k));
   const istJugend = k => JUGEND.has(k);
 
+  /* ------------------------------------------------------------------
+     Zu Hause ist ein Land, nicht eine einzige Liga
+
+     HOME_LG nennt je Nation genau eine Liga - fuer einen Deutschen die
+     DEL. Damit galt die DEL2 als Ausland und die eigene Jugendliga
+     auch: ein Achtzehnjaehriger aus Mannheim sammelte Heimweh,
+     waehrend er in Mannheim spielte. Zu Hause ist man ueberall dort,
+     wo das Land stimmt.
+     ------------------------------------------------------------------ */
+  function istHeimatLiga(lgKey, nationKey){
+    const nat = D.NATIONS.find(n => n.k === nationKey);
+    const lg = D.LEAGUES.find(l => l.k === lgKey);
+    if (!nat || !lg) return false;
+    if (lg.land === nat.n) return true;
+    /* Kanada und die USA teilen sich denselben Unterbau - fuer beide
+       ist "Nordamerika" das eigene Land. */
+    if (lg.land === 'Nordamerika') return nationKey === 'CAN' || nationKey === 'USA';
+    return false;
+  }
+
   /* ---------------- Spieler anlegen ---------------- */
   /* ----------------------------------------------------------------
      Talent hat eine Decke
@@ -102,9 +122,15 @@ const PUCKERO = (() => {
      zutraegt: die meisten kommen nie ueber die zweite Klasse hinaus,
      einer von zwanzig traegt spaeter eine Liga.
      ---------------------------------------------------------------- */
+  /* Die unterste Stufe lag bei 64 bis 74. Wer sie zog, kam gemessen
+     auf einen Hoehepunkt um 70 und konnte daran nichts aendern - er
+     schoepfte seine Anlage zu ueber neunzig Prozent aus und blieb
+     trotzdem Mittelmass. Das ist die Laufbahn, die sich anfuehlt, als
+     wuerde Entwicklung nichts bringen. Der Boden liegt jetzt hoeher;
+     ein schwacher Jahrgang bleibt schwach, aber nicht chancenlos. */
   const GRENZEN = [
-    { bis: 0.20, von: 64, spanne: 10 },   // reicht selten fuer die erste Klasse
-    { bis: 0.54, von: 74, spanne:  8 },   // solider Profi
+    { bis: 0.20, von: 69, spanne: 10 },   // reicht selten fuer die erste Klasse
+    { bis: 0.54, von: 76, spanne:  8 },   // solider Profi
     { bis: 0.82, von: 82, spanne:  6 },   // Stammkraft ganz oben
     { bis: 0.95, von: 88, spanne:  5 },   // Star
     { bis: 1.01, von: 93, spanne:  5 }    // Ausnahmespieler
@@ -571,6 +597,7 @@ const PUCKERO = (() => {
          Dazu kommt, was in echten Laufbahnen das Muster ist: es ist
          selten eine neue Verletzung. Es ist dasselbe Knie.
          ---------------------------------------------------------------- */
+      grenzeVerschoben: 0,    // wie weit die Anlage sich bewegt hat
       verletzungsjahre: 0,    // aufgelaufener Verschleiss
       altlasten: {},          // Verletzung -> wie oft sie schon da war
       /* ----------------------------------------------------------------
@@ -2193,7 +2220,12 @@ const PUCKERO = (() => {
           const bonus = (player.wirkung || {}).ereignis || 0;
           return {
             t: einsetzen(o.t, ctx),
-            chance: clamp(o.chance + bonus, 5, 95), grundChance: o.chance, bonus,
+            /* Gerundet: seit eine doppelt zugesagte Eigenschaft zur
+               Haelfte wirkt, sind die Boni gebrochen - und eine
+               Erfolgschance von 67,5 Prozent liest sich wie ein
+               Fehler. */
+            chance: Math.round(clamp(o.chance + bonus, 5, 95)),
+            grundChance: o.chance, bonus: Math.round(bonus * 10) / 10,
             hinweis: einsetzen(o.hinweis || '', ctx), wagnis: !!o.wagnis,
             nurEig: o.nurEig || null, folgt: o.folgt || null,
             _ctx: ctx, _gut: o.gut, _schlecht: o.schlecht, _wurf: r() * 100
@@ -2821,7 +2853,12 @@ const PUCKERO = (() => {
             : 'Keine Nominierung für ' + nat.n, c: st.natDebuet ? 'bad' : '' });
         }
       } else {
-        const olympia = stufe === 'A' && st.year % 4 === 0;
+        /* Das Turnier findet nach der Saison statt, also im Jahr
+           darauf - die Anfrage rechnet deshalb mit st.year + 1. Hier
+           stand st.year, und damit konnten beide Formeln nie
+           gleichzeitig stimmen: der Verband fragte nach Olympia, und
+           gefahren wurde zur WM. */
+        const olympia = stufe === 'A' && (st.year + 1) % 4 === 0;
         const T = stufe === 'U18' ? D.TURNIERE.u18
                 : stufe === 'U20' ? D.TURNIERE.u20
                 : olympia ? D.TURNIERE.olympia : D.TURNIERE.wm;
@@ -2869,18 +2906,39 @@ const PUCKERO = (() => {
             turnier.a = turnier.p - turnier.g;
           }
 
-          const wurf = r() * 100;
+          /* ------------------------------------------------------------
+             Was der eigene Beitrag ausmacht
+
+             Der Platz haengt bisher nur an der Staerke der Nation und
+             einem Wurf - die eigene Leistung im Turnier ging gar nicht
+             ein. Deshalb konnte man in zehn Spielen einunddreissig
+             Punkte machen und trotzdem in der Vorrunde ausscheiden.
+             Das gibt es, aber nicht als Regelfall: ein Turnier, in dem
+             ein Spieler so aufdreht, gewinnt seine Mannschaft meistens
+             ein paar Spiele mehr.
+
+             Gemessen wird an dem, was in diesem Turnier ueblich ist -
+             gut ein Punkt je Spiel -, und der Ausschlag ist gedeckelt,
+             damit ein einzelner Mann kein Land traegt. */
+          const eigenerBeitrag = (() => {
+            if (isG) return clamp(((turnier.sv || 0.9) - 0.912) * 260, -6, 9);
+            const proSpiel = (turnier.p || 0) / Math.max(1, spiele);
+            return clamp((proSpiel - 1.0) * 9, -6, 9);
+          })();
+          const wurf = r() * 100 - eigenerBeitrag * 2.2;
           let platz = 'Vorrunde', medaille = null;
           const gold = jugend ? 88 : 93, silber = jugend ? 80 : 86, bronze = jugend ? 74 : 80;
-          if (natPower > gold && wurf < 30){
+          const natPowerGesamt = natPower + eigenerBeitrag;
+          turnier.beitrag = Math.round(eigenerBeitrag * 10) / 10;
+          if (natPowerGesamt > gold && wurf < 30){
             platz = 'Gold';
             medaille = stufe === 'U18' ? 'u18Gold' : stufe === 'U20' ? 'u20Gold'
                      : olympia ? 'olympia' : 'wm';
-          } else if (natPower > silber && wurf < 55){
+          } else if (natPowerGesamt > silber && wurf < 55){
             platz = 'Silber';
             medaille = stufe === 'U18' ? 'u18Silber' : stufe === 'U20' ? 'u20Silber'
                      : olympia ? 'olySilber' : 'wmSilber';
-          } else if (natPower > bronze && wurf < 75){
+          } else if (natPowerGesamt > bronze && wurf < 75){
             platz = 'Bronze';
             medaille = stufe === 'U18' ? 'u18Bronze' : stufe === 'U20' ? 'u20Bronze'
                      : olympia ? 'olyBronze' : 'wmBronze';
@@ -3140,6 +3198,94 @@ const PUCKERO = (() => {
         const abbau = -Math.min(1.6, (st.verletzungsjahre - 2) * 0.35);
         koerperlich.forEach(k => attrHeben(player, k, abbau));
       }
+
+      /* ================================================================
+         Die Decke ist nicht in Stein gemeisselt
+
+         player.potenzial wurde einmal beim Draft gesetzt und danach
+         nie wieder angefasst. Wer eine Zweiundsiebzig gezogen hatte,
+         kam auf zweiundsiebzig - egal was er in fuenfzehn Saisons tat.
+         Gemessen schoepfen die Laufbahnen ihre Anlage im Median zu 93
+         Prozent aus; sie scheitern also nicht an sich selbst, sondern
+         an einer Zahl, die vor dem ersten Spiel feststand. Genau das
+         fuehlt sich an wie "Entwicklung zu schwach": man tut alles
+         richtig und kommt trotzdem nicht weiter.
+
+         In Wahrheit weiss mit achtzehn niemand, wo ein Spieler landet.
+         Wer Jahr um Jahr liefert, verschiebt, was man ihm zutraut -
+         und wer sich haengen laesst, auch. Die Decke bewegt sich
+         deshalb mit, aber langsam und begrenzt: hoechstens sechs
+         Punkte in beide Richtungen ueber eine ganze Laufbahn, und nur
+         solange noch Wachstum drin ist. Der Wuerfel vom Draft bleibt
+         damit der groesste Teil der Geschichte - nur nicht mehr die
+         ganze.
+         ================================================================ */
+      (() => {
+        if (st.age > 28) return;                 // danach waechst nichts mehr
+        const grundlage = player.grundGrenze || player.potenzial || 80;
+        st.grenzeVerschoben = st.grenzeVerschoben || 0;
+
+        /* Was zaehlt: die Vorgabe erfuellt, Auszeichnungen, eine Saison
+           deutlich ueber dem Ligamass - und das Gegenteil davon. */
+        const zielErfuellt = season.ziele && season.ziele.person
+                          && season.ziele.person.erfuellt === true;
+        const zielVerfehlt = season.ziele && season.ziele.person
+                          && season.ziele.person.erfuellt === false;
+        const stark = (season.kante || 0) > 0.95;
+        const schwach = (season.kante || 0) < 0.25;
+
+        /* Der erste Entwurf war ein Zuschlag fuer alle: gemessen
+           verschob sich die Decke im Median um +4,5 Punkte, und
+           erfolgreiche Laufbahnen unterschieden sich mit 4,22 gegen
+           4,14 praktisch nicht von erfolglosen. Die positiven Posten
+           trafen einfach oefter zu als die negativen - Vorgaben werden
+           in 59 Prozent der Saisons erfuellt.
+
+           Jetzt liegt der Nullpunkt dort, wo eine durchschnittliche
+           Saison liegt: die Vorgabe zu erfuellen haelt die Decke, sie
+           zu verfehlen senkt sie. Nach oben geht es nur ueber das,
+           was ueber dem Erwarteten liegt. */
+        /* Zwei Anlaeufe mit Saisonergebnissen sind gescheitert, und
+           zwar aus einem strukturellen Grund: wer sich gut entwickelt,
+           wechselt in eine staerkere Liga, wo Vorgaben und Klassen-
+           unterschied wieder schwerer werden. Erfolg hebt damit seine
+           eigenen Messlatte an, und die Verschiebung unterschied
+           erfolgreiche von erfolglosen Laufbahnen um 0,2 Punkte -
+           also gar nicht.
+
+           Was der Spieler dagegen wirklich steuert und was nicht
+           mitwandert, ist die Arbeit: Sommertraining, Rollenvertrauen,
+           ein Koerper, der mitmacht. Daran haengt die Decke jetzt. */
+        let schritt = -0.12;                       // Stillstand kostet
+        if (st.sommerBonus) schritt += 0.34;       // im Sommer gearbeitet
+        if (st.rollenStand === 'saeule') schritt += 0.26;
+        if (st.rollenStand === 'bewaehrung') schritt -= 0.26;
+        if ((season.awards || []).length) schritt += 0.22;
+        if ((st.verletzungsjahre || 0) >= 3) schritt -= 0.22;
+        /* Wer viel verpasst hat, kann in dieser Saison nichts belegen. */
+        if (season.gp && season.gp < (season.vollGp || 52) * 0.5) schritt *= 0.4;
+        /* Lernwillige verschieben mehr - das ist genau das, wofuer die
+           Eigenschaft da ist. */
+        schritt *= 1 + ((player.wirkung || {}).lernkurve || 0) * 0.05;
+
+        if (!schritt) return;
+        const vorher = st.grenzeVerschoben;
+        st.grenzeVerschoben = clamp(st.grenzeVerschoben + schritt, -6, 6);
+        const neuePot = clamp(Math.round(grundlage + ((player.wirkung || {}).grenze || 0)
+                                         + st.grenzeVerschoben), 58, 99);
+        if (neuePot !== player.potenzial){
+          const rauf = neuePot > player.potenzial;
+          player.potenzial = neuePot;
+          /* Nur die vollen Punkte melden, sonst steht es jedes Jahr da. */
+          if (Math.round(vorher) !== Math.round(st.grenzeVerschoben)){
+            season.events.push({ t: rauf
+              ? 'Die Scouts trauen dir inzwischen mehr zu'
+              : 'In den Berichten steht, dein Zenit sei erreicht',
+              c: rauf ? 'good' : 'bad' });
+          }
+        }
+        season.potenzial = player.potenzial;
+      })();
 
       /* Die Vereinsbilanz fortschreiben - vor allem anderen, damit
          alles Folgende schon den neuen Rang sieht. */
@@ -3495,7 +3641,11 @@ const PUCKERO = (() => {
       const chance = clamp(
         ruecktrittsChance(st.age, naechsterOvr, player.traits.langlebig, verschleiss)
         * (1 + rueckhalt * 0.35), 0, 0.95);
-      if (r() < chance){
+      /* Wer noch zwei Jahre Vertrag hat, wird nicht gefragt, ob er
+         aufhoert - er ist gebunden. Sonst stand die Ruecktrittsfrage
+         auf dem Schirm und danach musste man einen neuen Vertrag
+         unterschreiben, was sich gegenseitig ausschliesst. */
+      if (st.vertragJahre <= 1 && r() < chance){
         /* Ab hier entscheidest du selbst – und wirst danach jedes Jahr neu gefragt. */
         st.ruecktrittsfrage = {
           alter: st.age,
@@ -3544,20 +3694,69 @@ const PUCKERO = (() => {
       if (st.age >= 26 && verletzungsRisiko && r() < verletzungsRisiko){
         ende('verletzung'); return;
       }
-      if (letzte && letzte.title && st.age >= 33 && r() < 0.22){ ende('hoehepunkt'); return; }
-      /* Frueher zwei feste Wuerfel: 6 Prozent "aus familiaeren
-         Gruenden" und 12 Prozent Heimkehr, beide unabhaengig davon,
-         ob es je eine Familie oder ein Heimweh gegeben hat. Jetzt
-         haengen beide an dem Leben, das tatsaechlich gefuehrt wurde -
-         wer allein geblieben ist, hoert deswegen auch nicht auf. */
+      /* ================================================================
+         Kein Karriereende ohne Frage - und keines mitten im Vertrag
+
+         Zwei Dinge stimmten hier nicht.
+
+         Erstens beendeten drei Wege die Laufbahn ohne jede Rueckfrage:
+         Familie, Heimkehr und der Ruecktritt auf dem Hoehepunkt. Man
+         las eine Zeile und war Rentner. Zum Aufhoeren gehoert aber die
+         Entscheidung dazu, sonst ist es kein Ruecktritt, sondern ein
+         Wuerfel.
+
+         Zweitens standen all diese Pruefungen vor der Frage, ob der
+         Vertrag ueberhaupt auslaeuft. Ein Spieler mit drei Jahren
+         Restlaufzeit wurde also gefragt, ob er aufhoeren will, und
+         musste anschliessend einen neuen Vertrag unterschreiben. Wer
+         gebunden ist, hoert nicht mitten in der Saison auf - er
+         entscheidet das, wenn der Vertrag auslaeuft.
+
+         Der Koerper ist die Ausnahme: eine schwere Verletzung fragt
+         nicht nach der Restlaufzeit.
+         ================================================================ */
+      const vertragLaeuft = st.vertragJahre > 1;
       const L = st.leben;
-      const familienDruck = (L.familie === 'kinder' ? 0.06 + L.kinder * 0.025 : 0)
-                          + (L.familie === 'partner' ? 0.02 : 0)
-                          + (L.partnerMit ? 0 : 0.05);
-      if (st.age >= 32 && r() < familienDruck){ ende('familie'); return; }
-      if (st.age >= 31 && st.club.lg !== HOME_LG[player.nation]
-          && bewertung < LG_MIN[st.club.lg] + 2
-          && r() < L.heimweh * 0.0045){ ende('heimkehr'); return; }
+
+      /* Wie gut ist er noch? Ein Spieler auf dem Hoehepunkt hoert
+         nicht "aus familiaeren Gruenden" auf - dafuer ist der Zug, in
+         dem er sitzt, zu stark. Der Abstand zur Ligagrenze ist das
+         ehrlichste Mass dafuer. */
+      const nochGefragt = clamp(
+        (naechsterOvr - (LG_MIN[st.club.lg] || 60)) / 12, 0, 1.4);
+      const zugkraft = 1 / (1 + nochGefragt * 1.6);
+
+      if (!vertragLaeuft){
+        const familienDruck = ((L.familie === 'kinder' ? 0.06 + L.kinder * 0.025 : 0)
+                            + (L.familie === 'partner' ? 0.02 : 0)
+                            + (L.partnerMit ? 0 : 0.05)) * zugkraft;
+        const heimDruck = (!istHeimatLiga(st.club.lg, player.nation)
+                        && bewertung < LG_MIN[st.club.lg] + 2)
+                        ? L.heimweh * 0.0045 * zugkraft : 0;
+        const hoehepunktDruck = (letzte && letzte.title && st.age >= 33)
+                              ? 0.22 * zugkraft : 0;
+
+        /* Der staerkste Grund gewinnt - und wird zur Frage, nicht zum
+           Urteil. */
+        const gruende = [
+          { k: 'familie',    p: st.age >= 32 ? familienDruck : 0 },
+          { k: 'heimkehr',   p: st.age >= 31 ? heimDruck : 0 },
+          { k: 'hoehepunkt', p: hoehepunktDruck }
+        ].filter(x => x.p > 0);
+        for (const g of gruende){
+          if (r() < g.p){
+            st.ruecktrittsfrage = {
+              alter: st.age, ovr: naechsterOvr, verschleiss,
+              zusatzjahre: st.zusatzjahre,
+              vermoegen: L.vermoegen, abgesichert: L.vermoegen >= 12,
+              grund: g.k,
+              abbau: Math.round((3 + st.zusatzjahre * 1.6 + verschleiss * 0.8) * 10) / 10,
+              risiko: Math.round((6 + st.zusatzjahre * 3 + verschleiss * 2))
+            };
+            return;
+          }
+        }
+      }
 
       /* Wann kommt der Spieler überhaupt auf den Markt? */
       st.vertragJahre--;
@@ -3583,7 +3782,7 @@ const PUCKERO = (() => {
       }
       st.angebotsGrund = grund;
       st.angebotsBelege = belegeFuerAngebot(bewertung, grund, zuSchwach, zuGross, juniorEnde);
-      st.angebote = macheAngebote(bewertung);
+      st.angebote = macheAngebote(bewertung, naechsterOvr);
     }
 
     /* ----------------------------------------------------------------
@@ -3675,10 +3874,12 @@ const PUCKERO = (() => {
 
     /* Angebote erzeugen, ohne die uebrigen Pruefungen zu wiederholen */
     function vertragsangebote(bewertung, season){
+      const eigenWert = overall(player, devAttrs(player.attrs,
+        formFactor(st.age, player.traits, (player.wirkung || {}).lernkurve, st.scheitel)));
       st.vertragJahre = 0;
       st.angebotsGrund = 'Nach der Rücktrittsentscheidung wird neu verhandelt.';
       st.angebotsBelege = belegeFuerAngebot(bewertung, st.angebotsGrund, false, false, false);
-      st.angebote = macheAngebote(bewertung);
+      st.angebote = macheAngebote(bewertung, eigenWert);
     }
 
     function ende(schluessel, zusatz){
@@ -3694,7 +3895,11 @@ const PUCKERO = (() => {
     }
 
     /* ---- Transferangebote zusammenstellen ---- */
-    function macheAngebote(bewertung){
+    /* eigenWert ist die reine Gesamtwertung des Spielers, bewertung
+       die Marktbewertung (mit Ansehen und Jahrgangsstand). Beide
+       werden gebraucht: die eine entscheidet, die andere wird
+       angezeigt - und sie zu verwechseln war genau der Fehler. */
+    function macheAngebote(bewertung, eigenWert){
       const aktuell = st.club;
       let moeglicheLigen = D.LEAGUES.filter(l => {
                 /* Nur die eigene Juniorenliga - ein Deutscher bekommt kein
@@ -3739,7 +3944,19 @@ const PUCKERO = (() => {
           staerkeRel: Math.round(staerke - schnitt),
           ligaSchnitt: Math.round(schnitt),
           /* Was die Liga verlangt und was du mitbringst */
-          eigeneWertung: Math.round(bewertung),
+          /* Hier stand die Marktbewertung - also die eigene Wertung
+             plus Ansehensbonus und Jahrgangswert. Sie lag damit
+             regelmaessig ueber dem, was waehrend der Saison als
+             Gesamtwertung angezeigt wird, und das las sich wie ein
+             Fehler. Es sind zwei verschiedene Zahlen, also stehen sie
+             jetzt auch als zwei da. */
+          eigeneWertung: Math.round(eigenWert != null ? eigenWert : bewertung),
+          marktwertung: Math.round(bewertung),
+          /* Der Aufschlag ergibt sich aus der Differenz - Ansehen und
+             Jahrgangsstand einzeln stehen hier nicht zur Verfuegung
+             und werden auch nicht getrennt gebraucht. */
+          marktAufschlag: eigenWert != null
+            ? Math.round((bewertung - eigenWert) * 10) / 10 : 0,
           ligaMin: LG_MIN[club.lg],
           passung: LG_MIN[club.lg] === undefined ? null
                  : Math.round(bewertung - LG_MIN[club.lg]),
@@ -4024,7 +4241,7 @@ const PUCKERO = (() => {
        ---------------------------------------------------------------- */
     function werteLeben(season){
       const L = st.leben;
-      const daheim = st.club && st.club.lg === homeLg;
+      const daheim = st.club && istHeimatLiga(st.club.lg, player.nation);
 
       /* Heimweh. Daheim faellt es schnell, in der Fremde steigt es
          langsam - und deutlich schneller, wenn niemand mitgekommen
