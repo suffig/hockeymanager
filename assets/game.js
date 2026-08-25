@@ -1976,6 +1976,43 @@ function CareerGame(root, cfg){
     UI.alleZahlenHoch(root);
   }
 
+  /* ------------------------------------------------------------------
+     In die Bestenliste, auch ohne Konto
+
+     Wer ein freigegebenes Profil hat, steht ohnehin drin - dort
+     traegt die Engine beim Abschluss selbst ein. Alle anderen bekommen
+     hier die Wahl, und geben statt eines Profils einen Namen an.
+     ------------------------------------------------------------------ */
+  function bestenlisteKnopf(){
+    if (typeof KONTO === 'undefined' || !KONTO.konfiguriert()) return '';
+    if (KONTO.zustand().frei) return '';        // steht schon drin
+    if (S.eingetragen) return '<span class="pill gold">In der Bestenliste</span>';
+    return '<button class="btn btn-ghost" id="bestenliste-eintrag">'
+         + 'In die Bestenliste eintragen</button>';
+  }
+
+  function bestenlisteEintragen(){
+    const satz = (PUCKERO.loadCareers() || [])[0];
+    if (!satz){ UI.toast('Keine abgeschlossene Laufbahn gefunden'); return; }
+    UI.nameFrage({
+      titel: 'Unter welchem Namen?',
+      text: 'Die Laufbahn erscheint damit in der weltweiten Bestenliste. '
+          + 'Der Name steht öffentlich daneben – nimm keinen, der dich verrät.',
+      platzhalter: 'z. B. Puckliebhaber',
+      wert: KONTO.gastnameLesen(),
+      ja: 'Eintragen', nein: 'Doch nicht'
+    }, async (name, melden) => {
+      const pruef = KONTO.gastnamePruefen(name);
+      if (!pruef.ok){ melden(pruef.grund); return false; }
+      const erg = await KONTO.alsGastEintragen(satz, name);
+      if (!erg.ok){ melden(erg.grund); return false; }
+      S.eingetragen = true;
+      UI.toast('Eingetragen als ' + erg.name);
+      renderResult();
+      return true;
+    });
+  }
+
   /* ---------- Ergebnis ---------- */
   function renderResult(){
     const res = S.result;
@@ -2173,11 +2210,11 @@ function CareerGame(root, cfg){
           return UI.statBoxen(res.isG
           ? [['Spiele', t.gp, f('gp', t.gp)], ['Siege', t.wins, f('wins', t.wins)],
              ['Niederlagen', t.losses],
-             ['Fangquote', (t.sv * 100).toFixed(1) + '%'], ['Gegentorschnitt', t.gaa.toFixed(2)],
+             ['Fangquote', (t.sv * 100).toFixed(1) + '%'], ['Gegentore/Sp', t.gaa.toFixed(2)],
              ['Shutouts', t.so, f('so', t.so)], ['Paraden', t.saves],
              ['Playoffspiele', t.poGp, f('poGp', t.poGp)],
              ['Playoffsiege', t.poWins, 'gold'],
-             ['Serien gewonnen', t.serienGewonnen + '/' + t.serien],
+             ['Serien', t.serienGewonnen + '/' + t.serien],
              ['Verdienst', t.gehalt.toFixed(1) + ' Mio']]
           : [['Spiele', t.gp, f('gp', t.gp)], ['Tore', t.g, f('g', t.g)],
              ['Vorlagen', t.a, f('a', t.a)], ['Punkte', t.p, f('p', t.p)],
@@ -2187,7 +2224,7 @@ function CareerGame(root, cfg){
              ['+/-', (t.plus > 0 ? '+' : '') + t.plus], ['Strafminuten', t.pim],
              ['Playoffspiele', t.poGp, f('poGp', t.poGp)],
              ['Playoffpunkte', t.poP, f('poP', t.poP)],
-             ['Serien gewonnen', t.serienGewonnen + '/' + t.serien],
+             ['Serien', t.serienGewonnen + '/' + t.serien],
              ['Verdienst', t.gehalt.toFixed(1) + ' Mio']]);
         })()}
 
@@ -2214,6 +2251,7 @@ function CareerGame(root, cfg){
         ${alsApp ? '</div>' : ''}
 
         <div class="row mt-l abschluss-taten">
+          ${bestenlisteKnopf()}
           <button class="btn btn-primary" id="karte">Karriere-Karte speichern</button>
           <button class="btn btn-ghost" id="share">Als Text teilen</button>
           <button class="btn btn-ghost" id="again">Neue Karriere</button>
@@ -2250,6 +2288,12 @@ function CareerGame(root, cfg){
     }
 
     let teilenLaeuft = false;
+    /* Der Knopf steht auf dem Ergebnisbildschirm, also gehoert er auch
+       hierher gebunden - im Binder der laufenden Karriere fand er
+       nichts und blieb wirkungslos. */
+    const be = root.querySelector('#bestenliste-eintrag');
+    if (be) be.onclick = bestenlisteEintragen;
+
     root.querySelector('#share').onclick = () => {
       if (teilenLaeuft) return;
       teilenLaeuft = true;

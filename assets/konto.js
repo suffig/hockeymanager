@@ -231,6 +231,55 @@ const KONTO = (() => {
     } catch(e){ return false; }             // ohne Netz bleibt es lokal
   }
 
+  /* ------------------------------------------------------------------
+     Ohne Konto in die Bestenliste
+
+     Wer nur einmal spielt, legt kein Konto an - und genau der hat
+     gerade eine Laufbahn zu Ende gebracht, auf die er stolz ist.
+     Statt eines Profils gibt er einen Namen an; die Schranken dagegen
+     stehen in der Datenbank (db/06_gast_eintrag.sql), nicht hier, denn
+     alles im Browser laesst sich umgehen.
+     ------------------------------------------------------------------ */
+  const GAST_NAME_KEY = 'eiszeit.gastname';
+
+  function gastnamePruefen(n){
+    const name = String(n || '').trim();
+    if (name.length < 3)  return { ok:false, grund:'Mindestens drei Zeichen.' };
+    if (name.length > 20) return { ok:false, grund:'Höchstens zwanzig Zeichen.' };
+    if (!/^[\p{L}\p{N} ._-]+$/u.test(name))
+      return { ok:false, grund:'Nur Buchstaben, Ziffern, Punkt, Strich und Leerzeichen.' };
+    return { ok:true, name };
+  }
+
+  function gastnameLesen(){
+    try { return localStorage.getItem(GAST_NAME_KEY) || ''; } catch(e){ return ''; }
+  }
+  function gastnameMerken(n){
+    try { localStorage.setItem(GAST_NAME_KEY, n); } catch(e){}
+  }
+
+  async function alsGastEintragen(satz, name){
+    const g = gastnamePruefen(name);
+    if (!g.ok) return { ok:false, grund:g.grund };
+    if (!konfiguriert()) return { ok:false, grund:'Die Bestenliste ist nicht eingerichtet.' };
+    try {
+      const c = await ladeClient();
+      const { error } = await c.from('karriere').insert(Object.assign(
+        { profil_id: null, gastname: g.name }, nachDb(satz)));
+      if (error){
+        /* Die Bremse in der Datenbank meldet sich als Regelverstoss -
+           das ist kein Fehler, sondern eine Antwort. */
+        const zuOft = /row-level security|policy/i.test(error.message || '');
+        return { ok:false, grund: zuOft
+          ? 'Unter diesem Namen wurden gerade sehr viele Laufbahnen eingetragen. '
+            + 'Versuch es später noch einmal oder nimm einen anderen Namen.'
+          : error.message };
+      }
+      gastnameMerken(g.name);
+      return { ok:true, name:g.name };
+    } catch(e){ return { ok:false, grund:'Keine Verbindung zur Bestenliste.' }; }
+  }
+
   async function karrierenLaden(){
     if (!zustand().angemeldet) return [];
     try {
@@ -337,7 +386,8 @@ const KONTO = (() => {
     konfiguriert, starten, zustand, beiAenderung,
     registrieren, anmelden, abmelden, passwortZuruecksetzen, benutzernameAendern,
     profileLaden, freigeben, sperren,
-    karriereSpeichern, karrierenLaden, nichtUebertragen, uebertragen,
+    karriereSpeichern, alsGastEintragen, gastnamePruefen, gastnameLesen,
+    karrierenLaden, nichtUebertragen, uebertragen,
     zieleLaden, zieleSpeichern, bestenliste, karriereAnsicht, eigenePlaetze
   };
 })();

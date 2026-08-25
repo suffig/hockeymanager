@@ -1649,6 +1649,49 @@ const UI = (() => {
            && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   }
 
+  /* ------------------------------------------------------------------
+     Dieselbe Rueckfrage, aber mit einem Feld
+
+     Fuer den Eintrag in die Bestenliste ohne Konto braucht es einen
+     Namen. Ein window.prompt taete es technisch, sieht auf dem Telefon
+     aber aus wie ein Systemfehler und kann nichts pruefen.
+     ------------------------------------------------------------------ */
+  function nameFrage(opt, beiJa){
+    const alt = document.querySelector('.frage-schicht');
+    if (alt) alt.remove();
+    const w = document.createElement('div');
+    w.className = 'frage-schicht';
+    w.innerHTML = `<div class="frage-blatt">
+      <b class="fr-titel">${esc(opt.titel || 'Name')}</b>
+      <p class="fr-text">${esc(opt.text || '')}</p>
+      <input class="fr-feld" type="text" maxlength="20"
+             placeholder="${esc(opt.platzhalter || 'Dein Name')}"
+             value="${esc(opt.wert || '')}" autocomplete="nickname">
+      <div class="fr-fehler" hidden></div>
+      <div class="fr-knoepfe">
+        <button class="btn btn-ghost fr-nein">${esc(opt.nein || 'Abbrechen')}</button>
+        <button class="btn btn-primary fr-ja">${esc(opt.ja || 'Eintragen')}</button>
+      </div>
+    </div>`;
+    document.body.appendChild(w);
+    requestAnimationFrame(() => w.classList.add('an'));
+    const feld = w.querySelector('.fr-feld');
+    const fehler = w.querySelector('.fr-fehler');
+    setTimeout(() => feld.focus(), 120);
+    const zu = () => { w.classList.remove('an'); setTimeout(() => w.remove(), 200); };
+    const melden = (t) => { fehler.textContent = t; fehler.hidden = !t; };
+    const senden = async () => {
+      const knopf = w.querySelector('.fr-ja');
+      knopf.disabled = true; melden('');
+      const erg = await beiJa(feld.value, melden);
+      if (erg === true) zu(); else knopf.disabled = false;
+    };
+    w.querySelector('.fr-nein').onclick = zu;
+    w.querySelector('.fr-ja').onclick = senden;
+    feld.addEventListener('keydown', e => { if (e.key === 'Enter') senden(); });
+    w.addEventListener('click', e => { if (e.target === w) zu(); });
+  }
+
   function konfetti(anzahl){
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const farben = ['#38d1ff','#ffc861','#7c6bff','#3ee08f','#ff6b7a'];
@@ -2144,7 +2187,7 @@ const UI = (() => {
   const clampP = v => Math.max(0, Math.min(100, Math.round(v || 0)));
 
   return {
-    lebenKarte, turnierKarte, staerkeWandel, einflussLeiste, koerperBand, wertKlasse, bilanzKlasse, saisonKlasse, trikot, frage, wenigerBewegung,
+    lebenKarte, turnierKarte, staerkeWandel, einflussLeiste, koerperBand, wertKlasse, bilanzKlasse, saisonKlasse, trikot, frage, nameFrage, wenigerBewegung,
  header, footer, mount, themaSetzen, themaLesen, attrRows, ovrBadge, seasonCard, statsTable,
            wappenBild, pokalBild,
            trophyList, klubKarten, natKarte, ligaBilanz, shareText, rankLeiste, karriereKarte,

@@ -2614,13 +2614,26 @@ const PUCKERO = (() => {
                                       8, 27) * 10) / 10;
         if (P.k === 'C') season.bully = Math.round(clamp(44 + (dev.zweikampf || 50) * 0.12
                                           + (r() - 0.5) * 5, 38, 62) * 10) / 10;
-        /* Die Reihe folgt der Leistung und der Rolle: wer als Saeule
-           verpflichtet ist, spielt weiter oben als seine Zahlen allein
-           hergeben, wer auf Bewaehrung sitzt, weiter unten. */
-        const reihenWert = kante + (rStand - 1) * 0.55 + (rw.eiszeit || 0) * 0.12;
-        season.reihe = reihenWert > 1.62 ? 'Erste Reihe'
-                     : reihenWert > 1.28 ? 'Zweite Reihe'
-                     : reihenWert > 0.98 ? 'Dritte Reihe' : 'Vierte Reihe';
+        /* ------------------------------------------------------------
+           Die Reihe folgt der Eiszeit
+
+           Sie wurde vorher aus einer eigenen Formel gebildet, die
+           anders gewichtete als die Eiszeit und den direkten Einfluss
+           des Rollenstands gar nicht kannte. Damit konnte eine
+           schlechte Entscheidung die Eiszeit um zweieinhalb Minuten
+           druecken und der Spieler stand trotzdem in der ersten Reihe -
+           zwei Zahlen, die sich widersprachen.
+
+           In Wahrheit ist die Reihe nichts anderes als die Eiszeit:
+           wer oben spielt, spielt mehr. Also wird sie daraus
+           abgeleitet. Verteidiger sind der Massstab nach oben
+           verschoben, weil ein Paar mehr Minuten bekommt als eine
+           Sturmreihe.
+           ------------------------------------------------------------ */
+        const grenzen = P.k === 'D' ? [22.5, 19.0, 15.5] : [19.0, 16.0, 13.0];
+        season.reihe = season.toi >= grenzen[0] ? 'Erste Reihe'
+                     : season.toi >= grenzen[1] ? 'Zweite Reihe'
+                     : season.toi >= grenzen[2] ? 'Dritte Reihe' : 'Vierte Reihe';
         season.rolle = season.reihe;   // Altbestand: gespeicherte Karrieren
       }
 
