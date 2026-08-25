@@ -132,6 +132,13 @@ const PUCKERO_DATA = (() => {
       title:'DEL2-Meisterschaft',       titleShort:'DEL2-Titel' },
     { k:'DK',   n:'Metal Ligaen',        land:'Dänemark',    level:57,  prestige:17,  salary:.014,
       title:'Dänische Meisterschaft',  titleShort:'DK-Titel' },
+    /* Norwegen war die einzige Nation ohne eine einzige Liga im Spiel.
+       Gemessen sind 7,3 Prozent aller Spieler Norweger - jede
+       vierzehnte Laufbahn hatte damit keinen Ort, an dem Heimweh
+       faellt, keine Rueckkehr am Ende und keine Wirkung fuer
+       "heimverbunden". Eingeordnet knapp unter Daenemark. */
+    { k:'NO',   n:'Fjordkraftligaen',    land:'Norwegen',     level:55,  prestige:15,  salary:.012,
+      title:'Norwegische Meisterschaft', titleShort:'NO-Titel' },
     { k:'MES',  n:'Mestis',              land:'Finnland',     level:58,  prestige:16,  salary:.013,
       title:'Mestis-Titel',             titleShort:'Mestis' },
     { k:'CZE2', n:'Chance liga',         land:'Tschechien',   level:58,  prestige:16,  salary:.013,
@@ -377,6 +384,12 @@ const PUCKERO_DATA = (() => {
     { n:'Rungsted Seier Capital',  lg:'DK',  str:58 },
     { n:'Esbjerg Energy',          lg:'DK',  str:57 },
     { n:'Odense Bulldogs',         lg:'DK',  str:55 },
+    { n:'Storhamar Hockey',        lg:'NO',  str:58 },
+    { n:'Vålerenga Ishockey',      lg:'NO',  str:57 },
+    { n:'Stavanger Oilers',        lg:'NO',  str:57 },
+    { n:'Frisk Asker',             lg:'NO',  str:55 },
+    { n:'Sparta Sarpsborg',        lg:'NO',  str:54 },
+    { n:'Lillehammer IK',          lg:'NO',  str:53 },
 
     // ---- Mestis ----
     { n:'Kiekko-Espoo',            lg:'MES', str:58 },

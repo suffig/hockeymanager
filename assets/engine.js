@@ -111,7 +111,30 @@ const PUCKERO = (() => {
     /* Kanada und die USA teilen sich denselben Unterbau - fuer beide
        ist "Nordamerika" das eigene Land. */
     if (lg.land === 'Nordamerika') return nationKey === 'CAN' || nationKey === 'USA';
+    /* Die KHL steht unter "Osteuropa", weil sie ueber Grenzen hinweg
+       spielt. Fuer einen Russen ist sie trotzdem die Heimatliga - die
+       Mehrzahl der Klubs steht in Russland, und ohne diese Zeile galt
+       ausgerechnet die KHL fuer ihn als Ausland, waehrend die VHL als
+       Heimat zaehlte. Riga spielt ebenfalls dort, und fuer Lettland
+       ist es die einzige Liga im Spiel ueberhaupt. */
+    if (lg.land === 'Osteuropa') return nationKey === 'RUS' || nationKey === 'LAT';
     return false;
+  }
+
+  /* ------------------------------------------------------------------
+     Gibt es fuer diese Nation ueberhaupt eine Heimatliga?
+
+     Norwegen hat im Spiel keine einzige. Ein Norweger sammelte deshalb
+     in jeder Saison seines Lebens Heimweh, ohne dass es je einen Ort
+     gegeben haette, an dem es faellt - eine Anzeige, die nur in eine
+     Richtung geht, misst nichts. Wo es keine Heimat gibt, ruht das
+     Heimweh, statt sich blind aufzutuermen.
+     ------------------------------------------------------------------ */
+  const HAT_HEIMAT = {};
+  function hatHeimatLiga(nationKey){
+    if (HAT_HEIMAT[nationKey] === undefined)
+      HAT_HEIMAT[nationKey] = D.LEAGUES.some(l => istHeimatLiga(l.k, nationKey));
+    return HAT_HEIMAT[nationKey];
   }
 
   /* ---------------- Spieler anlegen ---------------- */
@@ -4349,6 +4372,9 @@ const PUCKERO = (() => {
       if (daheim){
         L.heimatjahre++;
         L.heimweh = Math.round(clamp(L.heimweh - 11, 0, 100));
+      } else if (!hatHeimatLiga(player.nation)){
+        /* Kein Ort, an dem das Heimweh je fallen koennte - dann steigt
+           es auch nicht. Siehe hatHeimatLiga. */
       } else {
         L.fremdjahre++;
         const allein = L.familie !== 'allein' && !L.partnerMit;
@@ -5161,7 +5187,7 @@ const PUCKERO = (() => {
 
   return {
     rng, hashSeed, ri, pick, shuffle, clamp, round1,
-    pos, nation, league, clubsOf, attrsOf, lgAvgStr,
+    pos, nation, league, clubsOf, attrsOf, lgAvgStr, istHeimatLiga, hatHeimatLiga,
     newPlayer, autoDraft,
     draftFrage, applyKarte, karteWert, wirkungNeu,
     overall, formFactor, devAttrs,
