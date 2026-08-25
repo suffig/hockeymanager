@@ -1979,6 +1979,7 @@ function CareerGame(root, cfg){
       <div class="panel-body ${alsApp ? 'karriere mobil app ergebnis-app' : ''}">
       ${alsApp ? '<div class="app-inhalt">' : ''}
       ${auf('bilanz')}
+        ${UI.trikot(res)}
         <div class="abschluss-kopf">
           <div class="ak-karte">
             <div class="row between" style="align-items:flex-start;gap:14px">

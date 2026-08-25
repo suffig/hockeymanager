@@ -3917,3 +3917,79 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
   .stk-n{ font-size:10px !important; letter-spacing:.01em }
   .hp-marke, .bogen-legende, .bogen-fuss{ font-size:10.5px }
 }
+
+/* ------------------------------------------------------------------
+   Der Pfeil gegen die eigene Vorsaison
+
+   Die Farbe sagt, wo eine Zahl im Feld steht; der Pfeil, ob es fuer
+   einen selbst mehr war als im Jahr davor. Er sitzt oben rechts in
+   der Kachel, klein genug, dass die Zahl die Hauptsache bleibt.
+   ------------------------------------------------------------------ */
+.stk{ position:relative }
+.stk-trend{
+  position:absolute; top:5px; right:6px; display:flex;
+  animation:trendRein .4s cubic-bezier(.2,1.4,.4,1) both;
+}
+.stk-trend.auf{ color:var(--w-stark) }
+.stk-trend.ab{ color:var(--w-schwach); opacity:.75 }
+@keyframes trendRein{
+  from{ opacity:0; transform:translateY(4px) scale(.6) }
+  to  { opacity:1; transform:none }
+}
+@media (prefers-reduced-motion:reduce){ .stk-trend{ animation:none } }
+
+
+/* ==================================================================
+   Das Trikot am Karriereende
+
+   Die Bilanz besteht aus Tabellen und Kacheln - richtig, aber es
+   fehlte das eine Bild, an das man sich erinnert. Haengt die Nummer
+   unter dem Hallendach, steht es oben drueber.
+   ================================================================== */
+.trikotbild{
+  margin:0 0 18px; padding:16px 14px 14px;
+  border:1px solid var(--line); border-radius:18px;
+  background:radial-gradient(120% 90% at 50% 0%,
+    color-mix(in srgb, var(--kf2) 22%, transparent), transparent 68%), var(--card,var(--ice-800));
+  text-align:center; overflow:hidden;
+  animation:trikotAn .6s cubic-bezier(.2,.8,.3,1) both;
+}
+@keyframes trikotAn{
+  from{ opacity:0; transform:translateY(10px) scale(.97) }
+  to  { opacity:1; transform:none }
+}
+.trikotbild.gesperrt{
+  border-color:color-mix(in srgb,var(--gold) 45%,var(--line));
+}
+.tk-dach{
+  display:inline-flex; align-items:center; gap:5px; margin-bottom:10px;
+  padding:3px 10px; border-radius:99px;
+  font-size:10.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--gold); background:color-mix(in srgb,var(--gold) 14%,transparent);
+  border:1px solid color-mix(in srgb,var(--gold) 40%,transparent);
+}
+/* Der Stoff: eine Trikotform aus einem beschnittenen Rechteck. */
+.tk-stoff{
+  position:relative; width:172px; margin:0 auto; padding:14px 0 16px;
+  background:linear-gradient(170deg, var(--kf2), var(--kf));
+  clip-path:polygon(0 12%, 22% 0, 78% 0, 100% 12%, 88% 26%, 88% 100%, 12% 100%, 12% 26%);
+  box-shadow:0 14px 34px -18px rgba(0,0,0,.9);
+}
+.tk-wappen{ display:flex; justify-content:center; margin-top:8px; opacity:.92 }
+.tk-nummer{
+  font-family:var(--display); font-size:62px; line-height:.95; color:#fff;
+  text-shadow:0 3px 0 rgba(0,0,0,.28);
+}
+.tk-name{
+  font-size:12px; font-weight:800; letter-spacing:.14em; color:rgba(255,255,255,.92);
+  margin-top:2px;
+}
+.tk-unten{ margin-top:13px }
+.tk-klub{ display:block; font-size:15px; line-height:1.25 }
+.tk-jahre{ display:block; font-size:11.5px; color:var(--muted); margin-top:2px }
+.tk-zahlen{ display:flex; justify-content:center; gap:16px; margin-top:12px }
+.tk-z{ display:flex; flex-direction:column; gap:1px }
+.tk-z b{ font-family:var(--display); font-size:21px; line-height:1 }
+.tk-z span{ font-size:10px; letter-spacing:.05em; text-transform:uppercase; color:var(--dim) }
+.trikotbild.gesperrt .tk-z b{ color:var(--gold) }
+@media (prefers-reduced-motion:reduce){ .trikotbild{ animation:none } }

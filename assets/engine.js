@@ -3166,6 +3166,24 @@ const PUCKERO = (() => {
         season.klubPunkte = k.punkte;
       })();
 
+      /* ----------------------------------------------------------------
+         Der Vergleich mit dir selbst
+
+         Die Farbskala sagt, wo eine Zahl im Feld steht. Was sie nicht
+         sagt: ob es fuer einen selbst mehr oder weniger war als im
+         Jahr davor - und das ist die Frage, die man beim Lesen einer
+         Saisonkarte zuerst hat. Deshalb traegt jede Saison die Werte
+         der vorigen mit; nur die Zahlen, kein Verweis, damit
+         gespeicherte Laufbahnen davon nicht schwerer werden.
+         ---------------------------------------------------------------- */
+      (() => {
+        const v = st.seasons[st.seasons.length - 2];
+        if (!v || !v.gp) return;
+        season.vorher = isG
+          ? { gp: v.gp, wins: v.wins, so: v.so, sv: v.sv }
+          : { gp: v.gp, g: v.g, a: v.a, p: v.p, plus: v.plus, toi: v.toi };
+      })();
+
       werteLeben(season);
       werteKlausel(season);
 
@@ -3252,67 +3270,116 @@ const PUCKERO = (() => {
       st.ruf = st.ruf * 0.5 + (ovr + season.awards.length * 3 + (season.title ? 4 : 0)) * 0.5;
 
       /* Entry Draft: einmalig im Sommer nach der Saison mit 18 */
-      if (!st.entryDraft && st.age === 18){
+      /* ==================================================================
+         Der Entry Draft, so wie er wirklich ablaeuft
+
+         Vorher war er eine Handvoll Wuerfel: Runde und Position wurden
+         unabhaengig voneinander gezogen, ein Spitzentalent konnte also
+         "Runde 1, Position 30" sein und ein Grenzfall "Runde 6,
+         Position 2". In Wahrheit gibt es nur eine Zahl - die
+         Gesamtposition -, und die Runde ergibt sich aus ihr.
+
+         Dazu drei Dinge, die vorher ganz fehlten:
+
+           Nachruecken   Wer mit achtzehn nicht gezogen wird, ist nicht
+                         erledigt. Mit neunzehn und zwanzig steht er
+                         wieder auf der Liste, und wer sich in der
+                         Zwischenzeit entwickelt hat, wird doch noch
+                         geholt - nur spaeter, weil ein Jahrgang immer
+                         die Frischen bevorzugt.
+           Reihenfolge   Der Schlechteste zieht zuerst. Sie kommt jetzt
+                         aus der Tabelle des laufenden Jahres, nicht
+                         aus einer festen Zahl - der Verein, der einen
+                         zieht, ist also einer, der gerade unten steht.
+           Lotterie      Um die ersten Plaetze wird gelost. Der
+                         Schlechteste bekommt nicht automatisch die
+                         Eins.
+
+         Und wer durchfaellt, ist Free Agent - das ist kein Nichts,
+         sondern ein anderer Weg.
+         ================================================================== */
+      const draftAlter = st.age >= 18 && st.age <= 20;
+      const nochOffen = !st.entryDraft || st.entryDraft.ungezogen;
+      if (draftAlter && nochOffen){
         /* Was die Sichter sehen, ist die Anlage - nicht der
-           Achtzehnjaehrige von heute. Vorher wurde der aktuelle Stand
-           hochgerechnet; damit rutschten Spaetzuender durch und
-           fruehreife Talente wurden ueberschaetzt. */
+           Achtzehnjaehrige von heute. */
         const potenzial = (player.potenzial || 80) * 0.7
           + overall(player, devAttrs(player.attrs,
               formFactor(st.scheitel, player.traits,
                          (player.wirkung || {}).lernkurve, st.scheitel))) * 0.3;
-        const wert = potenzial + (season.p || season.wins || 0) * 0.10 + (r() - 0.5) * 12;
-        let runde = 0, pick2 = 0, klub = null, liga = 'NHL';
-        /* Die Schwelle lag bei 70 - damit wurden 92 Prozent gezogen und
-           "ungedraftet" bedeutete nichts. Ein Draftplatz soll etwas
-           heissen, also muss man ihn verfehlen koennen. */
-        if (wert > 79){
-          runde = wert > 94 ? 1 : wert > 89 ? ri(r, 1, 2) : wert > 84 ? ri(r, 2, 4) : ri(r, 4, 7);
-          pick2 = ri(r, 1, 32);
-          /* ------------------------------------------------------------
-             Auch die KHL zieht
+        /* Ein Nachruecker ist bekannt und hat einen Jahrgang vor sich;
+           er faellt in der Achtung, gewinnt aber durch das, was er
+           inzwischen gespielt hat. */
+        const nachrueckAbzug = (st.age - 18) * 2.2;
+        const wert = potenzial + (season.p || season.wins || 0) * 0.10
+                   - nachrueckAbzug + (r() - 0.5) * 12;
 
-             Gezogen wurde bisher ausschliesslich in die NHL. Die KHL
-             hat ihren eigenen Draft, und fuer einen Russen oder Letten
-             ist er der naheliegendere Weg - fuer einen Kanadier
-             umgekehrt praktisch keiner. Wer spaet gezogen wird, landet
-             eher dort als bei einem NHL-Klub.
-             ------------------------------------------------------------ */
+        let runde = 0, pick2 = 0, gesamt = 0, klub = null, liga = 'NHL';
+        if (wert > 79){
+          /* ---- Eine Zahl: die Gesamtposition ----
+             Sieben Runden zu zweiunddreissig, also 224 Plaetze. Wo man
+             landet, haengt daran, wie weit man ueber der Schwelle
+             liegt - mit reichlich Streuung, denn kein Draft geht so
+             aus, wie die Listen es vorhersagen. */
+          const spanne = clamp((wert - 79) / 18, 0, 1);
+          const mitte = 224 - Math.pow(spanne, 0.75) * 220;
+          gesamt = clamp(Math.round(mitte + (r() - 0.5) * 46), 1, 224);
+
+          /* ---- Die Lotterie ----
+             Um die ersten Plaetze wird gelost; wer knapp dahinter
+             steht, kann nach vorn rutschen. */
+          if (gesamt <= 12 && r() < 0.35) gesamt = ri(r, 1, Math.max(1, gesamt));
+
+          runde = Math.ceil(gesamt / 32);
+          pick2 = ((gesamt - 1) % 32) + 1;
+
           const khlNah = { RUS: 0.62, LAT: 0.40, SVK: 0.20, CZE: 0.16, FIN: 0.10,
                            SWE: 0.08, GER: 0.08, AUT: 0.10, DEN: 0.06, NOR: 0.06,
                            SUI: 0.06, CAN: 0.02, USA: 0.02 };
           const khlChance = (khlNah[player.nation] || 0.05) + (runde >= 4 ? 0.12 : 0);
           liga = r() < khlChance ? 'KHL' : 'NHL';
-          const pool = clubsOf(liga).slice().sort((a, b) => a.str - b.str);
-          klub = pool[clamp(Math.round((pick2 - 1) * (pool.length / 32)), 0, pool.length - 1)];
-          st.ruf = clamp(st.ruf + (runde === 1 ? 10 : runde <= 3 ? 5 : 2), 20, 95);
-          season.events.push({ t: (liga === 'KHL' ? 'KHL-Draft: ' : 'Entry Draft: ')
-                                 + 'Runde ' + runde + ', Position ' + pick2
-                                 + ' – ' + klub.n, c: 'good' });
-        } else {
-          season.events.push({ t: 'Im Entry Draft nicht gezogen', c: 'bad' });
-        }
-        st.entryDraft = { runde, pick: pick2, klub: klub ? klub.n : null,
-                          liga, ungezogen: !runde };
-        /* ------------------------------------------------------------
-           Wer dich zieht, haelt deine Rechte
 
-           Bisher war der Draft eine Zeile und eine Handvoll Ansehen -
-           der Verein, der einen gezogen hatte, meldete sich nie wieder.
-           Dabei ist genau das der Sinn der Sache: er hat in dich
-           investiert und wartet. Vier Jahre lang holt er dich, sobald
-           du in die Naehe kommst - und akzeptiert dabei eine Wertung,
-           bei der ihn ein Fremder nicht interessieren wuerde. Je hoeher
-           die Runde, desto mehr Geduld hat er.
-           ------------------------------------------------------------ */
+          /* ---- Der Schlechteste zieht zuerst ----
+             Aus der Tabelle des laufenden Jahres, nicht aus einer
+             festen Zahl: der Verein, der dich zieht, ist einer, der
+             gerade unten steht. In spaeteren Runden wiederholt sich
+             dieselbe Reihenfolge. */
+          const pool = clubsOf(liga).slice()
+            .sort((a, b) => klubStaerke(a) - klubStaerke(b));
+          const platzInRunde = Math.round((pick2 - 1) * (pool.length / 32));
+          klub = pool[clamp(platzInRunde, 0, pool.length - 1)];
+
+          st.ruf = clamp(st.ruf + (gesamt <= 10 ? 12 : runde === 1 ? 9
+                                 : runde <= 3 ? 5 : 2), 20, 95);
+          season.events.push({
+            t: (liga === 'KHL' ? 'KHL-Draft' : 'Entry Draft') + ': Nr. ' + gesamt
+               + ' gesamt (Runde ' + runde + ', Pick ' + pick2 + ') – ' + klub.n
+               + (st.age > 18 ? ' – nachgerückt mit ' + st.age : ''),
+            c: 'good' });
+        } else if (st.age < 20){
+          season.events.push({ t: 'Im Entry Draft nicht gezogen – '
+            + 'nächstes Jahr stehst du wieder auf der Liste', c: 'bad' });
+        } else {
+          season.events.push({ t: 'Auch mit zwanzig nicht gezogen – '
+            + 'ab jetzt bist du Free Agent', c: 'bad' });
+        }
+        st.entryDraft = { runde, pick: pick2, gesamt, klub: klub ? klub.n : null,
+                          liga, ungezogen: !runde, alter: st.age,
+                          endgueltig: !runde && st.age >= 20 };
         if (klub){
           st.draftRechte = { klub: klub.n, liga, runde, bis: st.year + 4 };
         }
 
         /* Ein Spieler desselben Jahrgangs, an dem du dich messen wirst.
            Seine Laufbahn wird einmal vorausberechnet – dabei darf er selbst
-           keinen weiteren Rivalen bekommen. */
-        if (!rivaleWirdErzeugt){
+           keinen weiteren Rivalen bekommen.
+
+           Seit der Draft auch mit neunzehn und zwanzig stattfindet,
+           laeuft dieser Block bis zu dreimal - der Jahrgang darf aber
+           nur einmal entstehen, sonst bekommt man mit zwanzig einen
+           neuen Rivalen und die ganze Vergleichsgeschichte faengt von
+           vorne an. */
+        if (!rivaleWirdErzeugt && !st.jahrgang.length){
           rivaleWirdErzeugt = true;
           try { erzeugeJahrgang(season); }
           finally { rivaleWirdErzeugt = false; }

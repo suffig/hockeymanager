@@ -415,11 +415,35 @@ const UI = (() => {
        es kein Hover. */
     /* Reine Zahlen bekommen data-zahl und zaehlen sich beim Erscheinen
        hoch - zusammengesetzte Werte wie "34-12-6" bleiben, wie sie sind. */
-    const kachel = (ik, wert, kurz, lang, ton) => {
+    /* ------------------------------------------------------------------
+       Mehr oder weniger als letztes Jahr?
+
+       Die Farbe sagt, wo eine Zahl im Feld steht - nicht, ob es fuer
+       einen selbst ein Fortschritt war. Das ist aber die erste Frage
+       beim Lesen einer Saisonkarte. Der Pfeil beantwortet sie, und
+       zwar nur, wenn sich etwas Nennenswertes bewegt hat: unter fuenf
+       Prozent Unterschied ist es Rauschen.
+       ------------------------------------------------------------------ */
+    const vergleich = (feld, wert) => {
+      const v = s.vorher;
+      if (!v || v[feld] == null || typeof wert !== 'number') return '';
+      const alt2 = v[feld];
+      if (!alt2 && !wert) return '';
+      const d = wert - alt2;
+      const schwelle = Math.max(1, Math.abs(alt2) * 0.05);
+      if (Math.abs(d) < schwelle) return '';
+      const auf = d > 0;
+      return `<span class="stk-trend ${auf ? 'auf' : 'ab'}"
+        title="${auf ? '+' : ''}${Math.round(d * 10) / 10} gegenüber der Vorsaison"
+        >${ikone(auf ? 'hoch' : 'runter', 10)}</span>`;
+    };
+
+    const kachel = (ik, wert, kurz, lang, ton, feld) => {
       const zaehlbar = neu && typeof wert === 'number' && isFinite(wert);
       return `
       <div class="stk ${ton || ''}" title="${esc(lang || kurz)}">
         <span class="stk-ik">${ikone(ik, 15)}</span>
+        ${feld ? vergleich(feld, wert) : ''}
         <b${zaehlbar ? ' data-zahl="' + wert + '">0' : '>' + wert}</b>
         <span class="stk-n">${kurz}</span>
       </div>`;
@@ -432,19 +456,19 @@ const UI = (() => {
       ? kachel('kalender', s.gp, 'Spiele')
         + kachel('waage', s.wins + '-' + (s.losses || 0) + '-' + (s.otl || 0),
                  'Bilanz', 'Siege – Niederlagen – Verlängerung',
-                 saisonKlasse('wins', s.wins, s.lg))
+                 saisonKlasse('wins', s.wins, s.lg), 'wins')
         + kachel('schild', (s.sv * 100).toFixed(1) + '%', 'Fangquote', '',
                  saisonKlasse('sv', s.sv, s.lg))
         + kachel('haken', s.so, 'Shutouts', 'Spiele ohne Gegentor',
-                 saisonKlasse('so', s.so, s.lg))
-      : kachel('kalender', s.gp, 'Spiele', '', saisonKlasse('gp', s.gp, s.lg))
-        + kachel('tor', s.g, 'Tore', '', saisonKlasse('g', s.g, s.lg))
-        + kachel('gruppe', s.a, 'Vorlagen', '', saisonKlasse('a', s.a, s.lg))
+                 saisonKlasse('so', s.so, s.lg), 'so')
+      : kachel('kalender', s.gp, 'Spiele', '', saisonKlasse('gp', s.gp, s.lg), 'gp')
+        + kachel('tor', s.g, 'Tore', '', saisonKlasse('g', s.g, s.lg), 'g')
+        + kachel('gruppe', s.a, 'Vorlagen', '', saisonKlasse('a', s.a, s.lg), 'a')
         + kachel(s.plus >= 0 ? 'hoch' : 'runter',
                  (s.plus > 0 ? '+' : '') + s.plus, '+/-', 'Plus-Minus-Bilanz',
-                 s.plus < 0 ? 'schlecht' : saisonKlasse('plus', s.plus, s.lg))
+                 s.plus < 0 ? 'schlecht' : saisonKlasse('plus', s.plus, s.lg), 'plus')
         + kachel('uhr', (s.toi || 0), 'Eiszeit', 'Eiszeit pro Spiel in Minuten',
-                 saisonKlasse('toi', s.toi, s.lg));
+                 saisonKlasse('toi', s.toi, s.lg), 'toi');
 
     const weitere = isG
       ? kachel('tor', s.gaa.toFixed(2), 'Gegentore', 'Gegentorschnitt pro Spiel')
@@ -1380,6 +1404,60 @@ const UI = (() => {
     </div>`;
   }
 
+  /* ------------------------------------------------------------------
+     Das Trikot
+
+     Am Ende einer Laufbahn steht eine Bilanz aus Tabellen und
+     Kacheln - richtig, aber es fehlt das eine Bild, an das man sich
+     erinnert. Ein Trikot ist genau das: Nummer, Name, Verein. Und
+     wenn es unter dem Hallendach haengt, steht es auch dabei.
+
+     Bewusst als reines SVG-freies Markup: es soll sich mit der
+     bestehenden Bildfunktion abfotografieren lassen wie alles andere.
+     ------------------------------------------------------------------ */
+  function trikot(res){
+    const p = res.player || {};
+    /* Der Verein, bei dem es zu etwas gereicht hat - sonst der, wo
+       die meisten Saisons liegen. */
+    const legende = (res.klubEhrungen || []).find(k => k.rang === 'legende');
+    const haupt = legende
+      || (res.klubs || []).slice().sort((a, b) => b.saisons - a.saisons)[0];
+    if (!haupt) return '';
+    const gesperrt = !!legende;
+    const f = (typeof WAPPEN !== 'undefined') ? WAPPEN.farben(haupt.n) : ['#1a2540','#38d1ff'];
+    /* Die Jahre beim Verein, nicht die der ganzen Laufbahn - sonst
+       stand "6 Saisons · 2026-2040" da, und beides zusammen ergab
+       keinen Sinn. */
+    const jahre = (haupt.vonJahr != null)
+      ? haupt.vonJahr + '–' + ((haupt.bisJahr != null ? haupt.bisJahr : haupt.vonJahr) + 1) : '';
+    const t = res.totals || {};
+    const zahl = (w, n) => `<div class="tk-z"><b>${w}</b><span>${n}</span></div>`;
+
+    return `<div class="trikotbild ${gesperrt ? 'gesperrt' : ''}"
+                 style="--kf:${f[0]};--kf2:${f[1]}">
+      <div class="tk-halle">
+        ${gesperrt ? `<div class="tk-dach">
+          ${ikone('krone', 13)} Nicht mehr vergeben</div>` : ''}
+        <div class="tk-stoff">
+          <div class="tk-wappen">${wappenBild(haupt.n, 34)}</div>
+          <div class="tk-nummer">${p.num != null ? p.num : ''}</div>
+          <div class="tk-name">${esc((p.name || '').split(' ').pop().toUpperCase())}</div>
+        </div>
+      </div>
+      <div class="tk-unten">
+        <b class="tk-klub">${esc(haupt.n)}</b>
+        <span class="tk-jahre">${esc(haupt.rangName || '')}${haupt.rangName ? ' · ' : ''}
+          ${haupt.saisons} ${haupt.saisons === 1 ? 'Saison' : 'Saisons'} · ${jahre}</span>
+        <div class="tk-zahlen">
+          ${zahl(t.gp || 0, 'Spiele')}
+          ${res.isG ? zahl(t.wins || 0, 'Siege') : zahl(t.g || 0, 'Tore')}
+          ${res.isG ? zahl(t.so || 0, 'Shutouts') : zahl(t.p || 0, 'Punkte')}
+          ${zahl((res.seasons || []).filter(x => x.title).length, 'Titel')}
+        </div>
+      </div>
+    </div>`;
+  }
+
   function natTabelle(res){
     const b = res.laenderBilanz || {};
     if (!b.turniere) return `<p class="small">Nie für die Nationalmannschaft nominiert –
@@ -2066,7 +2144,7 @@ const UI = (() => {
   const clampP = v => Math.max(0, Math.min(100, Math.round(v || 0)));
 
   return {
-    lebenKarte, turnierKarte, staerkeWandel, einflussLeiste, koerperBand, wertKlasse, bilanzKlasse, saisonKlasse, frage, wenigerBewegung,
+    lebenKarte, turnierKarte, staerkeWandel, einflussLeiste, koerperBand, wertKlasse, bilanzKlasse, saisonKlasse, trikot, frage, wenigerBewegung,
  header, footer, mount, themaSetzen, themaLesen, attrRows, ovrBadge, seasonCard, statsTable,
            wappenBild, pokalBild,
            trophyList, klubKarten, natKarte, ligaBilanz, shareText, rankLeiste, karriereKarte,
