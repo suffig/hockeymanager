@@ -3874,3 +3874,46 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
 @keyframes slFuellen{ to{ width:100% } }
 .sl-hinweis{font-size:10.5px;color:var(--dim);margin-top:6px}
 @media (prefers-reduced-motion:reduce){ .saisonlauf{display:none} }
+
+/* ------------------------------------------------------------------
+   Die Farbskala auf den Saisonkacheln
+
+   Die Klasse landet auf der Kachel, die Farbe gehoert aber auf die
+   Zahl - so bleibt der Rahmen ruhig und nur der Wert spricht.
+   ------------------------------------------------------------------ */
+.stk.w-mittel b{ color:var(--w-mittel) }
+.stk.w-solide b{ color:var(--w-solide) }
+.stk.w-stark  b{ color:var(--w-stark) }
+.stk.w-elite  b{ color:var(--w-elite) }
+.stk.w-prisma b{
+  color:var(--w-elite);
+  background:linear-gradient(100deg,
+    #ffd76a 0%, #7ef3c0 18%, #6ad6ff 36%, #b98bff 54%,
+    #ff8fd0 72%, #ffd76a 90%, #7ef3c0 100%);
+  background-size:340% 100%;
+  -webkit-background-clip:text; background-clip:text;
+  animation:prismaLauf 7s linear infinite;
+  display:inline-block;
+}
+@supports ((background-clip:text) or (-webkit-background-clip:text)){
+  .stk.w-prisma b{ color:transparent; -webkit-text-fill-color:transparent }
+}
+/* Eine Spitzensaison bekommt zusaetzlich einen ruhigen Rahmen -
+   die Farbe allein geht in einem Raster aus acht Kacheln unter. */
+.stk.w-elite, .stk.w-prisma{
+  border-color:color-mix(in srgb,var(--w-elite) 40%,var(--line));
+}
+@media (prefers-reduced-motion:reduce){ .stk.w-prisma b{ animation:none } }
+
+/* ------------------------------------------------------------------
+   Lesbare Beschriftungen auf dem Telefon
+
+   Gemessen trugen bis zu neunundvierzig Elemente je Bildschirm
+   Schrift unter zehn Pixeln - fast alle davon die Beschriftung unter
+   einer Zahl ("Spiele", "Tore"), bei siebeneinhalb Pixeln. Das ist
+   genau der Text, der der Zahl ihre Bedeutung gibt.
+   ------------------------------------------------------------------ */
+@media (max-width:560px){
+  .stk-n{ font-size:10px !important; letter-spacing:.01em }
+  .hp-marke, .bogen-legende, .bogen-fuss{ font-size:10.5px }
+}

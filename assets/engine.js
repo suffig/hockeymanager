@@ -607,6 +607,7 @@ const PUCKERO = (() => {
       angebote: null,
       ovrLetzte: null,       // Wertung der Vorsaison, fuer die Entwicklung
       attrsLetzte: null,
+      offeneNotizen: [],      // Meldungen, die die naechste Saison zeigt
       angebotsGrund: null,
       angebotsBelege: null,
       training: null
@@ -1043,8 +1044,8 @@ const PUCKERO = (() => {
         tag: f.tag, titel: f.titel, wahl: o.t, gelungen, chance: o.chance, wagnis: false
       });
       st.letzteFolge = folge;
-      st.offeneNotiz = { t: 'Verband: ' + o.t + (gelungen ? ' – gelungen' : ' – misslungen'),
-                         c: gelungen ? 'good' : 'bad' };
+      notizMerken({ t: 'Verband: ' + o.t + (gelungen ? ' – gelungen' : ' – misslungen'),
+                    c: gelungen ? 'good' : 'bad' });
       st.nominierung = null;
       return folge;
     }
@@ -1294,8 +1295,8 @@ const PUCKERO = (() => {
         wahl: o.t, gelungen, chance: o.chance, wagnis: false
       });
       st.letzteFolge = folge;
-      st.offeneNotiz = { t: 'Wechselfrist: ' + o.t + (gelungen ? ' – gelungen' : ' – misslungen'),
-                         c: gelungen ? 'good' : 'bad' };
+      notizMerken({ t: 'Wechselfrist: ' + o.t + (gelungen ? ' – gelungen' : ' – misslungen'),
+                    c: gelungen ? 'good' : 'bad' });
       st.wechselfrist = null;
       return folge;
     }
@@ -1493,6 +1494,13 @@ const PUCKERO = (() => {
       if (!k) return 0;
       return k.rang === 'legende' ? 1 : k.rang === 'gesicht' ? 0.6
            : k.rang === 'stammkraft' ? 0.25 : 0;
+    }
+
+    /* Eine Meldung fuer die naechste Saisonbilanz vormerken. */
+    function notizMerken(n){
+      if (!n) return;
+      st.offeneNotizen = st.offeneNotizen || [];
+      st.offeneNotizen.push(n);
     }
 
     function standFaktor(){
@@ -2258,8 +2266,8 @@ const PUCKERO = (() => {
       });
       st.letzteFolge = Object.assign({ titel: st.ereignis.titel, tag: st.ereignis.tag }, folge);
       // Merken, damit die Entscheidung spaeter im Karriereverlauf auftaucht
-      st.offeneNotiz = { t: st.ereignis.tag + ': ' + o.t + (gelungen ? ' – gelungen' : ' – misslungen'),
-                         c: gelungen ? 'good' : 'bad' };
+      notizMerken({ t: st.ereignis.tag + ': ' + o.t + (gelungen ? ' – gelungen' : ' – misslungen'),
+                    c: gelungen ? 'good' : 'bad' });
       st.ereignis = null;
       return folge;
     }
@@ -2336,7 +2344,14 @@ const PUCKERO = (() => {
                        lgName: lg.n, ovr, events: [], awards: [],
                        ovrVorher: ersteSaison ? undefined : ovrVorher,
                        ovrGewinn: ersteSaison ? undefined : ovr - ovrVorher };
-      if (st.offeneNotiz){ season.events.push(st.offeneNotiz); st.offeneNotiz = null; }
+      /* Frueher ein einziger Platz, den vier Stellen beschrieben:
+         Verband, Wechselfrist, Ereignis und der Verein, der die
+         Draftrechte haelt. Wer zuletzt schrieb, gewann - gemessen
+         erschien die Draftmeldung nur zwoelfmal bei
+         dreiundvierzig Angeboten, der Rest wurde ueberschrieben.
+         Jetzt sammeln sie sich und werden alle gezeigt. */
+      (st.offeneNotizen || []).forEach(n => season.events.push(n));
+      st.offeneNotizen = [];
 
       /* Was der Klub in dieser Saison von dir und der Mannschaft erwartet */
       st.ziele = setzeSaisonZiel(club);
@@ -3691,8 +3706,8 @@ const PUCKERO = (() => {
               /* macheAngebote laeuft ausserhalb der Saisonschleife und
                  kennt kein season - die Engine hat fuer genau diesen
                  Fall eine nachgereichte Notiz. */
-              st.offeneNotiz = { t: dr.klub + ' meldet sich – sie halten deine Rechte '
-                + 'seit dem Draft', c: 'good' };
+              notizMerken({ t: dr.klub + ' meldet sich – sie halten deine Rechte '
+                + 'seit dem Draft', c: 'good' });
             }
           }
         }

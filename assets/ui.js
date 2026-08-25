@@ -309,6 +309,54 @@ const UI = (() => {
     legacy: [252, 470, 649, 911, 1362]
   };
 
+  /* ------------------------------------------------------------------
+     Dieselbe Skala fuer eine einzelne Saison
+
+     Die Karrieresummen haben eigene Groessenordnungen, eine Saison
+     andere. Und vor allem: sie haengen an der Liga. Gemessen liegen
+     die Scorerpunkte je Saison im Median bei 59 auf NHL-Niveau, bei
+     43 im europaeischen Mittelbau - eine feste Grenze wuerde eine
+     starke Saison in einer schwaecheren Liga als Weltklasse
+     ausweisen und eine solide NHL-Saison als Mittelmass.
+
+     Deshalb Grundwerte aus der Gesamtverteilung und ein Faktor je
+     Ligastufe. Spiele, Eiszeit und Fangquote skalieren nicht mit -
+     eine Saison hat ueberall gleich viele Spiele.
+     ------------------------------------------------------------------ */
+  const SAISON_MARKEN = {
+    gp:   [50, 52, 60, 78, 82],
+    g:    [11, 19, 27, 38, 54],
+    a:    [20, 27, 37, 50, 74],
+    p:    [34, 46, 62, 85, 121],
+    plus: [7, 15, 23, 32, 42],
+    toi:  [15.5, 18.1, 20.8, 23.1, 25.2],
+    wins: [8, 15, 22, 35, 49],
+    so:   [1, 2, 4, 6, 8],
+    sv:   [0.922, 0.934, 0.946, 0.948, 0.952]
+  };
+  /* Nur die Produktionswerte wandern mit der Ligastaerke. */
+  const SKALIERT = { g:1, a:1, p:1, plus:1, wins:1, so:1 };
+
+  function ligaFaktorFuer(lgKey){
+    const D = (typeof PUCKERO_DATA !== 'undefined') ? PUCKERO_DATA : null;
+    const l = D && (D.LEAGUES || []).find(x => x.k === lgKey);
+    const lvl = (l && l.level) || 40;
+    return lvl >= 78 ? 1.28 : lvl >= 60 ? 0.93 : 0.96;
+  }
+
+  function saisonKlasse(feld, wert, lgKey){
+    const m = SAISON_MARKEN[feld];
+    if (!m || wert == null || isNaN(wert)) return '';
+    const f = SKALIERT[feld] ? ligaFaktorFuer(lgKey) : 1;
+    const g = m.map(x => x * f);
+    return wert >= g[4] ? 'w-prisma'
+         : wert >= g[3] ? 'w-elite'
+         : wert >= g[2] ? 'w-stark'
+         : wert >= g[1] ? 'w-solide'
+         : wert >= g[0] ? 'w-mittel'
+         : '';
+  }
+
   function bilanzKlasse(feld, wert){
     const m = BILANZ_MARKEN[feld];
     if (!m || wert == null || isNaN(wert)) return '';
@@ -383,16 +431,20 @@ const UI = (() => {
     const kern = isG
       ? kachel('kalender', s.gp, 'Spiele')
         + kachel('waage', s.wins + '-' + (s.losses || 0) + '-' + (s.otl || 0),
-                 'Bilanz', 'Siege – Niederlagen – Verlängerung')
-        + kachel('schild', (s.sv * 100).toFixed(1) + '%', 'Fangquote')
-        + kachel('haken', s.so, 'Shutouts', 'Spiele ohne Gegentor', s.so > 0 ? 'gut' : '')
-      : kachel('kalender', s.gp, 'Spiele')
-        + kachel('tor', s.g, 'Tore')
-        + kachel('gruppe', s.a, 'Vorlagen')
+                 'Bilanz', 'Siege – Niederlagen – Verlängerung',
+                 saisonKlasse('wins', s.wins, s.lg))
+        + kachel('schild', (s.sv * 100).toFixed(1) + '%', 'Fangquote', '',
+                 saisonKlasse('sv', s.sv, s.lg))
+        + kachel('haken', s.so, 'Shutouts', 'Spiele ohne Gegentor',
+                 saisonKlasse('so', s.so, s.lg))
+      : kachel('kalender', s.gp, 'Spiele', '', saisonKlasse('gp', s.gp, s.lg))
+        + kachel('tor', s.g, 'Tore', '', saisonKlasse('g', s.g, s.lg))
+        + kachel('gruppe', s.a, 'Vorlagen', '', saisonKlasse('a', s.a, s.lg))
         + kachel(s.plus >= 0 ? 'hoch' : 'runter',
                  (s.plus > 0 ? '+' : '') + s.plus, '+/-', 'Plus-Minus-Bilanz',
-                 s.plus > 0 ? 'gut' : s.plus < 0 ? 'schlecht' : '')
-        + kachel('uhr', (s.toi || 0), 'Eiszeit', 'Eiszeit pro Spiel in Minuten');
+                 s.plus < 0 ? 'schlecht' : saisonKlasse('plus', s.plus, s.lg))
+        + kachel('uhr', (s.toi || 0), 'Eiszeit', 'Eiszeit pro Spiel in Minuten',
+                 saisonKlasse('toi', s.toi, s.lg));
 
     const weitere = isG
       ? kachel('tor', s.gaa.toFixed(2), 'Gegentore', 'Gegentorschnitt pro Spiel')
@@ -2014,7 +2066,7 @@ const UI = (() => {
   const clampP = v => Math.max(0, Math.min(100, Math.round(v || 0)));
 
   return {
-    lebenKarte, turnierKarte, staerkeWandel, einflussLeiste, koerperBand, wertKlasse, bilanzKlasse, frage, wenigerBewegung,
+    lebenKarte, turnierKarte, staerkeWandel, einflussLeiste, koerperBand, wertKlasse, bilanzKlasse, saisonKlasse, frage, wenigerBewegung,
  header, footer, mount, themaSetzen, themaLesen, attrRows, ovrBadge, seasonCard, statsTable,
            wappenBild, pokalBild,
            trophyList, klubKarten, natKarte, ligaBilanz, shareText, rankLeiste, karriereKarte,
