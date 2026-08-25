@@ -298,8 +298,8 @@ const PUCKERO_DATA = (() => {
     { n:'Löwen Frankfurt',         lg:'DEL', str:64 },
     { n:'Augsburger Panther',      lg:'DEL', str:63 },
     { n:'Schwenninger Wild Wings', lg:'DEL', str:62 },
-    { n:'Dresdner Eislöwen',       lg:'DEL', str:60 },
     { n:'Krefeld Pinguine',        lg:'DEL', str:61 },
+    { n:'Dresdner Eislöwen',       lg:'DEL', str:60 },
 
     // ---- Extraliga ----
     { n:'HC Oceláři Třinec',       lg:'CZE', str:75 },
@@ -328,8 +328,8 @@ const PUCKERO_DATA = (() => {
     { n:'Vienna Capitals',         lg:'ICE', str:67 },
     { n:'HCB Südtirol Alperia',   lg:'ICE', str:66 },
     { n:'EC KAC',                  lg:'ICE', str:66 },
-    { n:'HK Olimpija Ljubljana',   lg:'ICE', str:62 },
     { n:'HC Pustertal',            lg:'ICE', str:63 },
+    { n:'HK Olimpija Ljubljana',   lg:'ICE', str:62 },
     { n:'Fehérvár AV19',           lg:'ICE', str:62 },
     { n:'Graz99ers',               lg:'ICE', str:60 },
 
@@ -373,9 +373,9 @@ const PUCKERO_DATA = (() => {
     { n:'Eisbären Regensburg',    lg:'DEL2',str:57 },
     { n:'Starbulls Rosenheim',     lg:'DEL2',str:56 },
     { n:'Lausitzer Füchse',       lg:'DEL2',str:55 },
-    { n:'Selber Wölfe',           lg:'DEL2',str:54 },
-    { n:'EC Bad Nauheim',          lg:'DEL2',str:55 },
     { n:'EHC Freiburg',            lg:'DEL2',str:57 },
+    { n:'EC Bad Nauheim',          lg:'DEL2',str:55 },
+    { n:'Selber Wölfe',           lg:'DEL2',str:54 },
     { n:'Hannover Scorpions',      lg:'DEL2',str:56 },
 
     // ---- Metal Ligaen ----

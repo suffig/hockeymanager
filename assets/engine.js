@@ -1884,8 +1884,18 @@ const PUCKERO = (() => {
       };
 
       if (!letzte || !letzte.gp){
-        /* Erste Profisaison: niemand erwartet Zahlen, nur Einsatzzeit. */
-        person = { art:'spiele', wert: 20, n:'20 Einsätze sammeln',
+        /* ----------------------------------------------------------------
+           Erste Profisaison: niemand erwartet Zahlen, nur Einsatzzeit.
+
+           Hier stand eine feste 20 - unabhaengig davon, ob die Saison
+           52 oder 82 Spiele hat. Gemessen kam ein Neuling im Schnitt
+           auf 54,7 Einsaetze und erfuellte die Vorgabe in 97 Prozent
+           der Faelle. Das ist kein Ziel, das ist eine Zeile. Jetzt
+           haengt sie an der Laenge der Saison.
+           ---------------------------------------------------------------- */
+        const vollGp = club.lg === 'NHL' ? 82 : (istJugend(club.lg) ? 60 : 52);
+        const soll = Math.round(vollGp * 0.72);
+        person = { art:'spiele', wert: soll, n: soll + ' Einsätze sammeln',
                    d:'Im ersten Jahr zählt, dass du überhaupt spielst.' };
         return { team, person,
                einsatz: { beide: { ruf: 5, moral: 8 },
@@ -2801,8 +2811,19 @@ const PUCKERO = (() => {
           season.title = lg.title;
           addTrophy('lg_' + lg.k, lg.title, lg.prestige, '🏆');
           season.events.push({ t: lg.title + ' gewonnen', c: 'good' });
+          /* Der wertvollste Spieler der Playoffs muss in den Playoffs
+             etwas getan haben. Die 18 Prozent galten vorher auch fuer
+             den, der nichts beigetragen hat - gemessen wurde ein
+             Playoff-MVP mit null Punkten aus 39 Spielen gekuert. Wer
+             gar nichts liefert, kann den Titel nicht bekommen; die
+             mittlere Stufe bleibt fuer den, der dabei war und
+             ordentlich gespielt hat. */
           const poStark = isG ? (season.poSv > 0.925) : (season.poP >= poSpiele);
-          if (r() < (poStark ? 0.45 : 0.18) + poBoost / 140) season.awards.push('playoffMvp');
+          const poDabei = isG ? ((season.poSv || 0) >= 0.905)
+                              : (season.poP >= poSpiele * 0.5);
+          if ((poStark || poDabei)
+              && r() < (poStark ? 0.45 : 0.18) + poBoost / 140)
+            season.awards.push('playoffMvp');
           if (!isG && season.poP >= poSpiele * 1.1 && r() < 0.4) season.awards.push('poTop');
           st.ruf += 4;
         } else {
@@ -2863,11 +2884,31 @@ const PUCKERO = (() => {
             season.awards.push('fairplay');
           if (missed === 0 && season.gp === fullGp && r() < 0.5) season.awards.push('ironman');
         }
-        /* Ein All-Star-Team waehlt man aus denen, die gespielt haben.
+        /* ------------------------------------------------------------
+           Ein All-Star-Team waehlt man aus den Besten der Liga
+
            Gemessen kam jede fuenfte Berufung bei weniger als zwei
            Dritteln der Saison zustande - dieselbe Luecke wie bei den
-           Scorerwertungen, nur an anderer Stelle. */
-        const dabeiGewesen = season.gp >= fullGp * 0.6;
+           Scorerwertungen, nur an anderer Stelle. Die Beteiligung
+           allein reicht aber nicht: die Bedingung hing sonst nur an
+           kante, und kante misst die Abweichung von der EIGENEN
+           Rollenerwartung. Ein Viertreihenspieler, der seine niedrige
+           Erwartung uebertrifft, wurde damit All-Star - gemessen in
+           der KHL mit 16 Punkten aus 45 Spielen und in der SHL mit 21
+           aus 52. Ein All-Star-Team waehlt man aber nicht aus denen,
+           die ihre eigene Erwartung schlagen.
+
+           Dazu also eine absolute Untergrenze. Gemessen liegt die
+           Ausbeute ueber alle Ligastufen nahezu gleich (Stuermer im
+           Median 0.96 bis 1.12, Verteidiger 0.60 bis 0.71 Punkte je
+           Spiel), eine Staffelung nach Liga braucht es deshalb nicht.
+           Fuer Torhueter zaehlt die Fangquote auf der neuen Skala.
+           ------------------------------------------------------------ */
+        const ppgAllstar = season.gp ? (season.p || 0) / season.gp : 0;
+        const traegtDieLiga = isG ? ((season.sv || 0) >= 0.915)
+                            : P.k === 'D' ? ppgAllstar >= 0.50
+                            : ppgAllstar >= 0.75;
+        const dabeiGewesen = season.gp >= fullGp * 0.6 && traegtDieLiga;
         if (dabeiGewesen && kante > 0.62 && r() < 0.45) season.awards.push('allstar');
         if (dabeiGewesen && kante > 1.15 && r() < 0.55) season.awards.push('allstar1');
         if (dabeiGewesen
