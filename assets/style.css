@@ -4139,3 +4139,22 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
   font-size:9.5px; font-weight:700; letter-spacing:.03em;
   color:var(--dim); background:color-mix(in srgb,var(--dim) 18%,transparent);
 }
+
+/* ------------------------------------------------------------------
+   Warum der eigene Verein nicht verlaengert
+
+   Vorher gab es dafuer keinen Platz: in fuenfzehn Prozent der Faelle
+   fehlte das Angebot des eigenen Klubs einfach, ohne ein Wort dazu.
+   ------------------------------------------------------------------ */
+.absage{
+  display:flex; align-items:flex-start; gap:9px;
+  margin:10px 0 4px; padding:9px 12px; border-radius:11px;
+  border-left:3px solid var(--red);
+  background:color-mix(in srgb,var(--red) 10%,transparent);
+  animation:belegRein .42s cubic-bezier(.2,.8,.3,1) both;
+}
+.absage > svg{ flex:0 0 auto; color:var(--red); margin-top:1px }
+.absage .ab-text{ display:flex; flex-direction:column; gap:2px; min-width:0 }
+.absage .ab-text b{ font-size:13px; line-height:1.25 }
+.absage .ab-text span{ font-size:12px; color:var(--muted); line-height:1.35 }
+@media (prefers-reduced-motion:reduce){ .absage{ animation:none } }

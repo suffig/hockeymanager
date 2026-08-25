@@ -1167,7 +1167,8 @@ function CareerGame(root, cfg){
     if (st.ruecktrittsfrage) return kopf + bilanz + ruecktrittHtml(st.ruecktrittsfrage, st);
     if (st.kapitaensfrage)return kopf + bilanz + kapitaenHtml(st.kapitaensfrage);
     if (st.angebote)      return kopf + bilanz
-                               + angeboteHtml(st.angebote, st.angebotsGrund, st.angebotsBelege);
+                               + angeboteHtml(st.angebote, st.angebotsGrund,
+                                              st.angebotsBelege, st.keineVerlaengerung);
     if (st.rollenwahl)    return kopf + (alsApp ? '' : bilanz)
                                + rollenHtml(st.rollenwahl, st.club);
     if (st.training)      return kopf + bilanz + trainingHtml(st.training, st.age);
@@ -1856,9 +1857,11 @@ function CareerGame(root, cfg){
       <span class="jk-abstand">${d > 0 ? '+' : ''}${d} zum Ligaschnitt</span>`;
   }
 
-  function angeboteHtml(angebote, grund, belege){
-    /* Die eigene Wertung gehoert neben die Angebote: ohne sie ist
-       "die DEL verlangt 72" eine Zahl ohne Gegenueber. */
+  function angeboteHtml(angebote, grund, belege, keine){
+    /* Nur noch die eigene Wertung. Daneben stand eine Zeile mit der
+       Passung je Liga ("DEL ✓", "SHL -3"), gerechnet aus einer anderen
+       Bezugsgroesse als der Zahl im Kopf der Seite - nebeneinander
+       gelesen sah das aus wie ein Widerspruch. */
     const eigene = angebote.length ? angebote[0].eigeneWertung : null;
     return `
       <div class="anim">
@@ -1866,10 +1869,13 @@ function CareerGame(root, cfg){
         ${eigene != null ? `<div class="eigenwert">
           <span class="ew-n">Deine Wertung</span>
           <b class="ew-v ${UI.wertKlasse(eigene)}" data-zahl="${eigene}">0</b>
-          <span class="ew-d">${angebote.map(a => a.passung != null
-              ? esc(a.lgName) + ' ' + (a.passung >= 0 ? '✓' : a.passung)
-              : '').filter(Boolean).filter((x, i, arr) => arr.indexOf(x) === i)
-              .slice(0, 3).join(' · ')}</span>
+        </div>` : ''}
+        ${keine ? `<div class="absage">
+          ${UI.ikone('fluestern', 15)}
+          <div class="ab-text">
+            <b>${esc(keine.klub)} verlängert nicht</b>
+            <span>${esc(keine.grund)}</span>
+          </div>
         </div>` : ''}
         <p class="lead" style="font-size:15px">${esc(grund || 'Dein Vertrag läuft aus.')}</p>
         ${(belege && belege.length) ? `<div class="belege staffel">

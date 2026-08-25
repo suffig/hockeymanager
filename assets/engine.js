@@ -771,6 +771,8 @@ const PUCKERO = (() => {
       offeneNotizen: [],      // Meldungen, die die naechste Saison zeigt
       angebotsGrund: null,
       angebotsBelege: null,
+      /* Warum der eigene Verein diesmal kein Angebot gemacht hat. */
+      keineVerlaengerung: null,
       training: null
     };
 
@@ -4262,7 +4264,13 @@ const PUCKERO = (() => {
              Gesamtwertung angezeigt wird, und das las sich wie ein
              Fehler. Es sind zwei verschiedene Zahlen, also stehen sie
              jetzt auch als zwei da. */
-          eigeneWertung: Math.round(eigenWert != null ? eigenWert : bewertung),
+          /* Genau die Zahl, die im Kopf der Seite steht - die Wertung
+             der zuletzt gespielten Saison. Hier stand die Vorausschau
+             auf die kommende Saison, und die weicht davon ab; nebenein-
+             ander gelesen sah das aus wie ein Fehler. */
+          eigeneWertung: Math.round(
+            (st.seasons[st.seasons.length - 1] || {}).ovr
+            || (eigenWert != null ? eigenWert : bewertung)),
           marktwertung: Math.round(bewertung),
           /* Der Aufschlag ergibt sich aus der Differenz - Ansehen und
              Jahrgangsstand einzeln stehen hier nicht zur Verfuegung
@@ -4312,9 +4320,67 @@ const PUCKERO = (() => {
       // 1. Verbleib, sofern die aktuelle Liga noch reicht
       /* Wer beim Verein etwas bedeutet, bekommt praktisch immer ein
          Angebot zu bleiben - und ein besseres. */
-      const bleibtMoeglich = moeglicheLigen.some(l => l.k === aktuell.lg)
-                          && r() < 0.85 + klubBindung() * 0.14;
+      /* ----------------------------------------------------------------
+         Warum ein Verein nicht verlaengert
+
+         Hier stand ein flacher Wuerfel: in fuenfzehn Prozent der Faelle
+         kein Angebot, ganz gleich wie die Saison lief. Ein Kapitaen mit
+         guten Zahlen flog damit genauso oft raus wie ein
+         Ergaenzungsspieler in der Krise - und erfuhr nie, warum.
+
+         Jetzt hat jede Absage einen Grund, und jeder Grund haengt an
+         etwas, das in der Saison passiert ist. Wer traegt, wird
+         gehalten: ohne einen dieser Gruende gibt es immer ein Angebot.
+         ---------------------------------------------------------------- */
+      const bindung = klubBindung();
+      const huerdeHier = LG_MIN[aktuell.lg] !== undefined ? LG_MIN[aktuell.lg] : 58;
+      const ueberHuerde = bewertung - huerdeHier;
+      const istKapitaen = st.kapitaenSeit === aktuell.n;
+      const traegtDenKlub = istKapitaen || st.rollenStand === 'saeule';
+
+      const absageGruende = [];
+      if (!traegtDenKlub){
+        /* Leistung: wer unter der Huerde seiner Liga spielt, wird
+           ersetzt. Bindung schuetzt, aber nicht unbegrenzt. */
+        if (ueberHuerde < 1)
+          absageGruende.push({ w: 0.42 - bindung * 0.14,
+            t: 'Der Klub sieht dich nicht mehr in seiner Aufstellung.' });
+        /* Eine Bewaehrungssaison ist genau dafuer da. */
+        if (st.rollenStand === 'bewaehrung')
+          absageGruende.push({ w: 0.26,
+            t: 'Nach der Bewährungssaison verlängert der Klub nicht.' });
+        /* Alter - erst spaet und dann steigend. */
+        if (st.age >= 34)
+          absageGruende.push({ w: 0.08 + (st.age - 34) * 0.07,
+            t: 'Der Klub setzt auf jüngere Spieler.' });
+        /* Geld: wer sich teuer verhandelt hat, wird teuer. */
+        if ((st.gehaltFaktor || 1) > 1.18)
+          absageGruende.push({ w: clamp(((st.gehaltFaktor || 1) - 1.18) * 0.9, 0, 0.30),
+            t: 'Dein Gehalt sprengt den Etat des Klubs.' });
+        /* Der Rest: Kaderplanung. Bewusst klein - er ist der einzige
+           Grund, den man nicht selbst beeinflusst hat. */
+        absageGruende.push({ w: 0.05,
+          t: 'Die Kaderplanung geht in eine andere Richtung.' });
+      }
+
+      let absage = null;
+      for (const g of absageGruende){
+        if (g.w > 0 && r() < g.w){ absage = g.t; break; }
+      }
+      /* Die Liga selbst kann der Grund sein: wer unter ihre Huerde
+         gefallen ist, bekommt dort kein Angebot mehr - auch nicht als
+         Kapitaen. Gemessen war das der haeufigste Fall (39 Prozent
+         aller Absagen), und ausgerechnet er stand ohne ein Wort da. */
+      const ligaZuHoch = !moeglicheLigen.some(l => l.k === aktuell.lg);
+      const bleibtMoeglich = !ligaZuHoch && !absage;
       if (bleibtMoeglich) nimm(aktuell, true);
+      else st.keineVerlaengerung = {
+        klub: aktuell.n,
+        grund: ligaZuHoch
+          ? ('Für die ' + league(aktuell.lg).n + ' reicht deine Wertung nicht mehr – '
+             + 'der Klub kann dich nicht halten.')
+          : absage
+      };
 
       // 2. Zwei bis drei Angebote aus den erreichbaren Ligen
       /* Wer nichts zurueckgelegt hat, schaut zuerst auf das Gehalt -
@@ -4463,6 +4529,7 @@ const PUCKERO = (() => {
       st.angebote = null;
       st.angebotsGrund = null;
       st.angebotsBelege = null;
+      st.keineVerlaengerung = null;
       return true;
     }
 
