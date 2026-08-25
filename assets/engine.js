@@ -546,6 +546,7 @@ const PUCKERO = (() => {
          Dazu kommt, was in echten Laufbahnen das Muster ist: es ist
          selten eine neue Verletzung. Es ist dasselbe Knie.
          ---------------------------------------------------------------- */
+      verletzungsjahre: 0,    // aufgelaufener Verschleiss
       altlasten: {},          // Verletzung -> wie oft sie schon da war
       /* ----------------------------------------------------------------
          Der Jahrgang als Massstab
@@ -1224,6 +1225,12 @@ const PUCKERO = (() => {
                     merke((e.form > 0 ? '+' : '') + Math.round(e.form * 100) + '% Form', e.form > 0); }
 
       wirkeLeben(e.leben, merke);
+      /* Und dasselbe noch einmal fuer die Rolle: acht Ereignisse
+         versprachen Rollenpunkte, aber e.rolle wurde ausschliesslich
+         im Sommerhandler ausgewertet - in einem gewoehnlichen Ereignis
+         verpuffte die Zusage. Dieselbe Luecke wie bei Moral und
+         Verschleiss, nur an einer dritten Stelle. */
+      if (e.rolle) rollenGutschrift(e.rolle);
       /* Verschleiss war bislang nur im Sommerhandler vorgesehen - in
          einem gewoehnlichen Ereignis waere er stumm verpufft, so wie
          schon einmal die Moral. Beide Wege koennen den Koerper

@@ -273,11 +273,51 @@ const UI = (() => {
      erschienen, und beim Draft war umgekehrt alles rot.
      ------------------------------------------------------------------ */
   function wertKlasse(v){
-    return v >= 81 ? 'w-elite'      // oberste drei Prozent
+    /* Ab 90 wird es prismatisch. Gemessen sind das 0,27 Prozent aller
+       Einzelwerte - etwa jeder dreihundertfuenfzigste. Selten genug,
+       dass es etwas heisst, und haeufig genug, dass man es in einer
+       guten Laufbahn einmal sieht. (Ab 95 waeren es 0,06 Prozent, das
+       waere praktisch nie.) */
+    return v >= 90 ? 'w-prisma'
+         : v >= 81 ? 'w-elite'      // oberste drei Prozent
          : v >= 72 ? 'w-stark'      // oberstes Fuenftel
          : v >= 61 ? 'w-solide'     // obere Haelfte
          : v >= 46 ? 'w-mittel'
          : 'w-schwach';             // unteres Fuenftel
+  }
+
+  /* ------------------------------------------------------------------
+     Dieselbe Skala fuer die Karrierebilanz
+
+     Eine Zahl wie "703 Punkte" sagt einem Neuling nichts - er weiss
+     nicht, ob das viel ist. Bei den Einzelwerten loest die Farbe das
+     schon; hier fehlte sie. Die Grenzen stehen auf den gemessenen
+     Quantilen ueber 300 vollstaendige Laufbahnen, je Feld eigene:
+     bei den Punkten p25=524, p50=703, p75=848, p90=1170, p97=1532.
+     ------------------------------------------------------------------ */
+  const BILANZ_MARKEN = {
+    gp:     [565, 733, 894, 1036, 1324],
+    g:      [159, 284, 402, 496, 721],
+    a:      [328, 401, 519, 692, 895],
+    p:      [524, 703, 848, 1170, 1532],
+    wins:   [150, 216, 333, 496, 632],
+    so:     [24, 34, 53, 72, 111],
+    poP:    [20, 45, 80, 140, 220],
+    poGp:   [20, 45, 78, 125, 190],
+    gwg:    [20, 38, 58, 82, 120],
+    titel:  [1, 1, 2, 3, 4],
+    legacy: [252, 470, 649, 911, 1362]
+  };
+
+  function bilanzKlasse(feld, wert){
+    const m = BILANZ_MARKEN[feld];
+    if (!m || wert == null || isNaN(wert)) return '';
+    return wert >= m[4] ? 'w-prisma'
+         : wert >= m[3] ? 'w-elite'
+         : wert >= m[2] ? 'w-stark'
+         : wert >= m[1] ? 'w-solide'
+         : wert >= m[0] ? 'w-mittel'
+         : '';
   }
 
   function attrRows(player, attrs){
@@ -1955,7 +1995,7 @@ const UI = (() => {
   const clampP = v => Math.max(0, Math.min(100, Math.round(v || 0)));
 
   return {
-    lebenKarte, turnierKarte, staerkeWandel, einflussLeiste, koerperBand, wertKlasse, frage,
+    lebenKarte, turnierKarte, staerkeWandel, einflussLeiste, koerperBand, wertKlasse, bilanzKlasse, frage,
  header, footer, mount, themaSetzen, themaLesen, attrRows, ovrBadge, seasonCard, statsTable,
            wappenBild, pokalBild,
            trophyList, klubKarten, natKarte, ligaBilanz, shareText, rankLeiste, karriereKarte,

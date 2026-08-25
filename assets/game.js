@@ -2052,20 +2052,33 @@ function CareerGame(root, cfg){
         ${alsApp ? zu() + auf('zahlen2') : ''}
 
         <h2 class="mt-l" style="margin-top:38px">Karrierebilanz</h2>
-        ${UI.statBoxen(res.isG
-          ? [['Spiele', t.gp], ['Siege', t.wins], ['Niederlagen', t.losses],
+        ${(() => {
+          /* Die Zahlen bekommen dieselbe Farbskala wie die Einzelwerte:
+             eine Karrieresumme sagt einem Neuling nichts, solange er
+             nicht weiss, wo sie im Feld steht. Gefaerbt wird nur, was
+             eine gemessene Verteilung hat - Strafminuten oder Quote
+             sind keine Bestenliste. */
+          const f = (feld, wert) => UI.bilanzKlasse(feld, wert);
+          return UI.statBoxen(res.isG
+          ? [['Spiele', t.gp, f('gp', t.gp)], ['Siege', t.wins, f('wins', t.wins)],
+             ['Niederlagen', t.losses],
              ['Fangquote', (t.sv * 100).toFixed(1) + '%'], ['Gegentorschnitt', t.gaa.toFixed(2)],
-             ['Shutouts', t.so, 'gold'], ['Paraden', t.saves],
-             ['Playoffspiele', t.poGp], ['Playoffsiege', t.poWins, 'gold'],
+             ['Shutouts', t.so, f('so', t.so)], ['Paraden', t.saves],
+             ['Playoffspiele', t.poGp, f('poGp', t.poGp)],
+             ['Playoffsiege', t.poWins, 'gold'],
              ['Serien gewonnen', t.serienGewonnen + '/' + t.serien],
              ['Verdienst', t.gehalt.toFixed(1) + ' Mio']]
-          : [['Spiele', t.gp], ['Tore', t.g], ['Vorlagen', t.a], ['Punkte', t.p, 'gruen'],
+          : [['Spiele', t.gp, f('gp', t.gp)], ['Tore', t.g, f('g', t.g)],
+             ['Vorlagen', t.a, f('a', t.a)], ['Punkte', t.p, f('p', t.p)],
              ['Punkte/Spiel', t.ppg100], ['Powerplay', t.ppg], ['Unterzahl', t.shg],
-             ['Siegtore', t.gwg, 'gold'], ['Schüsse', t.shots], ['Quote', t.shotPct + '%'],
+             ['Siegtore', t.gwg, f('gwg', t.gwg)], ['Schüsse', t.shots],
+             ['Quote', t.shotPct + '%'],
              ['+/-', (t.plus > 0 ? '+' : '') + t.plus], ['Strafminuten', t.pim],
-             ['Playoffspiele', t.poGp], ['Playoffpunkte', t.poP, 'gold'],
+             ['Playoffspiele', t.poGp, f('poGp', t.poGp)],
+             ['Playoffpunkte', t.poP, f('poP', t.poP)],
              ['Serien gewonnen', t.serienGewonnen + '/' + t.serien],
-             ['Verdienst', t.gehalt.toFixed(1) + ' Mio']])}
+             ['Verdienst', t.gehalt.toFixed(1) + ' Mio']]);
+        })()}
 
         ${rekordeHtml(res)}
 

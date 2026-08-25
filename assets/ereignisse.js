@@ -1615,8 +1615,11 @@ const EREIGNISSE = (() => {
           gut:{ moral:11, attr:{ konstanz:4 },
                 text:'Von dem Tag an spielst du nur noch für dich. Es wird deine beständigste Phase.' },
           schlecht:{ moral:-5, text:'Man lässt so etwas nicht los, weil man es beschließt.' } },
-        { t:'Ihn anrufen', chance:66, hinweis:'Der unbequeme Weg',
-          gut:{ moral:12, ruf:4, folgt:'rivalitaet',
+        /* folgt gehoert an die Option, nicht in die Wirkung - die
+           Engine liest o.folgt. Innerhalb von gut stand es hier
+           wirkungslos: der Strang oeffnete sich nie. */
+        { t:'Ihn anrufen', chance:66, hinweis:'Der unbequeme Weg', folgt:'rivalitaet',
+          gut:{ moral:12, ruf:4,
                 text:'Zwei Stunden am Telefon. Am Ende habt ihr beide erzählt, wovor ihr Angst habt.' },
           schlecht:{ moral:-6, text:'Es bleibt bei Höflichkeiten. Ihr habt euch nichts mehr zu sagen.' } },
         { t:'Alles auf eine letzte große Saison setzen', chance:42, hinweis:'Wenig zu verlieren',

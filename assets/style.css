@@ -3707,3 +3707,59 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
 .jk-staerke{font-size:11.5px;margin-top:3px;line-height:1.3}
 .season .events .ev.ev-playoff::before,
 .season .ev.ev-playoff::before{ content:"\1F3D2  "; color:var(--accent) }
+
+
+/* ==================================================================
+   Prismatisch: was ueber Gold hinausgeht
+
+   Ab 90 - gemessen 0,27 Prozent aller Einzelwerte, also etwa jeder
+   dreihundertfuenfzigste. Der Verlauf wandert langsam, damit die Zahl
+   lebt, ohne zu flackern; Farbenblinde erkennen sie an der Bewegung
+   und an der helleren Schrift, nicht nur am Farbton.
+   ================================================================== */
+.attr .v.w-prisma, .wert.w-prisma, .statbox b.w-prisma, .ew-v.w-prisma,
+.st-jetzt.w-prisma{
+  /* Erst eine sichtbare Farbe setzen: der Verlauf lebt davon, die
+     Schrift transparent zu machen, und wo background-clip:text nicht
+     greift, waere die Zahl sonst unsichtbar statt nur einfarbig. */
+  color:var(--w-elite);
+  background:linear-gradient(100deg,
+    #ffd76a 0%, #7ef3c0 18%, #6ad6ff 36%, #b98bff 54%,
+    #ff8fd0 72%, #ffd76a 90%, #7ef3c0 100%);
+  background-size:340% 100%;
+  -webkit-background-clip:text; background-clip:text;
+  animation:prismaLauf 7s linear infinite;
+  font-weight:800;
+}
+/* Nur wo der Textausschnitt wirklich unterstuetzt wird, wird die
+   Schrift durchsichtig - sonst bleibt sie golden. */
+@supports ((background-clip:text) or (-webkit-background-clip:text)){
+  .attr .v.w-prisma, .wert.w-prisma, .statbox b.w-prisma, .ew-v.w-prisma,
+  .st-jetzt.w-prisma{ color:transparent; -webkit-text-fill-color:transparent }
+}
+@keyframes prismaLauf{ to{ background-position:340% 0 } }
+
+/* Der Balken dazu - derselbe Verlauf, nur als Flaeche. */
+.attr .bar i.w-prisma{
+  background:linear-gradient(100deg,
+    #ffd76a, #7ef3c0, #6ad6ff, #b98bff, #ff8fd0, #ffd76a);
+  background-size:340% 100%;
+  animation:prismaLauf 7s linear infinite;
+  box-shadow:0 0 8px -1px rgba(255,215,106,.55);
+}
+
+/* Damit die Statbox-Zahl den Verlauf tragen kann, braucht sie einen
+   eigenen Anzeigekontext - inline-block reicht. */
+.statbox b.w-prisma{ display:inline-block }
+
+@media (prefers-reduced-motion:reduce){
+  .attr .v.w-prisma, .wert.w-prisma, .statbox b.w-prisma, .ew-v.w-prisma,
+  .st-jetzt.w-prisma, .attr .bar i.w-prisma{ animation:none }
+}
+
+/* Die uebrigen Stufen greifen jetzt auch in der Bilanz und im
+   Wertungsfeld, nicht nur bei den Attributen. */
+.statbox b.w-elite  { color:var(--w-elite) }
+.statbox b.w-stark  { color:var(--w-stark) }
+.statbox b.w-solide { color:var(--w-solide) }
+.statbox b.w-mittel { color:var(--w-mittel) }
