@@ -1736,6 +1736,14 @@ const PUCKERO = (() => {
         rollenStand: st.rollenStand,
         klubJahre: st.klubJahre,
         klubRang: (st.klubKonto[st.club.n] || {}).rang || 'zugang',
+        /* Solange jemand die Rechte haelt, gehoert das in den Auftakt -
+           es ist die Tuer, die einem offensteht, ohne dass man etwas
+           dafuer tut. */
+        draftRechte: (st.draftRechte && st.year <= st.draftRechte.bis
+                   && st.club && st.draftRechte.klub !== st.club.n)
+          ? { klub: st.draftRechte.klub, liga: st.draftRechte.liga,
+              bis: st.draftRechte.bis, runde: st.draftRechte.runde } : null,
+        entryDraft: st.entryDraft,
         verschleiss: st.verletzungsjahre || 0,
         altlasten: Object.assign({}, st.altlasten),
         klubRangName: (KLUBRANG.find(x =>
@@ -3525,6 +3533,45 @@ const PUCKERO = (() => {
         st.entryDraft = { runde, pick: pick2, gesamt, klub: klub ? klub.n : null,
                           liga, ungezogen: !runde, alter: st.age,
                           endgueltig: !runde && st.age >= 20 };
+
+        /* ------------------------------------------------------------
+           Der Draft als Moment
+
+           Er stand als eine Zeile unter zwanzig anderen im
+           Saisonbericht und als kleiner Chip im Kopf - fuer den
+           wichtigsten Tag im Leben eines Achtzehnjaehrigen zu wenig.
+           Als Folge gemeldet bekommt er dieselbe Buehne wie jede
+           andere Entscheidung mit Gewicht.
+           ------------------------------------------------------------ */
+        st.letzteFolge = {
+          gelungen: !!runde,
+          tag: liga === 'KHL' ? 'KHL-Draft' : 'Entry Draft',
+          wahl: runde
+            ? 'Nr. ' + gesamt + ' – ' + klub.n
+            : (st.age >= 20 ? 'Nicht gezogen' : 'Diesmal nicht gezogen'),
+          text: runde
+            ? (gesamt <= 10
+                ? 'Dein Name faellt so frueh, dass die Halle noch nicht ruhig ist. '
+                  + klub.n + ' holt dich an Position ' + gesamt + '.'
+                : runde === 1
+                ? 'Erste Runde. ' + klub.n + ' ruft deinen Namen als Nummer '
+                  + gesamt + ' auf, und ab da ist der Abend ein anderer.'
+                : 'Es dauert. Runde ' + runde + ', Position ' + pick2 + ', '
+                  + 'insgesamt die Nummer ' + gesamt + ' – und dann steht '
+                  + klub.n + ' da und meint dich.')
+            : (st.age >= 20
+                ? 'Die letzte Runde geht zu Ende, und dein Name faellt nicht. '
+                  + 'Ab jetzt bist du frei – das ist kein Nichts, aber es ist '
+                  + 'ein anderer Weg.'
+                : 'Sieben Runden, und keine davon war deine. '
+                  + 'Naechstes Jahr stehst du wieder auf der Liste.'),
+          wirkungen: runde
+            ? [{ t: 'Runde ' + runde + ', Pick ' + pick2, gut: true },
+               { t: klub.n + ' haelt deine Rechte bis ' + (st.year + 4), gut: true },
+               { t: '+' + (gesamt <= 10 ? 12 : runde === 1 ? 9 : runde <= 3 ? 5 : 2)
+                    + ' Ansehen', gut: true }]
+            : [{ t: st.age >= 20 ? 'Free Agent' : 'Naechstes Jahr wieder', gut: false }]
+        };
         if (klub){
           st.draftRechte = { klub: klub.n, liga, runde, bis: st.year + 4 };
         }

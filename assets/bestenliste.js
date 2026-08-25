@@ -173,8 +173,9 @@
       ? S.gesamt + (S.gesamt === 1 ? ' Laufbahn' : ' Laufbahnen') +
         ', nach ' + sorte().dativ + ' sortiert. Tipp auf eine Position für die ganze Geschichte.'
       : 'Noch nichts eingetragen.';
-    bereich.innerHTML = (S.gast ? einladung() : '') + listeHtml();
+    bereich.innerHTML = (S.gast ? einladung() : '') + rekordeHtml() + listeHtml();
     binde();
+    rekordeLaden();
   }
 
   function binde(){
@@ -375,6 +376,42 @@
      zwar nur einmal. Das Leserecht dafuer kommt aus db/05_gaeste.sql
      und gilt allein den beiden Ansichten.
      --------------------------------------------------------------- */
+  /* ------------------------------------------------------------------
+     Was ueberhaupt moeglich ist
+
+     Die Rangliste sagt, wer vorne steht. Sie sagt nicht, wo die
+     Grenzen liegen - und genau das will man wissen, waehrend man
+     selbst spielt: wie viele Punkte hat der beste Scorer je gemacht,
+     wie lange die laengste Laufbahn gedauert.
+     ------------------------------------------------------------------ */
+  function rekordeHtml(){
+    return `<div class="rekorde" id="rekorde">
+      <div class="rk-kopf">${UI.ikone('pokal', 14)} Bestmarken aller Spieler</div>
+      <div class="rk-gitter" id="rk-gitter">
+        <div class="rk-laden">Wird geladen …</div>
+      </div>
+    </div>`;
+  }
+
+  async function rekordeLaden(){
+    const ziel = document.getElementById('rk-gitter');
+    if (!ziel) return;
+    const erg = await KONTO.rekorde();
+    if (!erg.liste.length){
+      const kasten = document.getElementById('rekorde');
+      if (kasten) kasten.remove();
+      return;
+    }
+    ziel.innerHTML = erg.liste.map(r => `
+      <div class="rk-marke">
+        <span class="rk-ik">${UI.ikone(r.ik, 15)}</span>
+        <b class="rk-wert">${r.wert}</b>
+        <span class="rk-was">${esc(r.n)}</span>
+        <span class="rk-wer">${esc(r.halter.name || '')}
+          <i>${esc(r.halter.benutzername || 'unbekannt')}</i></span>
+      </div>`).join('');
+  }
+
   function einladung(){
     return `<div class="einladung">
       ${UI.ikone('krone', 18)}

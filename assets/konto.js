@@ -359,6 +359,42 @@ const KONTO = (() => {
     return { zeilen: data || [], gesamt: count || 0 };
   }
 
+  /* ------------------------------------------------------------------
+     Die Bestmarken aller Spieler
+
+     Die Bestenliste beantwortet eine Frage: wer ist insgesamt der
+     Groesste? Sie beantwortet nicht die andere, die man beim Spielen
+     hat: was ist ueberhaupt moeglich? Wie viele Punkte hat der beste
+     Scorer je gemacht, wie lange die laengste Laufbahn gedauert.
+
+     Je Feld eine Abfrage - das sind sechs kleine statt einer grossen,
+     aber jede holt genau eine Zeile, und die Ansicht ist ohnehin
+     indiziert.
+     ------------------------------------------------------------------ */
+  const REKORDE = [
+    { k:'legendenwert', n:'Legendenpunkte',  ik:'krone' },
+    { k:'punkte',       n:'Scorerpunkte',    ik:'tor' },
+    { k:'trophaeen',    n:'Trophäen',        ik:'pokal' },
+    { k:'hoehepunkt',   n:'Höchste Wertung', ik:'hoch' },
+    { k:'saisons',      n:'Längste Laufbahn',ik:'kalender', einheit:'Saisons' }
+  ];
+
+  async function rekorde(){
+    if (!konfiguriert()) return { fehler:'nicht eingerichtet', liste:[] };
+    try {
+      const c = await ladeClient();
+      const treffer = await Promise.all(REKORDE.map(async r => {
+        const { data, error } = await c.from('bestenliste')
+          .select('benutzername, name, nation, pos, ' + r.k)
+          .order(r.k, { ascending: false })
+          .limit(1);
+        if (error || !data || !data.length) return null;
+        return Object.assign({}, r, { wert: data[0][r.k], halter: data[0] });
+      }));
+      return { liste: treffer.filter(Boolean) };
+    } catch(e){ return { fehler:'Keine Verbindung', liste:[] }; }
+  }
+
   /* Eine einzelne fremde Laufbahn, samt Saison fuer Saison. */
   async function karriereAnsicht(id){
     const c = await ladeClient();
@@ -386,7 +422,7 @@ const KONTO = (() => {
     konfiguriert, starten, zustand, beiAenderung,
     registrieren, anmelden, abmelden, passwortZuruecksetzen, benutzernameAendern,
     profileLaden, freigeben, sperren,
-    karriereSpeichern, alsGastEintragen, gastnamePruefen, gastnameLesen,
+    karriereSpeichern, alsGastEintragen, gastnamePruefen, gastnameLesen, rekorde,
     karrierenLaden, nichtUebertragen, uebertragen,
     zieleLaden, zieleSpeichern, bestenliste, karriereAnsicht, eigenePlaetze
   };

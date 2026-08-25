@@ -1079,9 +1079,12 @@ function CareerGame(root, cfg){
           Kapitän der Nationalmannschaft</div>` : ''}
         ${UI.rollenKarte(st, letzte)}
         ${umfeldBlock(st)}
-        ${st.entryDraft ? `<div class="sk-rolle draft">${st.entryDraft.ungezogen
+        ${st.entryDraft ? `<div class="sk-rolle draft" title="${st.entryDraft.ungezogen
+            ? 'Im Entry Draft nicht gezogen'
+            : 'Gesamtposition ' + st.entryDraft.gesamt + ' von 224'}">${st.entryDraft.ungezogen
           ? '📋 Im Draft nicht gezogen'
-          : '📋 Draft: Runde ' + st.entryDraft.runde + ', Pos. ' + st.entryDraft.pick}</div>` : ''}
+          : '📋 Draft Nr. ' + st.entryDraft.gesamt
+            + ' (R' + st.entryDraft.runde + ')'}</div>` : ''}
         <div class="sk-vitrine">
           <span>Vitrine <b class="gold">${trophaeen}</b></span>
           ${trophaeen ? '' : '<span class="small">🏆 Leere Vitrine</span>'}
@@ -1244,6 +1247,14 @@ function CareerGame(root, cfg){
         ${UI.zielKarte(v.ziele)}
         ${blind() ? '' : UI.einflussLeiste(v.einfluesse, true)}
         ${UI.koerperBand(v.verschleiss, v.altlasten)}
+        ${v.draftRechte ? `<div class="draftband">
+          ${UI.ikone('ziel', 14)}
+          <div class="db-text">
+            <b>${esc(v.draftRechte.klub)} hält deine Rechte</b>
+            <span>${v.draftRechte.liga === 'KHL' ? 'KHL-Draft' : 'Entry Draft'},
+              Runde ${v.draftRechte.runde} · noch bis ${v.draftRechte.bis}</span>
+          </div>
+        </div>` : ''}
         ${UI.lebenKarte(v.leben)}
 
         <div class="row mt-l">
@@ -2055,7 +2066,8 @@ function CareerGame(root, cfg){
                   <span class="pill">${nat.flag} ${nat.n}</span>
                   <span class="pill">Rücktritt mit ${res.retireAge}</span>
                   ${res.entryDraft && !res.entryDraft.ungezogen
-                    ? `<span class="pill">Draft ${res.entryDraft.runde}.${res.entryDraft.pick}</span>`
+                    ? `<span class="pill">Draft Nr. ${res.entryDraft.gesamt}
+                        · R${res.entryDraft.runde} · ${esc(res.entryDraft.klub || '')}</span>`
                     : (res.entryDraft ? '<span class="pill">Ungedraftet</span>' : '')}
                   ${res.kapitaenSeit ? '<span class="pill gold">Kapitän</span>' : ''}
                 </div>
