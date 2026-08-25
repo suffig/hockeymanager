@@ -4387,15 +4387,62 @@ const PUCKERO = (() => {
          eine Liga, die besser zahlt, rueckt nach vorn. Wer abgesichert
          ist, kann sich den Verein nach anderen Massstaeben aussuchen. */
       const knapp = clamp((3 - st.leben.vermoegen) / 3, 0, 1) * (st.age >= 29 ? 1 : 0.4);
-      const gewichtet = moeglicheLigen.map(l => ({
-        l, s: l.prestige + (l.k === homeLg ? 24 + st.leben.heimweh * 0.35 : 0)
-              + (l.k === aktuell.lg ? 10 + st.leben.wurzeln * 0.12 : 0)
-              + knapp * l.salary * 26 + r() * 30
-      })).sort((a, b) => b.s - a.s);
+      const gewichtet = moeglicheLigen.map(l => {
+        /* ------------------------------------------------------------
+           Wer einer Liga entwachsen ist, hoert von dort nichts mehr
 
-      for (const g of gewichtet){
+           Ein Spieler mit Wertung 90 bekam Angebote aus der DEL, deren
+           Huerde bei 72 liegt - gemessen war die haeufigste Mischung
+           fuer einen 88er "DEL + DEL + NHL". Ein Verein, der einen
+           solchen Mann weder bezahlen noch ueberzeugen kann, meldet
+           sich nicht. Heimweh hebt das teilweise auf: nach Hause geht
+           man auch unter Wert.
+           ------------------------------------------------------------ */
+        const huerde = LG_MIN[l.k] !== undefined ? LG_MIN[l.k] : 58;
+        const entwachsen = clamp(bewertung - huerde - 6, 0, 24)
+                         * (l.k === homeLg ? 0.7 : 2.2);
+        /* Der Heimatbonus war zu 24 Punkten fest und stieg erst dann
+           mit dem Heimweh. Damit zog die Heimatliga auch den an, der
+           gar kein Heimweh hat - und ein Ausnahmespieler bekam Angebote
+           aus seiner zweitklassigen Heimatliga statt aus der NHL. Jetzt
+           traegt das Heimweh den Bonus fast allein: bei null bleibt ein
+           kleiner Rest, bei hohem Heimweh wiegt er schwerer als zuvor. */
+        return { l, s: l.prestige + (l.k === homeLg ? 6 + st.leben.heimweh * 0.45 : 0)
+              + (l.k === aktuell.lg ? 10 + st.leben.wurzeln * 0.12 : 0)
+              + knapp * l.salary * 26 + r() * 30 - entwachsen };
+      }).sort((a, b) => b.s - a.s);
+
+      /* ----------------------------------------------------------------
+         Mehrere Vereine aus derselben Liga
+
+         Vorher zog die Schleife genau einen Verein je Liga und brach
+         dann ab. Zwei Folgen, beide gemeldet: ein Ausnahmespieler bekam
+         nie drei NHL-Angebote, sondern eins aus der NHL und zwei von
+         weiter unten. Und wer mit einundzwanzig aus der Jugend kam und
+         nur eine Liga erreichte, bekam nur ein einziges Angebot -
+         gemessen in 39 Prozent der Faelle.
+
+         Jetzt bieten die Ligen reihum, die ueberhaupt im Rennen sind -
+         also die, deren Gewicht nahe am besten liegt. Fuer einen
+         Ausnahmespieler ist das oft nur die NHL, und dann kommen drei
+         NHL-Angebote. Fuer alle anderen sind mehrere Ligen beieinander,
+         und die Auswahl bleibt bunt. Heimweh holt die Heimatliga ins
+         Rennen zurueck - nach Hause geht man auch unter Wert.
+
+         Die Liste einfach dreimal hintereinanderzuhaengen reicht nicht:
+         dann fuellt der erste Durchlauf schon alle drei Plaetze mit
+         drei verschiedenen Ligen, und die zweite NHL kommt nie.
+         ---------------------------------------------------------------- */
+      const bestesGewicht = gewichtet.length ? gewichtet[0].s : 0;
+      const imRennen = gewichtet.filter(g => bestesGewicht - g.s <= 22);
+      const runde = [];
+      for (let durchgang = 0; durchgang < 3; durchgang++)
+        imRennen.forEach(g => runde.push(g));
+      gewichtet.filter(g => bestesGewicht - g.s > 22).forEach(g => runde.push(g));
+      for (const g of runde){
         if (angebote.length >= 3) break;
-        const pool = clubsOf(g.l.k).filter(c => c.n !== aktuell.n);
+        const pool = clubsOf(g.l.k).filter(c =>
+          c.n !== aktuell.n && !angebote.some(a => a.club.n === c.n));
         if (!pool.length) continue;
         /* ------------------------------------------------------------
            Wer bietet ueberhaupt?
