@@ -761,6 +761,7 @@ const PUCKERO = (() => {
       scheitel: 0,            // individueller Hoehepunkt des Koerpers
       ruecktrittsfrage: null, // offene Frage: weitermachen oder aufhoeren?
       zusatzjahre: 0,         // Jahre, die bewusst drangehaengt wurden
+      altersgrenze: false,    // maxAge ueberschritten - entschieden wird in vertragspruefung
       laenderBilanz: { gp:0, g:0, a:0, p:0, wins:0, so:0, turniere:0, medaillen:0 },
       vertragJahre: 2,        // Restlaufzeit des aktuellen Vertrags
       fertig: false,
@@ -3169,7 +3170,17 @@ const PUCKERO = (() => {
             turnier.wins = Math.round(spiele * clamp(0.35 + (natPower - 80) / 60, 0.15, 0.85));
             turnier.so = r() < 0.25 ? 1 : 0;
           } else {
-            const schnitt = (season.p / Math.max(1, season.gp)) * (0.85 + r() * 0.55);
+            /* ------------------------------------------------------------
+               Ein Turnier ist schwerer als die Liga
+
+               Der Faktor lag im Mittel bei 1,12 - man traf also bei
+               einer Weltmeisterschaft besser als beim eigenen Verein.
+               Gemessen ergab das 9,4 Punkte in 7,9 Spielen fuer einen
+               Goldgewinner, und selbst nach einem Vorrundenaus noch
+               6,4. Gegen die besten Mannschaften der Welt spielt man
+               aber nicht ueber, sondern unter dem Ligaschnitt.
+               ------------------------------------------------------------ */
+            const schnitt = (season.p / Math.max(1, season.gp)) * (0.50 + r() * 0.45);
             turnier.p = Math.max(0, Math.round(schnitt * spiele));
             turnier.g = Math.round(turnier.p * (P.goalRate / (P.goalRate + P.assistRate)));
             turnier.a = turnier.p - turnier.g;
@@ -3186,13 +3197,21 @@ const PUCKERO = (() => {
              ein Spieler so aufdreht, gewinnt seine Mannschaft meistens
              ein paar Spiele mehr.
 
-             Gemessen wird an dem, was in diesem Turnier ueblich ist -
-             gut ein Punkt je Spiel -, und der Ausschlag ist gedeckelt,
-             damit ein einzelner Mann kein Land traegt. */
+             Gemessen wird an dem, was in diesem Turnier ueblich ist,
+             und der Ausschlag ist gedeckelt, damit ein einzelner Mann
+             kein Land traegt.
+
+             Der Nullpunkt lag bei einem Punkt je Spiel - geeicht auf
+             die Zeit, in der ein Turnier besser lief als die Liga.
+             Seit die Ausbeute auf ein realistisches Mass gesenkt ist,
+             liegt der Schnitt bei 0,65, und gegen die alte Eins
+             gemessen bekam praktisch jeder Abzug: die Goldquote fiel
+             von 379 auf 241 Turniere. Neuer Nullpunkt, steilere
+             Kennlinie, damit der Ausschlag derselbe bleibt. */
           const eigenerBeitrag = (() => {
             if (isG) return clamp(((turnier.sv || 0.9) - 0.908) * 380, -6, 9);
             const proSpiel = (turnier.p || 0) / Math.max(1, spiele);
-            return clamp((proSpiel - 1.0) * 9, -6, 9);
+            return clamp((proSpiel - 0.65) * 14, -6, 9);
           })();
           const wurf = r() * 100 - eigenerBeitrag * 2.2;
           let platz = 'Vorrunde', medaille = null;
@@ -3213,6 +3232,32 @@ const PUCKERO = (() => {
                      : olympia ? 'olyBronze' : 'wmBronze';
           } else if (wurf < 88){ platz = 'Viertelfinale'; }
           turnier.platz = platz;
+
+          /* ------------------------------------------------------------
+             Wie viele Spiele es wirklich waren
+
+             Die Spielzahl stand vor der Auslosung fest und war deshalb
+             dieselbe, ob man Gold holte oder in der Vorrunde
+             ausschied - gemessen 7,9 gegen 8,0. Wer nach der
+             Gruppenphase heimfaehrt, hat die Halbfinals aber nicht
+             gespielt. Der Beitrag oben rechnet mit einer Rate je Spiel
+             und bleibt davon unberuehrt; die Zaehlwerte skalieren mit.
+             ------------------------------------------------------------ */
+          const fehlendeRunden = platz === 'Vorrunde' ? 3
+                               : platz === 'Viertelfinale' ? 2 : 0;
+          const gpEcht = Math.max(3, spiele - fehlendeRunden);
+          const anteilGespielt = spiele > 0 ? gpEcht / spiele : 1;
+          turnier.gp = gpEcht;
+          if (isG){
+            turnier.wins = Math.round((turnier.wins || 0) * anteilGespielt);
+            /* Ein Zunullspiel in der Vorrunde bleibt moeglich, wird aber
+               seltener, wenn weniger gespielt wurde. */
+            if (fehlendeRunden && turnier.so) turnier.so = r() < anteilGespielt ? 1 : 0;
+          } else {
+            turnier.p = Math.round((turnier.p || 0) * anteilGespielt);
+            turnier.g = Math.round(turnier.p * (P.goalRate / (P.goalRate + P.assistRate)));
+            turnier.a = turnier.p - turnier.g;
+          }
 
           /* ------------------------------------------------------------
              Was man dort eigentlich macht
@@ -3879,7 +3924,23 @@ const PUCKERO = (() => {
       st.bericht = { jahr: season.year, saison: season };
 
       st.age++; st.year++;
-      if (st.age > maxAge){ ende('ruhestand', 'mit ' + (st.age - 1)); return season; }
+      /* ----------------------------------------------------------------
+         Die Altersgrenze wird nur vermerkt, entschieden wird spaeter
+
+         Hier stand ein harter Schnitt: ueberschreitet das Alter maxAge,
+         ist Schluss - ohne ein Wort. maxAge kann bei 33 liegen, und
+         gemessen wurde bei einer letzten Wertung von 88 oder mehr nur
+         in 27 Prozent der Faelle ueberhaupt gefragt. Mit sechsunddreissig,
+         Staerke 90 und einer starken Saison einfach aufzuhoeren, ohne
+         gefragt zu werden, ist der ploetzlichste denkbare Abschied.
+
+         Die Entscheidung faellt jetzt in vertragspruefung(), zusammen
+         mit den anderen Ruecktrittsfragen. Sie hier zu stellen ging
+         nicht: die Funktion kehrt danach zurueck, und Sommer, Training
+         und Vertragspruefung waeren uebersprungen worden - der Vertrag
+         lief dann nie ab, und gemessen spielten Leute bis 104.
+         ---------------------------------------------------------------- */
+      if (st.age > maxAge) st.altersgrenze = true;
       st.sommer = macheSommer();
       st.training = trainingsOptionen(player, st.age, player.seed + ':train:' + st.age,
                                       ((player.wirkung || {}).training || 0) + (st.sommerBonus || 0));
@@ -3959,6 +4020,43 @@ const PUCKERO = (() => {
          aufhoert - er ist gebunden. Sonst stand die Ruecktrittsfrage
          auf dem Schirm und danach musste man einen neuen Vertrag
          unterschreiben, was sich gegenseitig ausschliesst. */
+      /* ----------------------------------------------------------------
+         Die Altersgrenze: fragen, solange jemand noch traegt
+
+         Ein laufender Vertrag schuetzt wie ueberall - der Klub hat sich
+         gebunden. Wer die Huerde seiner Liga noch klar nimmt, wird
+         gefragt statt beendet; das Anhaengen kostet hier mehr als
+         sonst, weil der Koerper ohnehin ueber seiner Zeit ist.
+         ---------------------------------------------------------------- */
+      /* Ohne Vertragsbedingung. Ein laufender Vertrag schuetzt vor der
+         FREIWILLIGEN Frage - Familie, Heimkehr, Hoehepunkt -, denn wer
+         unterschrieben hat, hoert nicht mittendrin auf. Die
+         Altersgrenze ist etwas anderes: sie ist eine Frage des
+         Koerpers, und die stellt sich unabhaengig davon, was auf dem
+         Papier steht.
+
+         Die Bedingung war ausserdem nicht zu erfuellen: gemessen wurde
+         ein Spieler jedes Jahr von einem groesseren Klub herausgekauft
+         und unterschrieb neu, sein Vertrag stand bei der Pruefung also
+         immer auf zwei Jahren. Er spielte bis dreiundneunzig. */
+      if (st.altersgrenze){
+        const huerdeEnde = st.club && LG_MIN[st.club.lg] !== undefined
+                         ? LG_MIN[st.club.lg] : 58;
+        if (bewertung >= huerdeEnde + 2 && st.zusatzjahre < 4){
+          st.ruecktrittsfrage = {
+            alter: st.age, ovr: naechsterOvr, verschleiss,
+            zusatzjahre: st.zusatzjahre, grund: 'ruhestand', altersgrenze: true,
+            vermoegen: st.leben.vermoegen,
+            abgesichert: st.leben.vermoegen >= 5,
+            abbau: Math.round((5 + st.zusatzjahre * 2.2 + verschleiss * 0.8) * 10) / 10,
+            risiko: Math.round((10 + st.zusatzjahre * 4 + verschleiss * 2))
+          };
+          return;
+        }
+        ende('ruhestand', 'mit ' + (st.age - 1));
+        return;
+      }
+
       if (st.vertragJahre <= 1 && r() < chance){
         /* Ab hier entscheidest du selbst – und wirst danach jedes Jahr neu gefragt. */
         st.ruecktrittsfrage = {

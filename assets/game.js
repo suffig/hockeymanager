@@ -1527,10 +1527,15 @@ function CareerGame(root, cfg){
             ${f.zusatzjahre ? `<span class="pill">${f.zusatzjahre}. Zusatzjahr</span>` : ''}
           </div>
           <h2 style="font-family:var(--font);font-size:calc(23px * var(--txt, 1));font-weight:750">
-            ${ANLASS[f.grund] ? ANLASS[f.grund].titel
+            ${f.altersgrenze ? 'Dein Körper hat sein Alter erreicht'
+              : ANLASS[f.grund] ? ANLASS[f.grund].titel
               : (f.zusatzjahre ? 'Noch ein Jahr?' : 'Ist es Zeit aufzuhören?')}</h2>
           <p style="color:var(--muted);margin:0 0 10px">
-            ${ANLASS[f.grund] ? ANLASS[f.grund].text
+            ${f.altersgrenze
+              ? 'Die Zahlen stimmen noch, und der Klub würde verlängern. '
+                + koerper + ' Was du ab jetzt spielst, spielst du gegen die Uhr: '
+                + 'jedes weitere Jahr kostet mehr Substanz als das davor.'
+              : ANLASS[f.grund] ? ANLASS[f.grund].text
               : 'Die Beine werden schwerer, die Wege länger. ' + koerper
                 + ' Der Klub würde dich behalten, aber niemand würde sich wundern, '
                 + 'wenn du jetzt Schluss machst.'}</p>
