@@ -2073,7 +2073,15 @@ const EREIGNISSE = (() => {
       text:'Seit dem Trainingslager sind Monate vergangen, in denen nichts passierte. '
          + 'Jetzt sitzt derselbe Mann wieder da, diesmal mit einem Blatt Papier, '
          + 'auf dem eine Zahl und eine Jahreszahl stehen.',
-      bedingung: st => st.age >= 20,
+      /* Der Strang gehoert an die Draftrechte, nicht ans Alter. Mit
+         "st.age >= 20" konnte er mit achtundzwanzig zuschlagen, wenn
+         man laengst in der NHL spielte - und dann sass da ein Mann mit
+         einem Blatt Papier von einem Verein, der einen vor zehn Jahren
+         gezogen hatte. Jetzt nur, solange die Rechte gelten und man
+         nicht ohnehin schon dort spielt. */
+      bedingung: st => !!(st.age >= 19 && st.draftRechte && st.club
+                    && st.draftRechte.klub !== st.club.n
+                    && st.year <= st.draftRechte.bis),
       optionen:[
         { t:'Sofort unterschreiben', chance:78,
           hinweis:'Der Weg, für den du gedraftet wurdest',

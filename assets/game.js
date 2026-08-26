@@ -419,7 +419,7 @@ function CareerGame(root, cfg){
     /* Dieselbe Rechnung wie die erste Saison - eine Laufbahn beginnt
        mit achtzehn. Vorher stand hier der nackte Mittelwert, und die
        Zahl sprang beim ersten Saisonbericht. */
-    const ovr = PUCKERO.wertungMitAlter(S.player, 18);
+    const ovr = PUCKERO.wertungMitAlter(S.player, 16);
 
     root.innerHTML = `
       <div class="panel-head">
@@ -524,7 +524,7 @@ function CareerGame(root, cfg){
     /* Dieselbe Rechnung wie die erste Saison - eine Laufbahn beginnt
        mit achtzehn. Vorher stand hier der nackte Mittelwert, und die
        Zahl sprang beim ersten Saisonbericht. */
-    const ovr = PUCKERO.wertungMitAlter(S.player, 18);
+    const ovr = PUCKERO.wertungMitAlter(S.player, 16);
     const nat = PUCKERO.nation(S.player.nation);
     root.innerHTML = `
       <div class="panel-head">
@@ -1707,7 +1707,8 @@ function CareerGame(root, cfg){
               <span class="wz-text">
                 <b>${o.wagnis ? '<span class="wz-marke">Wagnis</span> ' : ''}${esc(o.t)}</b>
                 <span class="small">${esc(o.hinweis || '')}${o.bonus
-                  ? ' · +' + o.bonus + '% durch Eigenschaft' : ''}</span>
+                  ? ' · ' + (o.bonus > 0 ? '+' : '') + o.bonus
+                    + '% durch Eigenschaft' : ''}</span>
               </span>
               <span class="wz-balken">
                 <i class="gut" style="width:${o.chance}%">${o.chance >= 22 ? o.chance + '%' : ''}</i>

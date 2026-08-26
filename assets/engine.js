@@ -405,7 +405,7 @@ const PUCKERO = (() => {
      Saison. Diese Funktion rechnet, was die Saison rechnet.
      ------------------------------------------------------------------ */
   function wertungMitAlter(player, age){
-    const form = formFactor(age != null ? age : 18, player.traits,
+    const form = formFactor(age != null ? age : 16, player.traits,
                             (player.wirkung || {}).lernkurve, player.scheitel);
     return overall(player, devAttrs(player.attrs, form));
   }
@@ -479,6 +479,17 @@ const PUCKERO = (() => {
        aus, als er war. Mit sauberem Startwert lagen 20 Prozent aller
        Laufbahnen unter zwoelf Punkten Zuwachs - gemessen mit den alten
        Werten waren es 12. */
+    /* ------------------------------------------------------------------
+       Die Jugendjahre zaehlen weniger
+
+       Seit die Laufbahn mit sechzehn beginnt, liegen zwei zusaetzliche
+       Sommer vor dem Draft. Mit dem vollen Satz stieg der Gipfelwert
+       gemessen von 80,9 auf 83,3 und der Anteil "Unsterblich" von 5,3
+       auf 15,8 Prozent - das Spiel wurde zufaellig dreimal leichter,
+       ohne dass jemand das wollte. Ein Sechzehnjaehriger in seiner
+       Jugendliga arbeitet auch, aber nicht im Profibetrieb.
+       ------------------------------------------------------------------ */
+    if (age <= 17) return 7;
     if (age <= 22) return 13;  // junge Spieler entwickeln sich sprunghaft
     if (age <= 27) return 8;
     if (age <= 31) return 4;
@@ -574,7 +585,16 @@ const PUCKERO = (() => {
     const heimJugend = HOME_JUN[player.nation] || 'JCHL';
 
     const st = {
-      age: 18,
+      /* ----------------------------------------------------------------
+         Eine Laufbahn beginnt mit sechzehn
+
+         Vorher mit achtzehn - und der Draft faellt ins Fenster 18 bis
+         20, lag also gleich in der ersten Saison. In Wirklichkeit
+         spielt ein Junge zwei Jahre in seiner Jugendliga, bevor sein
+         Jahrgang ueberhaupt draftberechtigt ist. Jetzt sind es zwei
+         Saisons Vorlauf, und der Draftabend kommt in der dritten.
+         ---------------------------------------------------------------- */
+      age: 16,
       year: 2026,
       club: null,             // wird durch die Nachwuchswahl gesetzt
       ruf: clamp(40 + ((player.wirkung || {}).rufStart || 0), 20, 70),
@@ -785,6 +805,7 @@ const PUCKERO = (() => {
       angebotsBasis: null,     // womit die aktuellen Angebote entstanden sind
       /* Warum der eigene Verein diesmal kein Angebot gemacht hat. */
       keineVerlaengerung: null,
+      kauftRaus: false,        // ein groesserer Klub kauft dich aus dem Vertrag
       training: null
     };
 
@@ -1072,8 +1093,28 @@ const PUCKERO = (() => {
        --------------------------------------------------------------- */
     function pruefeNominierung(){
       if (!st.natDebuet || !st.club) return null;      // erst nach dem Debuet
-      if (st.age < 22 || st.age > 35) return null;
-      if (r() > 0.45) return null;                     // nicht jedes Jahr
+      /* Das Altersfenster war enger als das der Nominierung selbst:
+         gefragt wurde von 22 bis 35, nominiert werden konnte jeder
+         ueber 20. Gemessen standen deshalb Spieler mit 37 bis 41 beim
+         Turnier, ohne je gefragt worden zu sein - und einen
+         Achtunddreissigjaehrigen mit Wertung 93 laedt ein Verband sehr
+         wohl noch ein. Die untere Grenze folgt der Stufenwahl: bis
+         zwanzig geht man ueber die Junioren. */
+      if (st.age < 21) return null;
+      /* ------------------------------------------------------------------
+         Wer nominiert wird, wird auch gefragt
+
+         Hier stand ein Muenzwurf: in 55 Prozent der Jahre kam die
+         Anfrage gar nicht erst. Ob man aber im Sommer beim Turnier
+         steht, entschied davon unabhaengig die Leistung - gemessen
+         fanden 67 Prozent aller A-Turniere statt, ohne dass der
+         Verband je gefragt haette. Man stand einfach da.
+
+         Die Anfrage ist die einzige Stelle, an der man ueber sein
+         Nationaltrikot entscheidet. Sie faellt jetzt nicht mehr aus;
+         wer nicht will, sagt ab, und das merkt sich der Verband
+         (siehe verbandFragtAn).
+         ------------------------------------------------------------------ */
       if (!verbandFragtAn()) return null;              // wer absagt, wird seltener gefragt
 
       /* ----------------------------------------------------------------
@@ -1093,7 +1134,15 @@ const PUCKERO = (() => {
       const letzteS = st.seasons[st.seasons.length - 1];
       const natB = (nation(player.nation) || {}).wm || 70;
       const wertJetzt = letzteS ? letzteS.ovr : 0;
-      if (wertJetzt < 78 + (100 - natB) * 0.26 - 6) return null;
+      /* Die Schwelle liegt bewusst unter der spaeteren Nominierungs-
+         schwelle. Zwei Gruende: die Anfrage kennt nur die letzte Saison,
+         die Nominierung die laufende - wer sich verbessert, faellt sonst
+         durch die Frage und steht trotzdem beim Turnier. Und der
+         Verbandsbonus einer Eigenschaft senkt die Nominierungsschwelle,
+         die Frage kannte ihn gar nicht. Gemessen fanden 22 Prozent
+         aller A-Turniere ohne vorherige Frage statt. */
+      const natBonusFrage = (player.wirkung || {}).natBonus || 0;
+      if (wertJetzt < 78 + (100 - natB) * 0.26 - 11 - natBonusFrage * 0.45) return null;
 
       /* ----------------------------------------------------------------
          Der Verband fragt nur fuer die A-Mannschaft
@@ -3892,7 +3941,20 @@ const PUCKERO = (() => {
              landet, haengt daran, wie weit man ueber der Schwelle
              liegt - mit reichlich Streuung, denn kein Draft geht so
              aus, wie die Listen es vorhersagen. */
-          const spanne = clamp((wert - 79) / 18, 0, 1);
+          /* ------------------------------------------------------------
+             Die Spanne war zu eng und klemmte oben ab
+
+             Seit die Laufbahn mit sechzehn beginnt, steht am Draftabend
+             ein Achtzehnjaehriger mit zwei Sommern Training; die
+             Gipfelprojektion, die zu dreissig Prozent in den Wert
+             eingeht, liegt entsprechend hoeher. Bei einem Teiler von 18
+             erreichte jeder ueber 97 den Anschlag und landete damit
+             ganz vorne - gemessen sprangen die Erstrundenpicks von 14
+             auf 29 Prozent. Ein Erstrundenpick, den fast jeder Dritte
+             bekommt, ist keiner mehr. Mit 22 braucht die erste Runde
+             wieder das oberste Achtel der Jahrgangsbewertung.
+             ------------------------------------------------------------ */
+          const spanne = clamp((wert - 79) / 22, 0, 1);
           const mitte = 224 - Math.pow(spanne, 0.75) * 220;
           gesamt = clamp(Math.round(mitte + (r() - 0.5) * 46), 1, 224);
 
@@ -4299,9 +4361,21 @@ const PUCKERO = (() => {
 
       let grund = null;
       if (juniorEnde)         grund = 'Die Juniorenzeit ist vorbei.';
-      else if (zuSchwach)     grund = 'Der Klub löst den Vertrag auf – die Leistung reicht nicht mehr.';
+      else if (zuSchwach){
+        /* Die Begruendung nannte keine Zahl und stand deshalb manchmal
+           neben einer starken Saison - gemessen in sieben Prozent der
+           Faelle, darunter Titelgewinner. Der Klub hat trotzdem recht:
+           die Wertung liegt unter dem, was die Liga verlangt. Wenn er
+           das sagt, soll er auch sagen, um wie viel. */
+        const fehlt = Math.max(1, Math.round((LG_MIN[st.club.lg] || 60) - bewertung));
+        grund = 'Der Klub löst den Vertrag auf – für die ' + aktuelleLiga.n
+              + ' fehlen dir ' + fehlt + (fehlt === 1 ? ' Punkt.' : ' Punkte.');
+      }
       else if (zuGross)       grund = 'Ein größerer Klub klopft an und kauft dich aus dem Vertrag.';
       else if (st.vertragJahre <= 0) grund = 'Dein Vertrag läuft aus.';
+      /* macheAngebote braucht das: wer herausgekauft wird, bekommt kein
+         Angebot mehr vom eigenen Verein. */
+      st.kauftRaus = !!zuGross && !zuSchwach && !juniorEnde;
 
       if (!grund){
         season.events.push({ t: 'Vertrag läuft noch ' + st.vertragJahre +
@@ -4592,7 +4666,11 @@ const PUCKERO = (() => {
          Kapitaen. Gemessen war das der haeufigste Fall (39 Prozent
          aller Absagen), und ausgerechnet er stand ohne ein Wort da. */
       const ligaZuHoch = !moeglicheLigen.some(l => l.k === aktuell.lg);
-      const bleibtMoeglich = !ligaZuHoch && !absage;
+      /* "Ein groesserer Klub kauft dich aus dem Vertrag" und daneben
+         steht "Verbleib bei deinem Klub" - das widerspricht sich. Wer
+         herausgekauft wird, ist beim alten Verein weg. Gemessen war
+         der eigene Klub in 96 Prozent dieser Faelle trotzdem dabei. */
+      const bleibtMoeglich = !ligaZuHoch && !absage && !st.kauftRaus;
       if (bleibtMoeglich) nimm(aktuell, true);
       else st.keineVerlaengerung = {
         klub: aktuell.n,
@@ -4847,6 +4925,7 @@ const PUCKERO = (() => {
       st.angebotsGrund = null;
       st.angebotsBelege = null;
       st.keineVerlaengerung = null;
+      st.kauftRaus = false;
       return true;
     }
 
@@ -5636,17 +5715,28 @@ const PUCKERO = (() => {
      Grenze waeren zweiundvierzig Prozent aller Laufbahnen als
      Journeyman geendet. */
   function legacyRank(v){
-    if (v >= 1400) return { n:'Unsterblich', c:'gold', d:'Ein Name, den man in hundert Jahren noch kennt.' };
-    if (v >= 1115) return { n:'Hall of Fame', c:'gold', d:'Trikot unter dem Hallendach, Platz in der Ruhmeshalle.' };
-    if (v >= 905) return { n:'Franchise-Ikone', c:'', d:'Ein Klub hat eine Ära nach dir benannt.' };
-    if (v >= 710) return { n:'Topstar', c:'', d:'Jahrelang erste Reihe, erste Wahl, erste Schlagzeile.' };
-    if (v >= 525) return { n:'Leistungsträger', c:'', d:'Solide Karriere in starken Ligen.' };
-    if (v >= 270) return { n:'Profi', c:'', d:'Ein ehrliches Eishockeyleben.' };
+    /* Neu gemessen, seit die Laufbahn mit sechzehn beginnt: zwei
+       Saisons mehr bedeuten mehr Produktion und mehr Vereinsjahre, und
+       gegen die alten Schwellen gemessen wurde jede achte Laufbahn
+       "Unsterblich" statt jeder zwanzigsten. Die Raenge sollen ihre
+       Seltenheit behalten, nicht ihre Zahl - die Schwellen sind
+       deshalb die gemessenen Perzentile von siebenhundert Laufbahnen:
+       ein Viertel bleibt Journeyman, einer von zwanzig kommt in die
+       Ruhmeshalle, einer von hundert darueber hinaus. */
+    if (v >= 2450) return { n:'Unsterblich', c:'gold', d:'Ein Name, den man in hundert Jahren noch kennt.' };
+    if (v >= 1730) return { n:'Hall of Fame', c:'gold', d:'Trikot unter dem Hallendach, Platz in der Ruhmeshalle.' };
+    if (v >= 1320) return { n:'Franchise-Ikone', c:'', d:'Ein Klub hat eine Ära nach dir benannt.' };
+    if (v >= 945) return { n:'Topstar', c:'', d:'Jahrelang erste Reihe, erste Wahl, erste Schlagzeile.' };
+    if (v >= 660) return { n:'Leistungsträger', c:'', d:'Solide Karriere in starken Ligen.' };
+    if (v >= 415) return { n:'Profi', c:'', d:'Ein ehrliches Eishockeyleben.' };
     return { n:'Journeyman', c:'', d:'Viele Busfahrten, wenig Rampenlicht.' };
   }
+  /* Dieselben Zahlen wie in legacyRank - zwei Kopien sind zwei
+     Gelegenheiten auseinanderzulaufen, aber die Liste wird an anderer
+     Stelle in dieser Reihenfolge gebraucht. */
   const RANG_SCHWELLEN = [
-    ['Unsterblich', 1400], ['Hall of Fame', 1115], ['Franchise-Ikone', 905],
-    ['Topstar', 710], ['Leistungsträger', 525], ['Profi', 270]
+    ['Unsterblich', 2450], ['Hall of Fame', 1730], ['Franchise-Ikone', 1320],
+    ['Topstar', 945], ['Leistungsträger', 660], ['Profi', 415]
   ];
 
   /* ---------------- Herausforderungen ---------------- */
