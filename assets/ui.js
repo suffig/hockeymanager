@@ -2212,6 +2212,28 @@ const UI = (() => {
       </div>
       ${L.partnerMit === false ? `<div class="lb-hinweis">
         ${ikone('flug', 12)} Die Familie lebt nicht dort, wo du spielst.</div>` : ''}
+      ${/* ----------------------------------------------------------------
+             Was das Heimweh eigentlich tut
+
+             Es stand als Balken da und sonst nichts - eine Zahl, die
+             steigt, ohne dass man saehe, woran sie haengt. Dabei zieht
+             sie an drei Dingen gleichzeitig: an der Stimmung, an dem,
+             was einem angeboten wird, und am Gedanken ans Aufhoeren.
+             ---------------------------------------------------------------- */ ''}
+      ${!L.daheim && L.heimweh >= 25 ? `<div class="lb-folgen">
+        ${L.heimweh >= 55 ? `<span class="lb-folge gut">${ikone('flug', 11)}
+          Ein Verein von daheim wird dir anbieten</span>`
+        : `<span class="lb-folge">${ikone('flug', 11)}
+          Angebote aus der Heimat rücken nach vorn</span>`}
+        ${L.heimweh >= 40 ? `<span class="lb-folge schlecht">${ikone('herz', 11)}
+          Drückt auf die Stimmung</span>` : ''}
+        ${L.heimweh >= 60 ? `<span class="lb-folge schlecht">${ikone('kalender', 11)}
+          Der Gedanke ans Aufhören kommt früher</span>` : ''}
+      </div>` : ''}
+      ${L.daheim && L.heimweh <= 10 ? `<div class="lb-folgen">
+        <span class="lb-folge gut">${ikone('flug', 11)}
+          Du spielst zu Hause – kein Heimweh, keine Unruhe</span>
+      </div>` : ''}
       ${o.vermoegen != null ? `<div class="lb-geld">
         ${ikone('stern', 12)} <b>${o.vermoegen.toFixed(1)} Mio</b> zurückgelegt</div>` : ''}
     </div>`;

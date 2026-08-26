@@ -453,8 +453,22 @@ const PUCKERO = (() => {
        moduliert sie nur noch. */
     const reife = clamp((t.jung || 0) * 0.004 * vorSprung, -0.08, 0.08);
     const early = 1 - Math.pow(vorSprung / 11, 2) * 0.22 + reife;
-    const late  = 1 - Math.pow(clamp(age - peak, 0, 25) / 11, 1.9) * 0.62
-                    + (t.langlebig || 0) * 0.004 * clamp(age - peak, 0, 25);
+    /* ------------------------------------------------------------------
+       Haltbarkeit bremst den Abbau, sie hebt ihn nicht auf
+
+       Derselbe Fehler wie beim Zuschlag fuer Fruehreife, nur am anderen
+       Ende der Laufbahn: "langlebig" reicht bis 16, mal 0,004 mal bis
+       zu 25 Jahren Abstand ergab das bis zu +1,6 - mehr als die ganze
+       Abbaukurve (0,62). Wer die Eigenschaft hatte, verlor gar nichts
+       mehr. Gemessen verloren 46 Prozent aller Spieler zwischen
+       achtundzwanzig und sechsunddreissig hoechstens zwei Punkte.
+
+       Jetzt gedeckelt: ein zaeher Koerper haelt laenger durch, aber
+       auch er wird aelter.
+       ------------------------------------------------------------------ */
+    const nachSprung = clamp(age - peak, 0, 25);
+    const zaeh = clamp((t.langlebig || 0) * 0.004 * nachSprung, -0.12, 0.16);
+    const late  = 1 - Math.pow(nachSprung / 11, 1.9) * 0.62 + zaeh;
     const basis = age <= peak ? early + lk * clamp(peak - age, 0, 12) : late;
     return clamp(basis, 0.26, 1.02);
   }
@@ -2732,6 +2746,30 @@ const PUCKERO = (() => {
       (st.offeneNotizen || []).forEach(n => season.events.push(n));
       st.offeneNotizen = [];
 
+      /* ------------------------------------------------------------------
+         Was aus dem Vorjahr noch nachwirkt
+
+         Eine Entscheidung wirkte im Moment sichtbar - der Ausgang stand
+         auf dem Blatt - und danach still weiter: eine Formdelle, ein
+         erhoehtes Verletzungsrisiko, ein wackliger Stand beim Trainer.
+         Die naechste Saison begann, als waere nichts gewesen, obwohl
+         genau diese Reste die Saison praegten. Jetzt stehen sie oben im
+         Bericht, damit die Verbindung zwischen Entscheidung und Folge
+         sichtbar bleibt.
+         ------------------------------------------------------------------ */
+      if (st.formBonus <= -0.05)
+        season.events.push({ t: 'Aus dem Vorjahr: du kommst schwer in Tritt', c: 'bad' });
+      else if (st.formBonus >= 0.05)
+        season.events.push({ t: 'Aus dem Vorjahr: du bist im Lauf', c: 'good' });
+      if (st.risikoBonus >= 0.05)
+        season.events.push({ t: 'Aus dem Vorjahr: erhöhtes Verletzungsrisiko', c: 'bad' });
+      if (st.rollenStand === 'bewaehrung')
+        season.events.push({ t: 'Du gehst auf Bewährung in die Saison – '
+          + 'weniger Eiszeit, weniger Punkte', c: 'bad' });
+      if ((st.verletzungsjahre || 0) >= 3)
+        season.events.push({ t: 'Der Körper trägt ' + st.verletzungsjahre
+          + ' Jahre Verschleiß mit', c: 'bad' });
+
       /* Was der Klub in dieser Saison von dir und der Mannschaft erwartet */
       st.ziele = setzeSaisonZiel(club);
       season.ziele = st.ziele;
@@ -2970,7 +3008,35 @@ const PUCKERO = (() => {
            dafuer gebaut ist, holt mehr aus derselben Abmachung. */
         const rollenFaktor = 1 + (rw.punkte || 0) * 1.9 * rStand + rPass * 0.13;
         const streuung = 0.90 + r() * 0.20 * (1.3 - konstanzWert / 140);
-        const ppg = clamp(kante * posFactor * rollenFaktor * streuung, 0.02, 2.4);
+        /* ------------------------------------------------------------
+           Mehr Eiszeit heisst mehr Gelegenheiten
+
+           Die Ausbeute hing an kante, Position, Rolle und Streuung -
+           die Eiszeit kam nicht vor. Eine Rolle, die zwei Minuten mehr
+           bringt, brachte damit keinen einzigen Punkt mehr, und eine
+           Bewaehrungssaison kostete Minuten, aber keine Ausbeute. Zwei
+           Zahlen, die nebeneinander standen und nichts miteinander zu
+           tun hatten.
+
+           Gerechnet wird nur mit dem Teil der Eiszeit, der NICHT aus
+           der eigenen Form kommt - Rolle und Rollenstand. Die Form
+           steckt schon in kante; sie zweimal zu zaehlen wuerde die
+           Ausbeute nur weiter spreizen, ohne dass eine Entscheidung
+           daran haengt.
+           ------------------------------------------------------------ */
+        const standMinutenVorab = st.rollenStand === 'saeule' ? 1.7
+                                : st.rollenStand === 'bewaehrung' ? -2.4 : 0;
+        const extraMinuten = (rw.eiszeit || 0) * rStand + standMinutenVorab;
+        /* Um den ueblichen Wert zentriert, sonst ist der Faktor kein
+           Faktor, sondern ein Dauerzuschlag: eine gewoehnliche Rolle
+           bringt rund anderthalb Zusatzminuten, und ungeeicht stieg
+           die Ausbeute in starken Ligen dadurch im Median von 91 auf
+           125 Punkte. Jetzt liegt der Nullpunkt dort, wo die meisten
+           stehen - wer mehr Eiszeit holt, gewinnt, wer auf Bewaehrung
+           spielt, verliert. */
+        const eiszeitFaktor = clamp(1 + (extraMinuten - 1.5) * 0.05, 0.80, 1.20);
+        const ppg = clamp(kante * posFactor * rollenFaktor * streuung * eiszeitFaktor,
+                          0.02, 2.4);
         const punkte = Math.round(ppg * gp);
         const gShare = P.goalRate / (P.goalRate + P.assistRate);
         const tore = Math.round(punkte * gShare * (0.82 + r() * 0.36));
@@ -2993,11 +3059,10 @@ const PUCKERO = (() => {
            nicht nur als Faktor auf den Rollenzuschlag - sonst haengt
            das Vertrauen des Trainers daran, welche Rolle man gewaehlt
            hat, statt an ihm. */
-        const standMinuten = st.rollenStand === 'saeule' ? 1.7
-                           : st.rollenStand === 'bewaehrung' ? -2.4 : 0;
+        /* Dieselben Zusatzminuten, die oben schon in die Ausbeute
+           eingegangen sind - eine Groesse, zwei Verwendungen. */
         season.toi = Math.round(clamp(10 + kante * 7 + (P.k === 'D' ? 2.5 : 0)
-                                      + (rw.eiszeit || 0) * rStand + standMinuten,
-                                      8, 27) * 10) / 10;
+                                      + extraMinuten, 8, 27) * 10) / 10;
         if (P.k === 'C') season.bully = Math.round(clamp(44 + (dev.zweikampf || 50) * 0.12
                                           + (r() - 0.5) * 5, 38, 62) * 10) / 10;
         /* ------------------------------------------------------------
@@ -4403,13 +4468,23 @@ const PUCKERO = (() => {
        ---------------------------------------------------------------- */
     function belegeFuerAngebot(bewertung, grund, zuSchwach, zuGross, juniorEnde){
       const b = [];
-      const wert = Math.round(bewertung);
+      /* ------------------------------------------------------------------
+         Die Wertung steht oben - hier nur die Huerde
+
+         Der Beleg nannte "Wertung 74 - DEL verlangt 72", der Kopf der
+         Seite aber die Wertung der gespielten Saison. Zwei verschiedene
+         Zahlen, beide "Wertung" genannt, uebereinander auf demselben
+         Schirm. Der Beleg traegt jetzt das, was der Kopf nicht hat: was
+         die Liga fordert und wie weit man davon entfernt ist - und er
+         rechnet dafuer mit derselben Zahl, die oben steht.
+         ------------------------------------------------------------------ */
+      const letzteSaison = st.seasons[st.seasons.length - 1];
+      const wert = Math.round(letzteSaison ? letzteSaison.ovr : bewertung);
       const noetig = LG_MIN[st.club.lg];
 
       if (juniorEnde){
         b.push({ ik:'kalender', t:'Mit ' + st.age + ' ist die Juniorenzeit vorbei',
                  gut:null });
-        b.push({ ik:'waage', t:'Deine Wertung: ' + wert, gut:null });
         return b;
       }
 
@@ -4419,9 +4494,9 @@ const PUCKERO = (() => {
       if (noetig) {
         const ab = wert - noetig;
         b.push({ ik:'waage',
-                 t: 'Wertung ' + wert + ' – ' + league(st.club.lg).n
-                    + ' verlangt ' + noetig
-                    + (ab >= 0 ? ' (' + ab + ' darüber)' : ' (' + Math.abs(ab) + ' zu wenig)'),
+                 t: 'Die ' + league(st.club.lg).n + ' verlangt ' + noetig
+                    + (ab >= 0 ? ' – du liegst ' + ab + ' darüber'
+                               : ' – dir fehlen ' + Math.abs(ab)),
                  gut: ab >= 0 });
       } else {
         /* Die naechsterreichbare Profiliga als Massstab. */
@@ -4431,9 +4506,9 @@ const PUCKERO = (() => {
           .find(l => LG_MIN[l.k] > wert);
         b.push({ ik:'waage',
                  t: naechste
-                    ? 'Wertung ' + wert + ' – für die ' + naechste.n
-                      + ' fehlen ' + (LG_MIN[naechste.k] - wert)
-                    : 'Wertung ' + wert + ' – reif für den Profibereich',
+                    ? 'Für die ' + naechste.n + ' fehlen dir '
+                      + (LG_MIN[naechste.k] - wert)
+                    : 'Reif für den Profibereich',
                  gut: !naechste });
       }
 
@@ -4776,6 +4851,52 @@ const PUCKERO = (() => {
         })).sort((a2, b2) => b2.s - a2.s);
         const band = bewertetePool.slice(0, Math.max(3, Math.ceil(pool.length * 0.4)));
         nimm(pick(r, band).c, false);
+      }
+      /* ------------------------------------------------------------------
+         Wer nach Hause will, bekommt die Tuer gezeigt
+
+         Gemessen war es genau umgekehrt: bei hohem Heimweh lag in 14
+         Prozent der Angebotsrunden ein Verein von daheim dabei, bei
+         geringem in 58. Mechanisch ist das erklaerbar - wer lange fort
+         ist, ist meist auch ueber dem Niveau seiner Heimatliga -, aber
+         es ist die frustrierendste Form von Heimweh: eine Anzeige, die
+         Jahr fuer Jahr steigt, und keine Tuer.
+
+         Ab 55 steht deshalb immer eine Rueckkehr im Angebot, notfalls
+         unter Wert und beim schwaechsten der drei Plaetze. Ob man sie
+         nimmt, bleibt die eigene Entscheidung - und sie kostet
+         wirklich etwas, wenn die Heimatliga zwei Klassen tiefer liegt.
+         ------------------------------------------------------------------ */
+      if (st.leben.heimweh >= 55
+          && !angebote.some(a => istHeimatLiga(a.club.lg, player.nation))){
+        const heimLigen = D.LEAGUES
+          .filter(l => !l.jugend && istHeimatLiga(l.k, player.nation)
+                       && clubsOf(l.k).length)
+          .sort((a, b) => (LG_MIN[b.k] || 0) - (LG_MIN[a.k] || 0));
+        /* Die beste Heimatliga, die zum Spieler passt - sonst die
+           beste ueberhaupt, denn heimfahren geht auch unter Wert. */
+        const ziel = heimLigen.find(l => bewertung >= (LG_MIN[l.k] || 0)) || heimLigen[0];
+        if (ziel){
+          const pool = clubsOf(ziel.k).filter(c => c.n !== aktuell.n);
+          if (pool.length){
+            const schnittHeim = ligaSchnittJetzt(ziel.k);
+            const passend = schnittHeim + 4;
+            const beste = pool.map(c => ({ c,
+              s: -Math.abs(klubStaerke(c) - passend) + r() * 9 }))
+              .sort((a, b) => b.s - a.s)[0].c;
+            /* Platz machen: das schwaechste fremde Angebot weicht. */
+            if (angebote.length >= 3){
+              let raus = -1, tiefstes = Infinity;
+              angebote.forEach((a, i) => {
+                if (a.bleibt) return;
+                const p2 = league(a.club.lg).prestige;
+                if (p2 < tiefstes){ tiefstes = p2; raus = i; }
+              });
+              if (raus >= 0) angebote.splice(raus, 1);
+            }
+            nimm(beste, false);
+          }
+        }
       }
       if (!angebote.length) nimm(aktuell, true);
       /* Die Namen fuer die naechsten beiden Runden vormerken. Sechs
@@ -5335,11 +5456,32 @@ const PUCKERO = (() => {
       const rang = klubRang(club, overall(player, dev));
       return (isG ? D.ROLLEN_G : D.ROLLEN).map(x => {
         const luecke = x.anspruch - rang;
+        /* ------------------------------------------------------------
+           Die Passung entscheidet mit
+
+           Sie wurde berechnet, angezeigt - und dann ignoriert: ueber die
+           Zusage entschied allein der Rang beim Klub. Gemessen lag die
+           Passung bei den ABGELEHNTEN Rollen im Mittel hoeher (0,11)
+           als bei den zugesagten (-0,22). Ausgerechnet die Rolle, fuer
+           die einer gebaut ist, bekam er am ehesten nicht, und das
+           Spiel sagte ihm dazu "zu hoch gegriffen".
+
+           Wer passt, bekommt jetzt einen Rang gutgeschrieben; wer gar
+           nicht passt, einen abgezogen. Die Schwellen liegen bei +/-0,6
+           - die Passung spannt gemessen von -1 bis +1, das oberste und
+           unterste Fuenftel bekommt also den Ausschlag.
+           ------------------------------------------------------------ */
+        const pass = rollenPassung(x, dev);
+        const passStufe = pass >= 0.6 ? 1 : pass <= -0.6 ? -1 : 0;
+        const effektiv = luecke - passStufe;
         return Object.assign({}, x, {
           gehalt: Math.round(grundgehalt * (x.w.gehalt || 1) * 100) / 100,
           rang,
-          passung: Math.round(rollenPassung(x, dev) * 100) / 100,
-          zusage: luecke <= 0 ? 'sicher' : luecke === 1 ? 'bewaehrung' : 'abgelehnt'
+          passung: Math.round(pass * 100) / 100,
+          /* Damit die Oberflaeche sagen kann, warum es diesmal doch
+             geht - oder warum nicht. */
+          passungHilft: passStufe,
+          zusage: effektiv <= 0 ? 'sicher' : effektiv === 1 ? 'bewaehrung' : 'abgelehnt'
         });
       });
     }
@@ -5723,20 +5865,20 @@ const PUCKERO = (() => {
        deshalb die gemessenen Perzentile von siebenhundert Laufbahnen:
        ein Viertel bleibt Journeyman, einer von zwanzig kommt in die
        Ruhmeshalle, einer von hundert darueber hinaus. */
-    if (v >= 2450) return { n:'Unsterblich', c:'gold', d:'Ein Name, den man in hundert Jahren noch kennt.' };
-    if (v >= 1730) return { n:'Hall of Fame', c:'gold', d:'Trikot unter dem Hallendach, Platz in der Ruhmeshalle.' };
-    if (v >= 1320) return { n:'Franchise-Ikone', c:'', d:'Ein Klub hat eine Ära nach dir benannt.' };
-    if (v >= 945) return { n:'Topstar', c:'', d:'Jahrelang erste Reihe, erste Wahl, erste Schlagzeile.' };
-    if (v >= 660) return { n:'Leistungsträger', c:'', d:'Solide Karriere in starken Ligen.' };
-    if (v >= 415) return { n:'Profi', c:'', d:'Ein ehrliches Eishockeyleben.' };
+    if (v >= 2050) return { n:'Unsterblich', c:'gold', d:'Ein Name, den man in hundert Jahren noch kennt.' };
+    if (v >= 1710) return { n:'Hall of Fame', c:'gold', d:'Trikot unter dem Hallendach, Platz in der Ruhmeshalle.' };
+    if (v >= 1240) return { n:'Franchise-Ikone', c:'', d:'Ein Klub hat eine Ära nach dir benannt.' };
+    if (v >= 955) return { n:'Topstar', c:'', d:'Jahrelang erste Reihe, erste Wahl, erste Schlagzeile.' };
+    if (v >= 675) return { n:'Leistungsträger', c:'', d:'Solide Karriere in starken Ligen.' };
+    if (v >= 435) return { n:'Profi', c:'', d:'Ein ehrliches Eishockeyleben.' };
     return { n:'Journeyman', c:'', d:'Viele Busfahrten, wenig Rampenlicht.' };
   }
   /* Dieselben Zahlen wie in legacyRank - zwei Kopien sind zwei
      Gelegenheiten auseinanderzulaufen, aber die Liste wird an anderer
      Stelle in dieser Reihenfolge gebraucht. */
   const RANG_SCHWELLEN = [
-    ['Unsterblich', 2450], ['Hall of Fame', 1730], ['Franchise-Ikone', 1320],
-    ['Topstar', 945], ['Leistungsträger', 660], ['Profi', 415]
+    ['Unsterblich', 2050], ['Hall of Fame', 1710], ['Franchise-Ikone', 1240],
+    ['Topstar', 955], ['Leistungsträger', 675], ['Profi', 435]
   ];
 
   /* ---------------- Herausforderungen ---------------- */

@@ -4252,3 +4252,36 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
 .beraterknopf .bk-text{ display:flex; flex-direction:column; gap:2px; min-width:0 }
 .beraterknopf .bk-text b{ font-size:13px; line-height:1.25 }
 .beraterknopf .bk-text span{ font-size:11px; color:var(--muted); line-height:1.35 }
+
+/* ------------------------------------------------------------------
+   Was das Heimweh eigentlich tut
+
+   Es stand als Balken da und sonst nichts - eine Zahl, die steigt,
+   ohne dass man saehe, woran sie haengt. Dabei zieht sie an drei
+   Dingen: an der Stimmung, an den Angeboten und am Gedanken ans
+   Aufhoeren.
+   ------------------------------------------------------------------ */
+.lb-folgen{
+  display:flex; flex-wrap:wrap; gap:5px; margin-top:8px;
+}
+.lb-folge{
+  display:inline-flex; align-items:center; gap:4px;
+  padding:3px 8px; border-radius:99px;
+  font-size:10.5px; line-height:1.3;
+  color:var(--muted); background:color-mix(in srgb,var(--dim) 12%,transparent);
+}
+.lb-folge > svg{ flex:0 0 auto; opacity:.85 }
+.lb-folge.gut{
+  color:var(--green); background:color-mix(in srgb,var(--green) 13%,transparent);
+}
+.lb-folge.schlecht{
+  color:var(--red); background:color-mix(in srgb,var(--red) 13%,transparent);
+}
+
+/* Warum eine Rolle zugesagt wird - die Passung entschied frueher gar
+   nicht mit, jetzt tut sie es und soll auch dastehen. */
+.rk-grund{
+  display:block; margin-top:5px; font-size:10.5px; line-height:1.35;
+}
+.rk-grund.gut{ color:var(--green) }
+.rk-grund.schwach{ color:var(--red) }

@@ -1529,6 +1529,13 @@ function CareerGame(root, cfg){
                   <span class="rk-passung ${p.k}">${UI.ikone('ziel', 11)} ${p.n}</span>
                   <span class="rk-soll">${UI.ikone('waage', 11)} ${esc(x.soll || '')}</span>
                 </span>
+                ${/* Warum es diesmal doch geht - oder eben nicht. Die
+                     Passung entschied frueher gar nicht mit; jetzt tut
+                     sie es, und dann soll man es auch lesen koennen. */ ''}
+                ${x.passungHilft === 1 ? `<span class="rk-grund gut">
+                  Der Trainer traut es dir zu, weil du dafür gebaut bist</span>`
+                 : x.passungHilft === -1 ? `<span class="rk-grund schwach">
+                  Für diese Rolle bist du der Falsche – das zählt gegen dich</span>` : ''}
               </span>
               <span class="rk-gehalt">${x.gehalt < 1 ? x.gehalt.toFixed(2) : x.gehalt.toFixed(1)}<span>Mio/Jahr</span></span>
             </button>`; }).join('')}
