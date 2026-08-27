@@ -46,7 +46,7 @@ const EREIGNISSE = (() => {
       optionen:[
         { t:'Widersprechen', chance:35, hinweis:'Riskant – aber Rückgrat wird gesehen',
           gut:{ ruf:6, moral:6, attr:{ nerven:3 }, text:'Er hält inne. Am Ende nickt er. Ihr habt euch verstanden.' },
-          schlecht:{ ruf:-6, moral:-8, form:-0.08, text:'Du sitzt die nächsten drei Spiele auf der Bank.' } },
+          schlecht:{ spiele:3, rolle:-1,  /* drei Spiele Bank sind drei Spiele */ ruf:-6, moral:-8, form:-0.08, text:'Du sitzt die nächsten drei Spiele auf der Bank.' } },
         { t:'Die Schuld auf dich nehmen', chance:70, hinweis:'Schützt die Reihe, kostet dich',
           gut:{ moral:8, ruf:2, text:'Deine Mitspieler wissen, was du gerade getan hast.' },
           schlecht:{ ruf:-4, text:'Der Trainer nimmt dich beim Wort. Ab jetzt bist du der Schuldige.' } },
@@ -104,7 +104,7 @@ const EREIGNISSE = (() => {
           gut:{ attr:{ puck:2 }, text:'Kleiner, aber stetiger Fortschritt ohne Risiko.' },
           schlecht:{ text:'Es bringt nicht viel, aber es schadet auch nicht.' } },
         { t:'Lieber regenerieren', chance:75, hinweis:'Der Körper dankt es',
-          gut:{ trait:{ robust:4 }, text:'Du kommst frischer durch die Saison als alle anderen.' },
+          gut:{ risiko:-6, trait:{ robust:4 },  /* der Hinweis verspricht dem Koerper etwas */ text:'Du kommst frischer durch die Saison als alle anderen.' },
           schlecht:{ ruf:-2, text:'Der Trainerstab hätte dich lieber öfter gesehen.' } }
       ] },
 
@@ -177,7 +177,7 @@ const EREIGNISSE = (() => {
       bedingung: st => st.ruf > 82 && st.age >= 24,
       optionen:[
         { t:'Unterschreiben', chance:65, hinweis:'Geld und Aufmerksamkeit',
-          gut:{ ruf:6, text:'Dein Gesicht hängt in jedem Fachgeschäft des Landes.' },
+          gut:{ leben:{ vermoegen:0.8 },  /* der Hinweis verspricht Geld, also gibt es welches */ ruf:6, text:'Dein Gesicht hängt in jedem Fachgeschäft des Landes.' },
           schlecht:{ form:-0.05, text:'Die Werbetermine fressen genau die Tage, die du zur Erholung bräuchtest.' } },
         { t:'Ablehnen', chance:80, hinweis:'Ruhe statt Rampenlicht',
           gut:{ form:0.04, trait:{ robust:2 }, text:'Du bleibst unbehelligt und kommst top erholt in die Playoffs.' },
@@ -481,7 +481,9 @@ const EREIGNISSE = (() => {
           gut:{ ruf:5, text:'Du weißt jetzt, was du wert bist. Das hilft bei der nächsten Verhandlung.' },
           schlecht:{ moral:-4, text:'Jemand hat euch zusammen gesehen. Die Gerüchte laufen.' } },
         { t:'Sofort dem Klub melden', chance:75, hinweis:'Volle Offenheit',
-          gut:{ moral:8, ruf:5, text:'Der Sportdirektor rechnet es dir hoch an – und bessert deinen Vertrag nach.' },
+          /* Der nachgebesserte Vertrag ist jetzt auch einer. */
+          gut:{ moral:8, ruf:5, gehalt:0.10,
+            text:'Der Sportdirektor rechnet es dir hoch an – und bessert deinen Vertrag nach.' },
           schlecht:{ ruf:-2, text:'Man dankt dir, ändert aber nichts.' } },
         { t:'Auflegen', chance:70, hinweis:'Keine Ablenkung',
           gut:{ form:0.05, text:'Kopf frei, beste Rückrunde deiner Karriere.' },
@@ -513,8 +515,8 @@ const EREIGNISSE = (() => {
       bedingung: st => st.age >= 26 && st.lauf.gehalt > 8,
       optionen:[
         { t:'Investieren', chance:45, hinweis:'Freundschaft und Geld',
-          gut:{ ruf:5, moral:3, text:'Das Lokal läuft. Nach der Karriere hast du etwas, das dir gehört.' },
-          schlecht:{ form:-0.05, text:'Es geht schief, und die Freundschaft geht mit.' } },
+          gut:{ leben:{ vermoegen:1.2 },  /* eine Beteiligung, die laeuft, bringt Geld */ ruf:5, moral:3, text:'Das Lokal läuft. Nach der Karriere hast du etwas, das dir gehört.' },
+          schlecht:{ leben:{ vermoegen:-1.2 }, moral:-6,  /* und eine, die schiefgeht, kostet welches */ form:-0.05, text:'Es geht schief, und die Freundschaft geht mit.' } },
         { t:'Freundlich ablehnen', chance:70, hinweis:'Trennung von Beruf und Privatem',
           gut:{ text:'Er versteht es. Ihr sitzt trotzdem jeden Sommer zusammen.' },
           schlecht:{ moral:-4, text:'Er meldet sich nicht mehr. Manche Dinge kann man nicht reparieren.' } }
@@ -739,7 +741,7 @@ const EREIGNISSE = (() => {
       bedingung: st => st.age >= 30 && st.ruf > 80,
       optionen:[
         { t:'Gründen und selbst führen', chance:65, hinweis:'Zeit und Geld',
-          gut:{ ruf:12, moral:6, text:'Zehn Jahre später spielen zwei Stiftungskinder in der ersten Liga.' },
+          gut:{ leben:{ vermoegen:-1.5 },  /* eine Stiftung zu gruenden kostet Geld */ ruf:12, moral:6, text:'Zehn Jahre später spielen zwei Stiftungskinder in der ersten Liga.' },
           schlecht:{ form:-0.05, text:'Die Verwaltung frisst mehr Zeit, als dir während der Saison bleibt.' } },
         { t:'Nur den Namen geben', chance:80, hinweis:'Wirkung ohne Aufwand',
           gut:{ ruf:6, text:'Es läuft gut, ohne dass du dich kümmern musst.' },
@@ -1282,7 +1284,7 @@ const EREIGNISSE = (() => {
                 text:'Sie zahlen ohne Widerspruch. Wer einmal geblieben ist, verhandelt aus einer anderen Lage.' },
           schlecht:{ moral:-7, text:'Der Ton kippt. Aus Dankbarkeit wird ein zähes Gespräch über Zahlen.' } },
         { t:'Um Verantwortung statt Geld bitten', chance:72, hinweis:'Eine Rolle, kein Betrag',
-          gut:{ ruf:10, moral:9, trait:{ playoff:5 },
+          gut:{ ruf:10, moral:9, rolle:2, trait:{ playoff:5 },  /* wer um Verantwortung statt Geld bittet, bekommt Verantwortung */
                 text:'Sie machen dich zum Bindeglied zwischen Kabine und Büro. Kein Vertrag, aber mehr Gewicht.' },
           schlecht:{ ruf:-3, text:'Man nickt freundlich und ändert nichts.' } }
       ] },
@@ -1503,7 +1505,7 @@ const EREIGNISSE = (() => {
                 text:'Vier Minuten vor Schluss ist der Rekord deiner. Die Bank leert sich, bevor die Sirene geht.' },
           schlecht:{ moral:-6, text:'Nach elf Minuten ein abgefälschter Schuss. Aus.' } },
         { t:'Die Pause annehmen', chance:70, hinweis:'Der Körper vor dem Rekord',
-          gut:{ attr:{ reflexe:3, konstanz:3 }, form:0.06,
+          gut:{ risiko:-8, attr:{ reflexe:3, konstanz:3 }, form:0.06,  /* eine angenommene Pause schont wirklich */
                 text:'Frisch zurück, und die Serie läuft trotzdem weiter – zwei Spiele später fällt der Rekord doch.' },
           schlecht:{ moral:-5, ruf:-3, text:'Dein Vertreter hält zu null. Plötzlich diskutiert die Stadt über die Nummer eins.' } }
       ] },
@@ -1806,13 +1808,13 @@ const EREIGNISSE = (() => {
       hinweis:'Provokation mit Ansage',
       gut:{ ruf:12, moral:14, attr:{ nerven:7 },
             text:'Zwei Sekunden Totenstille, dann bricht die Kabine in Gelächter aus. Der Bann ist gebrochen.' },
-      schlecht:{ ruf:-12, moral:-10, form:-0.12,
+      schlecht:{ spiele:8, rolle:-2,  /* eine Suspendierung kostet Spiele und den Platz */ ruf:-12, moral:-10, form:-0.12,
             text:'Du wirst suspendiert. Der Verein prüft die Vertragsauflösung.' } },
 
     presse1: { t:'Einen Wechsel offen ankündigen', chance:18,
       hinweis:'Alles auf eine Karte',
       gut:{ ruf:16, text:'Drei Spitzenklubs melden sich noch in derselben Woche. Dein Marktwert explodiert.' },
-      schlecht:{ moral:-15, ruf:-10, text:'Der Klub setzt dich auf die Tribüne. Die Fans pfeifen dich aus.' } },
+      schlecht:{ spiele:6, rolle:-2,  /* auf der Tribuene spielt man nicht */ moral:-15, ruf:-10, text:'Der Klub setzt dich auf die Tribüne. Die Fans pfeifen dich aus.' } },
 
     trainer1: { t:'Ihm ein eigenes System vorschlagen', chance:25,
       hinweis:'Spieler denken nicht, Spieler spielen – normalerweise',

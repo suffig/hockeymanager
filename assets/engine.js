@@ -1110,7 +1110,9 @@ const PUCKERO = (() => {
       if (e.form){   st.formBonus += e.form;
                      merke((e.form > 0 ? '+' : '') + Math.round(e.form * 100) + '% Form', e.form > 0); }
       if (e.risiko){ st.risikoBonus += e.risiko / 100;
-                     merke('+' + e.risiko + ' Verletzungsrisiko', false); }
+                     merke(e.risiko > 0 ? '+' + e.risiko + ' Verletzungsrisiko'
+                       : Math.abs(e.risiko) + ' weniger Verletzungsrisiko',
+                       e.risiko < 0); }
       if (e.trait) Object.entries(e.trait).forEach(([k, v]) => {
         player.traits[k] = (player.traits[k] || 0) + v;
         const n = { robust:'Robustheit', langlebig:'Haltbarkeit',
@@ -1323,7 +1325,9 @@ const PUCKERO = (() => {
       if (e.form){  st.formBonus += e.form;
                     merke('+' + Math.round(e.form * 100) + '% Form', true); }
       if (e.risiko){ st.risikoBonus += e.risiko / 100;
-                    merke('+' + e.risiko + ' Verletzungsrisiko', false); }
+                    merke(e.risiko > 0 ? '+' + e.risiko + ' Verletzungsrisiko'
+                      : Math.abs(e.risiko) + ' weniger Verletzungsrisiko',
+                      e.risiko < 0); }
 
       wirkeLeben(e.leben, merke);
 
@@ -2676,12 +2680,18 @@ const PUCKERO = (() => {
           merke(w.rolle > 0 ? 'Der Trainer plant fester mit dir'
                             : 'Deine Rolle wackelt', w.rolle > 0);
         if (w.form)   merke((w.form > 0 ? '+' : '') + Math.round(w.form * 100) + '% Form', w.form > 0);
-        if (w.risiko) merke('+' + w.risiko + ' Verletzungsrisiko', false);
+        /* Ein negatives Risiko ist eine Entlastung - vorher stand dort
+           "+-6 Verletzungsrisiko" und es galt als schlechte Nachricht. */
+        if (w.risiko) merke(w.risiko > 0
+          ? '+' + w.risiko + ' Verletzungsrisiko'
+          : Math.abs(w.risiko) + ' weniger Verletzungsrisiko', w.risiko < 0);
         if (w.berater) merke(w.berater > 0
           ? 'Besserer Draht zu deinem Berater' : 'Dein Berater ist verstimmt',
           w.berater > 0);
         if (w.spiele) merke(w.spiele + (w.spiele === 1 ? ' Spiel' : ' Spiele')
           + ' Sperre', false);
+        if (w.gehalt) merke((w.gehalt > 0 ? '+' : '') + Math.round(w.gehalt * 100)
+          + '% Gehalt', w.gehalt > 0);
         if (w.natSperre) merke(w.natSperre >= 99
           ? 'Der Verband nominiert dich nicht mehr'
           : 'Vom Verband gestrichen (' + w.natSperre
@@ -2702,6 +2712,10 @@ const PUCKERO = (() => {
         if (w.risiko) st.risikoBonus += w.risiko / 100;
         if (w.berater) st.beraterDraht = clamp(st.beraterDraht + w.berater, 0, 100);
         if (w.spiele) st.gesperrteSpiele = (st.gesperrteSpiele || 0) + w.spiele;
+        /* "bessert deinen Vertrag nach" - das stand im Text und
+           passierte nicht. gehaltFaktor ist die Groesse, die auch die
+           Verhandlung bewegt. */
+        if (w.gehalt) st.gehaltFaktor = clamp((st.gehaltFaktor || 1) + w.gehalt, 0.7, 1.9);
         /* ------------------------------------------------------------
            Ein Wechsel mitten in der Vorbereitung
 
