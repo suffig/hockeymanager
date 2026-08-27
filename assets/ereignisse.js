@@ -126,7 +126,7 @@ const EREIGNISSE = (() => {
           schlecht:{ moral:-2, text:'Der Pass wird abgefangen. Immerhin war es die richtige Wahl.' } },
         { t:'Halten und Zeit gewinnen', chance:75, hinweis:'Kein Risiko, kein Ertrag',
           gut:{ attr:{ puck:2 }, text:'Ihr bekommt noch zwei Chancen. Keine davon sitzt.' },
-          schlecht:{ text:'Die Uhr läuft ab, während du den Puck an der Bande sicherst.' } }
+          schlecht:{ moral:-4,  /* der Ausgleich faellt nicht - das drueckt */ text:'Die Uhr läuft ab, während du den Puck an der Bande sicherst.' } }
       ] },
 
     { id:'spiel2', kat:'spiel', szene:'eis', tag:'Nach dem Check',
@@ -138,13 +138,19 @@ const EREIGNISSE = (() => {
       optionen:[
         { t:'Sofort hinstellen', chance:55, hinweis:'Die Kabine sieht alles',
           gut:{ moral:9, ruf:4, attr:{ zweikampf:2 }, text:'Ab diesem Abend ist die Mannschaft deine Mannschaft.' },
-          schlecht:{ risiko:5, moral:3, text:'Fünf Minuten plus Spieldauer – aber sie haben es gesehen.' } },
+          /* Spieldauerdisziplinarstrafe: dieses Spiel ist vorbei, und
+             die Liga sieht sich das an. */
+          schlecht:{ risiko:5, moral:3, spiele:1,
+            text:'Fünf Minuten plus Spieldauer – aber sie haben es gesehen.' } },
         { t:'Zum Verletzten gehen', chance:80, hinweis:'Menschlich statt martialisch',
           gut:{ moral:6, text:'Du bleibst bei ihm, bis die Trage kommt. Er vergisst das nicht.' },
           schlecht:{ moral:-2, text:'Andere übernehmen die Auseinandersetzung. Manche fragen sich, wo du warst.' } },
         { t:'Es im nächsten Wechsel zurückzahlen', chance:45, hinweis:'Kalt serviert',
           gut:{ moral:7, attr:{ zweikampf:3 }, text:'Ein sauberer, harter Check. Niemand kann etwas sagen.' },
-          schlecht:{ risiko:8, ruf:-5, text:'Du triffst falsch und wirst für drei Spiele gesperrt.' } }
+          /* Der Text nennt drei Spiele Sperre - dann sollen sie auch
+             fehlen. Vorher kostete sie nur Ansehen und Risiko. */
+          schlecht:{ risiko:8, ruf:-5, spiele:3,
+            text:'Du triffst falsch und wirst für drei Spiele gesperrt.' } }
       ] },
 
     /* ---------- Privat ---------- */
@@ -273,7 +279,7 @@ const EREIGNISSE = (() => {
       optionen:[
         { t:'Anhalten und Zeit nehmen', chance:85, hinweis:'Kostet zehn Minuten',
           gut:{ ruf:6, moral:4, text:'Das Foto geht durch die halbe Stadt. Man vergisst so etwas nie.' },
-          schlecht:{ text:'Der Bus wartet. Der Trainer sagt nichts, schaut aber auf die Uhr.' } },
+          schlecht:{ rolle:-1,  /* der Trainer schaut auf die Uhr - das merkt er sich */ text:'Der Bus wartet. Der Trainer sagt nichts, schaut aber auf die Uhr.' } },
         { t:'Einsteigen', chance:60, hinweis:'Kopf ist woanders',
           gut:{ form:0.03, text:'Du brauchst den Abend für dich. Am Mittwoch machst du zwei Tore.' },
           schlecht:{ ruf:-6, text:'Ein Video davon macht die Runde. Der Klub muss sich äußern.' } }
@@ -291,7 +297,7 @@ const EREIGNISSE = (() => {
           gut:{ moral:8, ruf:4, text:'Er wird Stammspieler und erzählt in jedem Interview von dir.' },
           schlecht:{ text:'Er schafft es nicht. Trotzdem war es richtig.' } },
         { t:'Ihn erst einmal machen lassen', chance:65, hinweis:'Jeder muss da alleine durch',
-          gut:{ text:'Er beißt sich durch. Härte hat auch ihren Wert.' },
+          gut:{ moral:5, rolle:1,  /* ein guter Ausgang sollte auch etwas bringen */ text:'Er beißt sich durch. Härte hat auch ihren Wert.' },
           schlecht:{ moral:-4, text:'Er geht im Sommer zu einem anderen Klub und sagt, er habe sich nie willkommen gefühlt.' } }
       ] },
 
@@ -326,7 +332,7 @@ const EREIGNISSE = (() => {
           gut:{ moral:8, form:0.06, text:'Der Trainer geht, der Nachfolger dreht die Saison.' },
           schlecht:{ ruf:-8, text:'Es dringt nach außen, wer die Sitzung angestoßen hat.' } },
         { t:'Zuhören und schweigen', chance:80, hinweis:'Nicht deine Schlacht',
-          gut:{ text:'Andere übernehmen das Risiko. Du konzentrierst dich aufs Spielen.' },
+          gut:{ form:0.05,  /* wer sich aufs Spiel konzentriert, spielt besser */ text:'Andere übernehmen das Risiko. Du konzentrierst dich aufs Spielen.' },
           schlecht:{ moral:-3, text:'Man erwartet in solchen Momenten eine Meinung von dir.' } }
       ] },
 
@@ -360,7 +366,8 @@ const EREIGNISSE = (() => {
           schlecht:{ form:-0.06, text:'Du kommst müde zurück und findest die Form nie ganz wieder.' } },
         { t:'Absagen und im Klub arbeiten', chance:60, hinweis:'Kurzfristig richtig, langfristig teuer',
           gut:{ form:0.07, text:'Zwei Wochen Sonderschichten bringen dich zurück in die erste Reihe.' },
-          schlecht:{ text:'Der Verband streicht dich für ein Jahr von der Liste.' } }
+          schlecht:{ natSperre:1,
+            text:'Der Verband streicht dich für ein Jahr von der Liste.' } }
       ] },
 
     /* ---------- Rivalitaet ---------- */
@@ -427,7 +434,7 @@ const EREIGNISSE = (() => {
           schlecht:{ form:-0.05, risiko:3, text:'Du knickst zweimal um, bevor du zurückwechselst.' } },
         { t:'Beim Alten bleiben', chance:80, hinweis:'Was funktioniert, funktioniert',
           gut:{ attr:{ nerven:2 }, text:'Kein Risiko, keine Umstellung, keine Probleme.' },
-          schlecht:{ text:'Die Konkurrenz wird schneller, du bleibst gleich.' } }
+          schlecht:{ form:-0.04,  /* stehenbleiben ist ruecklaeufig, wenn andere schneller werden */ text:'Die Konkurrenz wird schneller, du bleibst gleich.' } }
       ] },
 
     /* ---------- Soziales ---------- */
@@ -440,7 +447,7 @@ const EREIGNISSE = (() => {
       optionen:[
         { t:'Hingehen, ohne es jemandem zu sagen', chance:90, hinweis:'Nichts davon zählt in der Tabelle',
           gut:{ moral:5, ruf:3, attr:{ nerven:3 }, text:'Es kommt nie in die Zeitung. Du denkst trotzdem jahrelang daran.' },
-          schlecht:{ text:'Der Termin platzt. Du schickst ein signiertes Trikot.' } },
+          schlecht:{ ruf:-3,  /* ein geplatzter Termin spricht sich herum */ text:'Der Termin platzt. Du schickst ein signiertes Trikot.' } },
         { t:'Den Klub die Presse mitbringen lassen', chance:60, hinweis:'Gute Tat mit Reichweite',
           gut:{ ruf:8, text:'Die Aktion wird zur Klubtradition und trägt bis heute deinen Namen.' },
           schlecht:{ ruf:-5, text:'Es wirkt inszeniert. Die Kommentarspalten sind grausam.' } }
@@ -526,7 +533,7 @@ const EREIGNISSE = (() => {
           schlecht:{ ruf:-4, text:'Er hatte auf eine andere Antwort gehofft.' } },
         { t:'Ehrlich sagen, dass du es nicht weißt', chance:75, hinweis:'Offenheit schafft Vertrauen',
           gut:{ moral:6, ruf:3, text:'Ihr vereinbart, jedes Jahr neu zu entscheiden. Das nimmt Druck.' },
-          schlecht:{ text:'Er sucht vorsichtshalber einen Nachfolger.' } },
+          schlecht:{ rolle:-1,  /* ein Nachfolger wird gesucht - der Platz wackelt */ text:'Er sucht vorsichtshalber einen Nachfolger.' } },
         { t:'Nach einer Rolle im Klub danach fragen', chance:60, hinweis:'Über das Karriereende hinaus',
           gut:{ moral:7, trait:{ langlebig:4 }, text:'Man bietet dir einen Platz im Nachwuchs an. Das beruhigt ungemein.' },
           schlecht:{ moral:-3, text:'Die Frage wirkt, als hättest du schon abgeschlossen.' } }
@@ -574,7 +581,7 @@ const EREIGNISSE = (() => {
       optionen:[
         { t:'Einen ganzen Tag bleiben', chance:85, hinweis:'Kostet einen freien Tag',
           gut:{ moral:6, ruf:6, text:'Der Verein benennt später die Nachwuchshalle nach dir.' },
-          schlecht:{ text:'Es wird spät und anstrengend – aber es war schön.' } },
+          schlecht:{ form:-0.04,  /* ein langer Tag kostet Frische */ text:'Es wird spät und anstrengend – aber es war schön.' } },
         { t:'Eine Stunde vorbeischauen', chance:80, hinweis:'Kompromiss',
           gut:{ ruf:3, text:'Kurz, aber alle haben ein Foto.' },
           schlecht:{ ruf:-2, text:'Man hatte mit mehr gerechnet.' } }
@@ -591,7 +598,7 @@ const EREIGNISSE = (() => {
       optionen:[
         { t:'Mitmachen bis zum Schluss', folgt:'weggefaehrte', chance:75, hinweis:'Gemeinschaft vor Eitelkeit',
           gut:{ moral:8, text:'Das Mannschaftsfoto danach hängt heute noch im Klubmuseum.' },
-          schlecht:{ text:'Ihr scheidet aus. Der Bart bleibt trotzdem drei Tage.' } },
+          schlecht:{ moral:-4,  /* das Ausscheiden bleibt ein Ausscheiden */ text:'Ihr scheidet aus. Der Bart bleibt trotzdem drei Tage.' } },
         { t:'Nicht mitmachen', chance:60, hinweis:'Dein Gesicht, deine Regeln',
           gut:{ form:0.04, text:'Du fühlst dich wohler und spielst befreiter.' },
           schlecht:{ moral:-6, text:'Es wird nicht ausgesprochen, aber es fällt allen auf.' } }
@@ -644,9 +651,12 @@ const EREIGNISSE = (() => {
       optionen:[
         { t:'Bleiben und auf Gehalt verzichten', chance:55, hinweis:'Loyalität mit Preisschild',
           gut:{ moral:14, ruf:11, text:'Der Klub übersteht es. Du bist ab heute unantastbar.' },
-          schlecht:{ text:'Es reicht trotzdem nicht. Am Ende stehst du ohne Verein und ohne Geld da.' } },
+          schlecht:{ moral:-10, leben:{ vermoegen:-2 },  /* ohne Verein und ohne Geld */ text:'Es reicht trotzdem nicht. Am Ende stehst du ohne Verein und ohne Geld da.' } },
         { t:'Freigabe verlangen', chance:75, hinweis:'Vernünftig, aber unpopulär',
-          gut:{ text:'Du wechselst geordnet und ohne Verluste.' },
+          gut:{ moral:6,  /* geordnet heraus statt im Streit - das beruhigt */ /* Der Text behauptete einen vollzogenen Wechsel; tatsaechlich
+             bekommt man die Freigabe, und die Angebote kommen zur
+             Vertragszeit. Jetzt sagt er das auch. */
+            text:'Du bekommst deine Freigabe – ohne Streit, ohne Abzüge. Den Rest regelt der Sommer.' },
           schlecht:{ ruf:-7, moral:-8, text:'„Der Erste, der von Bord ging" – das haftet.' } },
         { t:'Abwarten und spielen', chance:60, hinweis:'Keine Entscheidung ist auch eine',
           gut:{ form:0.05, text:'Du blendest alles aus und lieferst die konstanteste Saison seit Jahren.' },
@@ -682,7 +692,7 @@ const EREIGNISSE = (() => {
       optionen:[
         { t:'Sesshaft werden', chance:75, hinweis:'Ruhe im Rücken',
           gut:{ moral:8, trait:{ langlebig:5 }, text:'Zum ersten Mal seit Jahren fühlt sich ein Ort wie zu Hause an.' },
-          schlecht:{ text:'Ein Jahr später wirst du trotzdem abgegeben. So ist das Geschäft.' } },
+          schlecht:{ moral:-7, leben:{ wurzeln:-15 },  /* sesshaft geworden und doch abgegeben */ text:'Ein Jahr später wirst du trotzdem abgegeben. So ist das Geschäft.' } },
         { t:'Flexibel bleiben', chance:55, hinweis:'Die Karriere zuerst',
           gut:{ ruf:5, form:0.05, text:'Der Wechsel bringt die beste Phase deiner Laufbahn.' },
           schlecht:{ moral:-8, form:-0.05, text:'Zu Hause wird es still. Das nimmst du mit aufs Eis.' } }
@@ -701,7 +711,7 @@ const EREIGNISSE = (() => {
           schlecht:{ moral:-8, ruf:-4, text:'Er lässt dich draußen. Alle haben gehört, was du gefragt hast.' } },
         { t:'Sitzen bleiben', chance:85, hinweis:'Der Rekord läuft nicht weg',
           gut:{ moral:8, attr:{ nerven:3 }, text:'Zwei Wochen später fällt er ohnehin – im vollen Haus.' },
-          schlecht:{ text:'Die Saison endet mit einem Punkt Rückstand auf den Rekord.' } }
+          schlecht:{ moral:-6,  /* einen Punkt am Rekord vorbei */ text:'Die Saison endet mit einem Punkt Rückstand auf den Rekord.' } }
       ] },
 
     /* ---------- Trainingslager ---------- */
@@ -756,7 +766,7 @@ const EREIGNISSE = (() => {
           schlecht:{ moral:-9, text:'Zu früh, zu forsch. Man findet es respektlos.' } },
         { t:'Ihn in Ruhe gehen lassen', chance:85, hinweis:'Manche Abschiede brauchen keine Zuschauer',
           gut:{ moral:4, text:'Ihr telefoniert am Abend eine Stunde. Das war ihm mehr wert als jede Rede.' },
-          schlecht:{ text:'Es fühlt sich unfertig an. Ihr sprecht nie wieder darüber.' } }
+          schlecht:{ moral:-5,  /* ein Abschied, der offen bleibt */ text:'Es fühlt sich unfertig an. Ihr sprecht nie wieder darüber.' } }
       ] }
 ,
 
@@ -1037,7 +1047,7 @@ const EREIGNISSE = (() => {
         { t:'Ihm privat zur Seite stehen', chance:80, hinweis:'Ohne großen Auftritt',
           folgt:'weggefaehrte',
           gut:{ moral:7, text:'Ihr trainiert morgens zu zweit. Nach einem Monat spielt er wieder.' },
-          schlecht:{ text:'Er wird im Winter abgegeben. Ihr telefoniert noch jahrelang.' } },
+          schlecht:{ moral:-6,  /* der Freund ist weg */ text:'Er wird im Winter abgegeben. Ihr telefoniert noch jahrelang.' } },
         { t:'Es ist nicht dein Problem', chance:70, hinweis:'Profigeschäft',
           gut:{ form:0.04, text:'Du konzentrierst dich auf dich – und lieferst.' },
           schlecht:{ moral:-8, text:'Die Kabine merkt sich, wer weggeschaut hat.' } }
@@ -1096,7 +1106,7 @@ const EREIGNISSE = (() => {
         { t:'Auf Passspiel umstellen', chance:55, hinweis:'Umlernen mitten in der Saison',
           gut:{ attr:{ pass:5, uebersicht:4 }, ruf:4,
                 text:'Du wirst zum Taktgeber – und sammelst mehr Vorlagen als je zuvor.' },
-          schlecht:{ text:'Es passt nicht zu dir. Nach sechs Wochen läuft es wieder über ihn.' } },
+          schlecht:{ form:-0.05,  /* sechs Wochen im falschen System */ text:'Es passt nicht zu dir. Nach sechs Wochen läuft es wieder über ihn.' } },
         { t:'{mitspieler} den Vortritt lassen', chance:75, hinweis:'Teamgedanke',
           gut:{ moral:9, text:'Das Überzahlspiel läuft besser als je zuvor. Alle wissen, warum du verzichtet hast.' },
           schlecht:{ ruf:-4, text:'Du bekommst die Position nie zurück.' } }
@@ -1165,7 +1175,7 @@ const EREIGNISSE = (() => {
           schlecht:{ form:-0.05, text:'Die Organisation frisst deine ganze Sommerpause – und es reicht trotzdem nicht.' } },
         { t:'Still einen größeren Betrag überweisen', chance:80, hinweis:'Ohne Aufhebens',
           gut:{ moral:7, text:'Niemand erfährt davon. Der Verein überlebt.' },
-          schlecht:{ text:'Es verzögert das Ende nur um ein Jahr.' } },
+          schlecht:{ leben:{ vermoegen:-1.5 },  /* das Geld ist weg, der Verein trotzdem */ text:'Es verzögert das Ende nur um ein Jahr.' } },
         { t:'Es tut dir leid, aber die Saison läuft', chance:65, hinweis:'Der Profi vor dem Menschen',
           gut:{ form:0.05, text:'Voller Fokus – deine stärkste Rückrunde. Der Verein schafft es auch ohne dich.' },
           schlecht:{ ruf:-8, moral:-6, text:'Die Halle schließt. In deiner Heimatstadt spricht man anders über dich.' } }
@@ -1202,7 +1212,7 @@ const EREIGNISSE = (() => {
       optionen:[
         { t:'Eine Wohnung kaufen', chance:75, hinweis:'Ein Bekenntnis',
           gut:{ moral:9, trait:{ langlebig:4 }, text:'Du bleibst noch Jahre. Der Klub weiß das zu schätzen.' },
-          schlecht:{ text:'Zwei Jahre später wirst du abgegeben und vermietest sie.' } },
+          schlecht:{ leben:{ vermoegen:-1 },  /* eine Wohnung, in der man nicht mehr wohnt */ text:'Zwei Jahre später wirst du abgegeben und vermietest sie.' } },
         { t:'Zur Miete bleiben', chance:70, hinweis:'Beweglich bleiben',
           gut:{ text:'Gut so. Das nächste Angebot kommt schneller als gedacht.' },
           schlecht:{ moral:-4, text:'Du bleibst überall ein Gast, auch nach vielen Jahren.' } }
@@ -1220,7 +1230,7 @@ const EREIGNISSE = (() => {
           schlecht:{ moral:-5, text:'Nach dem frühen Gegentor läuft ihr nur noch hinterher.' } },
         { t:'Kompakt stehen und auf Konter warten', chance:70, hinweis:'Unspektakulär, aber wirksam',
           gut:{ attr:{ defensive:3 }, moral:5, text:'1:0 durch einen Konter, danach macht ihr hinten dicht.' },
-          schlecht:{ text:'Ihr haltet lange mit, verliert aber im letzten Drittel.' } }
+          schlecht:{ moral:-5,  /* im letzten Drittel verloren */ text:'Ihr haltet lange mit, verliert aber im letzten Drittel.' } }
       ] }
   ,
 
@@ -1387,7 +1397,10 @@ const EREIGNISSE = (() => {
          + 'wie vorher? Die Stelle, an der es passiert ist, kennst du auf Zentimeter genau.',
       bedingung: (st, se) => se && se.verletzung && se.verletzung.spiele >= 10,
       optionen:[
-        { t:'Sofort den ersten harten Check suchen', chance:55, hinweis:'Die Frage sofort beantworten',
+        /* Direkt nach der Verletzung den Koerperkontakt suchen - das
+           ist ein Wagnis, auch wenn die Quote bei 55 liegt. */
+        { t:'Sofort den ersten harten Check suchen', chance:55, wagnis:true,
+          hinweis:'Die Frage sofort beantworten',
           gut:{ moral:12, attr:{ zweikampf:4, nerven:4 },
                 text:'Es tut nichts weh. Nach diesem einen Moment ist die Verletzung wirklich vorbei.' },
           schlecht:{ risiko:10, moral:-8, text:'Es zieht wieder. Diesmal nur ein Schreck – aber der sitzt.' } },
@@ -1610,7 +1623,7 @@ const EREIGNISSE = (() => {
         { t:'An die erinnern, die es nicht geschafft haben', chance:80, hinweis:'Größe zeigen',
           gut:{ ruf:9, moral:8,
                 text:'Du nennst zwei Namen, die sonst niemand mehr nennt. Der Satz wird oft zitiert.' },
-          schlecht:{ text:'Es wirkt einstudiert, obwohl es das nicht war.' } },
+          schlecht:{ ruf:-4,  /* eine Geste, die schiefgeht */ text:'Es wirkt einstudiert, obwohl es das nicht war.' } },
         { t:'Sagen, dass du erst am Anfang stehst', chance:62, hinweis:'Die Messlatte höher legen',
           gut:{ ruf:8, trait:{ langlebig:6 },
                 text:'Ein Satz, an dem du dich messen lassen musst – und der dich noch Jahre trägt.' },
@@ -1692,7 +1705,7 @@ const EREIGNISSE = (() => {
         { t:'Über die Mannschaft reden, nicht über dich', chance:82, hinweis:'Das erwartet man – zu Recht',
           gut:{ ruf:8, moral:7,
                 text:'Du nennst vier Namen und deinen nicht. Der Ausschnitt läuft wochenlang.' },
-          schlecht:{ text:'Es wird zusammengeschnitten, bis nur noch eine Floskel übrig ist.' } },
+          schlecht:{ ruf:-3,  /* aus dem Interview bleibt eine Floskel */ text:'Es wird zusammengeschnitten, bis nur noch eine Floskel übrig ist.' } },
         { t:'Sagen, dass es nicht gereicht hat', chance:48, hinweis:'Ehrlich, aber undankbar',
           gut:{ ruf:11, attr:{ nerven:3 },
                 text:'Ein Satz gegen die Feierlaune, der hängen bleibt. Im nächsten Jahr holt ihr mehr.' },
@@ -1773,7 +1786,7 @@ const EREIGNISSE = (() => {
         { t:'Einfach solide halten', chance:76, hinweis:'Keine Fehler, kein Aufsehen',
           gut:{ attr:{ stellung:3, konstanz:3 }, moral:6,
                 text:'Unspektakulär und fehlerfrei. Aus einem Spiel werden vier, aus vier eine Rückrunde.' },
-          schlecht:{ text:'Ordentlich, aber nicht genug, um jemanden umzustimmen.' } }
+          schlecht:{ rolle:-1,  /* wer niemanden umstimmt, bleibt auf der Bank */ text:'Ordentlich, aber nicht genug, um jemanden umzustimmen.' } }
       ] }
   ];
 
@@ -1819,6 +1832,7 @@ const EREIGNISSE = (() => {
       gut:{ moral:16, ruf:10, attr:{ zweikampf:6 },
             text:'Die ganze Bank steht. Ab heute geht dieses Team für dich durch die Bande.' },
       schlecht:{ risiko:14, ruf:-9,
+            spiele:6,
             text:'Sechs Spiele Sperre, eine Anzeige und ein Klub, der sich distanziert.' } },
 
     fuehrung1: { t:'Eine Rücktrittsdrohung in den Raum stellen', chance:15,
@@ -1850,13 +1864,20 @@ const EREIGNISSE = (() => {
 
     transfer1: { t:'Zusagen und den laufenden Vertrag brechen', chance:14,
       hinweis:'Rechtlich heikel, sportlich verlockend',
-      gut:{ ruf:15, form:0.09, text:'Der Wechsel klappt. Du spielst plötzlich zwei Ligen höher.' },
-      schlecht:{ ruf:-15, moral:-12, text:'Der Streit landet vor dem Schiedsgericht. Du spielst ein halbes Jahr gar nicht.' } },
+      /* Der Wechsel findet jetzt wirklich statt - vorher blieb man,
+         wo man war, und der Text behauptete das Gegenteil. */
+      gut:{ ruf:15, form:0.09, aufstieg:2,
+        text:'Der Wechsel klappt. Du spielst plötzlich zwei Ligen höher.' },
+      schlecht:{ ruf:-15, moral:-12, spiele:26,
+        text:'Der Streit landet vor dem Schiedsgericht. Du spielst ein halbes Jahr gar nicht.' } },
 
     nat1: { t:'Absagen und öffentlich Kritik am Verband üben', chance:17,
       hinweis:'Ein Konflikt mit langem Nachhall',
       gut:{ ruf:12, form:0.08, text:'Die Debatte ändert tatsächlich etwas. Andere Spieler danken es dir.' },
-      schlecht:{ ruf:-14, text:'Der Verband nominiert dich nie wieder. Nie.' } },
+      /* "Nie wieder" heisst nie wieder - vorher rief der Verband im
+         naechsten Sommer trotzdem an. */
+      schlecht:{ ruf:-14, natSperre:99,
+        text:'Der Verband nominiert dich nie wieder. Nie.' } },
 
     alter1: { t:'Eine Vertragsverlängerung über drei Jahre fordern', chance:21,
       hinweis:'Mit vierunddreißig eine steile Forderung',

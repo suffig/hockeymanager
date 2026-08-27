@@ -211,8 +211,41 @@ const PUCKERO = (() => {
      zulaesst. Dicht darunter bleibt von einem Sommer Training fast
      nichts mehr uebrig; das ist der Punkt, an dem eine Laufbahn ihre
      Form annimmt. Abzuege gelten immer voll. */
-  function attrHeben(player, k, v){
-    if (player.attrs[k] === undefined) return;
+  /* ------------------------------------------------------------------
+     Ein Wert, den es auf dieser Position nicht gibt
+
+     Ereignisse sind fuer alle geschrieben: "Jeden Morgen wiederkommen"
+     bringt Praezision, "Reingehen und es ausdiskutieren" bringt
+     Uebersicht. Ein Torhueter hat weder das eine noch das andere - die
+     Zusage prallte ab, waehrend die Oberflaeche sie trotzdem anzeigte.
+     Gemessen betraf das 35 Stellen in 101 Ereignissen.
+
+     Statt fuenfunddreissig Bloecke einzeln zu flicken, wird hier
+     uebersetzt: dieselbe Arbeit, in der Waehrung der eigenen Position.
+     Wer frueher aufsteht, wird als Stuermer praeziser und als Torhueter
+     sicherer mit der Fanghand.
+     ------------------------------------------------------------------ */
+  const ATTR_UEBERSETZUNG = {
+    /* Feldspieler -> Torhueter */
+    antritt:'beweglich', skating:'beweglich', schuss:'stockhand',
+    praezision:'fanghand', puck:'puckspiel', pass:'puckspiel',
+    uebersicht:'lesen', zweikampf:'stellung', defensive:'stellung',
+    /* Torhueter -> Feldspieler */
+    reflexe:'antritt', stellung:'defensive', fanghand:'praezision',
+    stockhand:'schuss', rebound:'praezision', puckspiel:'puck',
+    beweglich:'skating', konstanz:'uebersicht', lesen:'uebersicht'
+  };
+  /* Welchen Wert dieser Spieler dafuer hat - oder null, wenn es auch
+     nach der Uebersetzung keinen gibt. */
+  function attrFuer(player, k){
+    if (player.attrs[k] !== undefined) return k;
+    const ersatz = ATTR_UEBERSETZUNG[k];
+    return (ersatz && player.attrs[ersatz] !== undefined) ? ersatz : null;
+  }
+
+  function attrHeben(player, k0, v){
+    const k = attrFuer(player, k0);
+    if (!k) return;
     if (v <= 0){ player.attrs[k] = clamp(player.attrs[k] + v, 1, 99); return; }
     player.attrs[k] = clamp(
       player.attrs[k] + v * wachstumsAnteil(player) * talentTempo(player), 1, 99);
@@ -650,6 +683,8 @@ const PUCKERO = (() => {
       rollenJahre: 0,         // Saisons in dieser Rolle
       rollenVorOvr: null,     // Wert der Vorsaison, fuer die Aufbaurolle
       startVerpasst: 0,       // Spiele, die die Reha den Saisonstart kostet
+      gesperrteSpiele: 0,     // Spiele, die eine Sperre kostet
+      natGesperrtBis: 0,      // bis zu diesem Jahr nominiert der Verband nicht
       /* ----------------------------------------------------------------
          Die Grundstimmung
 
@@ -1107,6 +1142,9 @@ const PUCKERO = (() => {
        --------------------------------------------------------------- */
     function pruefeNominierung(){
       if (!st.natDebuet || !st.club) return null;      // erst nach dem Debuet
+      /* Wer den Verband oeffentlich angegriffen oder abgesagt hat, wird
+         nicht gefragt - das stand bisher nur im Text des Ausgangs. */
+      if (st.natGesperrtBis && st.year < st.natGesperrtBis) return null;
       /* Das Altersfenster war enger als das der Nominierung selbst:
          gefragt wurde von 22 bis 35, nominiert werden konnte jeder
          ueber 20. Gemessen standen deshalb Spieler mit 37 bis 41 beim
@@ -1502,7 +1540,10 @@ const PUCKERO = (() => {
 
       if (e.attr) Object.entries(e.attr).forEach(([k, v]) => {
         attrHeben(player, k, v);
-        merke('+' + v + ' ' + attrName(k), true);
+        /* Den uebersetzten Namen zeigen - sonst steht "Uebersicht" da
+           und gestiegen ist das Spielverstaendnis des Torhueters. */
+        const echt = attrFuer(player, k);
+        if (echt) merke('+' + v + ' ' + attrName(echt), true);
       });
       if (e.trait) Object.entries(e.trait).forEach(([k, v]) =>
         player.traits[k] = (player.traits[k] || 0) + v);
@@ -2618,8 +2659,11 @@ const PUCKERO = (() => {
           return a ? a.n : k;
         };
         Object.entries(w.attr || {}).forEach(([k, v]) => {
-          if (player.attrs[k] !== undefined)
-            merke((v > 0 ? '+' : '') + v + ' ' + attrName(k), v > 0);
+          /* Vorher wurde ein Wert, den diese Position nicht hat, gar
+             nicht angezeigt - und auch nicht vergeben. Jetzt wird er
+             uebersetzt, also steht auch der uebersetzte Name da. */
+          const echt = attrFuer(player, k);
+          if (echt) merke((v > 0 ? '+' : '') + v + ' ' + attrName(echt), v > 0);
         });
         Object.entries(w.trait || {}).forEach(([k, v]) => {
           const n = { robust:'Robustheit', langlebig:'Haltbarkeit',
@@ -2636,6 +2680,12 @@ const PUCKERO = (() => {
         if (w.berater) merke(w.berater > 0
           ? 'Besserer Draht zu deinem Berater' : 'Dein Berater ist verstimmt',
           w.berater > 0);
+        if (w.spiele) merke(w.spiele + (w.spiele === 1 ? ' Spiel' : ' Spiele')
+          + ' Sperre', false);
+        if (w.natSperre) merke(w.natSperre >= 99
+          ? 'Der Verband nominiert dich nicht mehr'
+          : 'Vom Verband gestrichen (' + w.natSperre
+            + (w.natSperre === 1 ? ' Jahr' : ' Jahre') + ')', false);
       }
       if (!folge.wirkungen.length) merke('Keine bleibende Wirkung', true);
 
@@ -2651,6 +2701,42 @@ const PUCKERO = (() => {
         if (w.form) st.formBonus += w.form;
         if (w.risiko) st.risikoBonus += w.risiko / 100;
         if (w.berater) st.beraterDraht = clamp(st.beraterDraht + w.berater, 0, 100);
+        if (w.spiele) st.gesperrteSpiele = (st.gesperrteSpiele || 0) + w.spiele;
+        /* ------------------------------------------------------------
+           Ein Wechsel mitten in der Vorbereitung
+
+           "Der Wechsel klappt. Du spielst ploetzlich zwei Ligen
+           hoeher" - und man spielte weiter dort, wo man war. Die
+           Engine kann Vereinswechsel, die Wechselfrist nutzt sie;
+           Ereignisse konnten sie nur nicht ausloesen. Das Ereignis
+           faellt vor der Saison, der Wechsel gilt also fuer die
+           kommende.
+           ------------------------------------------------------------ */
+        if (w.aufstieg && st.club){
+          const jetzt = league(st.club.lg);
+          const hoeher = D.LEAGUES
+            .filter(l => !l.jugend && l.prestige > jetzt.prestige && clubsOf(l.k).length)
+            .sort((a, b) => a.prestige - b.prestige);
+          const ziel = hoeher[clamp(w.aufstieg - 1, 0, hoeher.length - 1)];
+          if (ziel){
+            const pool = clubsOf(ziel.k).filter(c => c.n !== st.club.n);
+            if (pool.length){
+              if (!st.ehemalige.includes(st.club.n)) st.ehemalige.push(st.club.n);
+              st.wechselVon = st.club.n;
+              st.club = pick(r, pool);
+              st.klubJahre = 0;
+              st.kapitaenSeit = null;
+              st.vertragJahre = 2;
+              umfeldBenennen();
+              merke('Wechsel zu ' + st.club.n + ' (' + ziel.n + ')', true);
+            }
+          }
+        }
+        /* natSperre in Jahren; 99 heisst "nie wieder". Der Text sagte
+           das bisher, und der Verband rief trotzdem im naechsten
+           Sommer an. */
+        if (w.natSperre) st.natGesperrtBis = Math.max(st.natGesperrtBis || 0,
+          st.year + (w.natSperre >= 99 ? 99 : w.natSperre));
       }
       st.verlauf.push({
         jahr: st.year, alter: st.age, art: 'ereignis',
@@ -2790,6 +2876,20 @@ const PUCKERO = (() => {
         season.events.push({ t: 'Erst im Saisonverlauf eingestiegen – '
           + st.startVerpasst + ' Spiele verpasst', c: '' });
         st.startVerpasst = 0;
+      }
+      /* ------------------------------------------------------------------
+         Eine Sperre kostet Spiele
+
+         Der Ausgangstext sagte "wirst fuer drei Spiele gesperrt", und die
+         Wirkung bestand aus Ansehen und Verletzungsrisiko - kein einziges
+         Spiel fehlte. Die Engine kann verpasste Spiele, Ereignisse
+         konnten sie nur nicht ausloesen.
+         ------------------------------------------------------------------ */
+      if (st.gesperrteSpiele){
+        missed += st.gesperrteSpiele;
+        season.events.push({ t: st.gesperrteSpiele
+          + (st.gesperrteSpiele === 1 ? ' Spiel Sperre' : ' Spiele Sperre'), c: 'bad' });
+        st.gesperrteSpiele = 0;
       }
       if (r() < injRisk){
         /* Eine alte Verletzung ist wahrscheinlicher als eine neue -
@@ -3327,6 +3427,10 @@ const PUCKERO = (() => {
         if (st.age <= 18 && ovr >= 56 + (100 - nat.wm) * 0.10 - natBonus * 0.3) return 'U18';
         if (st.age <= 20 && ovr >= 64 + (100 - nat.wm) * 0.14 - natBonus * 0.3) return 'U20';
         // A-Nationalmannschaft: Wertung UND eine ueberzeugende Saison
+        /* Eine Verbandssperre verhindert die Nominierung selbst - sonst
+           wuerde nur die Frage ausfallen und man stuende trotzdem beim
+           Turnier, genau der Fehler, den wir eben abgestellt haben. */
+        if (st.natGesperrtBis && st.year < st.natGesperrtBis) return null;
         const schwelle = 78 + (100 - nat.wm) * 0.26 - natBonus * 0.45;
         const ueberzeugt = kante > 0.55 || season.awards.length > 0 || st.ruf > 86;
         return (ovr >= schwelle && ueberzeugt) ? 'A' : null;
@@ -5857,7 +5961,10 @@ const PUCKERO = (() => {
      Grenze waeren zweiundvierzig Prozent aller Laufbahnen als
      Journeyman geendet. */
   function legacyRank(v){
-    /* Neu gemessen, seit die Laufbahn mit sechzehn beginnt: zwei
+    /* Zuletzt gemessen, nachdem Torhueter bekommen, was ihnen zusteht:
+       vorher prallten 35 Wirkungen an ihnen ab (siehe attrHeben), und
+       ihr Gipfelwert lag entsprechend tiefer. Davor schon einmal, seit
+       die Laufbahn mit sechzehn beginnt: zwei
        Saisons mehr bedeuten mehr Produktion und mehr Vereinsjahre, und
        gegen die alten Schwellen gemessen wurde jede achte Laufbahn
        "Unsterblich" statt jeder zwanzigsten. Die Raenge sollen ihre
@@ -5865,20 +5972,20 @@ const PUCKERO = (() => {
        deshalb die gemessenen Perzentile von siebenhundert Laufbahnen:
        ein Viertel bleibt Journeyman, einer von zwanzig kommt in die
        Ruhmeshalle, einer von hundert darueber hinaus. */
-    if (v >= 2050) return { n:'Unsterblich', c:'gold', d:'Ein Name, den man in hundert Jahren noch kennt.' };
-    if (v >= 1710) return { n:'Hall of Fame', c:'gold', d:'Trikot unter dem Hallendach, Platz in der Ruhmeshalle.' };
-    if (v >= 1240) return { n:'Franchise-Ikone', c:'', d:'Ein Klub hat eine Ära nach dir benannt.' };
-    if (v >= 955) return { n:'Topstar', c:'', d:'Jahrelang erste Reihe, erste Wahl, erste Schlagzeile.' };
-    if (v >= 675) return { n:'Leistungsträger', c:'', d:'Solide Karriere in starken Ligen.' };
-    if (v >= 435) return { n:'Profi', c:'', d:'Ein ehrliches Eishockeyleben.' };
+    if (v >= 2675) return { n:'Unsterblich', c:'gold', d:'Ein Name, den man in hundert Jahren noch kennt.' };
+    if (v >= 1975) return { n:'Hall of Fame', c:'gold', d:'Trikot unter dem Hallendach, Platz in der Ruhmeshalle.' };
+    if (v >= 1450) return { n:'Franchise-Ikone', c:'', d:'Ein Klub hat eine Ära nach dir benannt.' };
+    if (v >= 1115) return { n:'Topstar', c:'', d:'Jahrelang erste Reihe, erste Wahl, erste Schlagzeile.' };
+    if (v >= 785) return { n:'Leistungsträger', c:'', d:'Solide Karriere in starken Ligen.' };
+    if (v >= 490) return { n:'Profi', c:'', d:'Ein ehrliches Eishockeyleben.' };
     return { n:'Journeyman', c:'', d:'Viele Busfahrten, wenig Rampenlicht.' };
   }
   /* Dieselben Zahlen wie in legacyRank - zwei Kopien sind zwei
      Gelegenheiten auseinanderzulaufen, aber die Liste wird an anderer
      Stelle in dieser Reihenfolge gebraucht. */
   const RANG_SCHWELLEN = [
-    ['Unsterblich', 2050], ['Hall of Fame', 1710], ['Franchise-Ikone', 1240],
-    ['Topstar', 955], ['Leistungsträger', 675], ['Profi', 435]
+    ['Unsterblich', 2675], ['Hall of Fame', 1975], ['Franchise-Ikone', 1450],
+    ['Topstar', 1115], ['Leistungsträger', 785], ['Profi', 490]
   ];
 
   /* ---------------- Herausforderungen ---------------- */
