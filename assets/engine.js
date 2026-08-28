@@ -677,6 +677,7 @@ const PUCKERO = (() => {
       natKapitaen: false,     // Kapitaen der Nationalmannschaft
       entryDraft: null,       // Ergebnis des Entry Drafts
       draftRechte: null,      // wer deine Rechte haelt, und wie lange
+      draftRechte2: null,     // der andere Draft - NHL und KHL ziehen getrennt
       draftRuf: false,        // hat der Klub schon angerufen?
       bericht: null,          // Rueckblick direkt nach der Saison
       rolle: null,            // gewaehlte Rolle im aktuellen Vertrag
@@ -858,6 +859,7 @@ const PUCKERO = (() => {
       /* Warum der eigene Verein diesmal kein Angebot gemacht hat. */
       keineVerlaengerung: null,
       kauftRaus: false,        // ein groesserer Klub kauft dich aus dem Vertrag
+      klubIstRaus: false,      // der eigene Klub loest auf oder die Jugend endet
       training: null
     };
 
@@ -2042,10 +2044,13 @@ const PUCKERO = (() => {
         /* Solange jemand die Rechte haelt, gehoert das in den Auftakt -
            es ist die Tuer, die einem offensteht, ohne dass man etwas
            dafuer tut. */
-        draftRechte: (st.draftRechte && st.year <= st.draftRechte.bis
-                   && st.club && st.draftRechte.klub !== st.club.n)
-          ? { klub: st.draftRechte.klub, liga: st.draftRechte.liga,
-              bis: st.draftRechte.bis, runde: st.draftRechte.runde } : null,
+        draftRechte: [st.draftRechte, st.draftRechte2]
+          .filter(d => d && st.year <= d.bis && st.club && d.klub !== st.club.n)
+          .map(d => ({ klub: d.klub, liga: d.liga, bis: d.bis, runde: d.runde }))[0] || null,
+        /* Beide, falls zwei Klubs die Rechte halten. */
+        draftRechteAlle: [st.draftRechte, st.draftRechte2]
+          .filter(d => d && st.year <= d.bis && st.club && d.klub !== st.club.n)
+          .map(d => ({ klub: d.klub, liga: d.liga, bis: d.bis, runde: d.runde })),
         entryDraft: st.entryDraft,
         verschleiss: st.verletzungsjahre || 0,
         altlasten: Object.assign({}, st.altlasten),
@@ -2082,9 +2087,19 @@ const PUCKERO = (() => {
       const moral = Math.sign(moralAbstand) * Math.sqrt(Math.abs(moralAbstand)) * 0.035;
       const stand = st.rollenStand === 'saeule' ? 0.030
                   : st.rollenStand === 'bewaehrung' ? -0.045 : 0;
+      /* ------------------------------------------------------------------
+         Eingewoehnung ist eine Phase, kein Dauerbonus
+
+         Der Wert lief auf +5,5 Prozent zu und blieb dort - gemessen war
+         das Umfeld in 71 Prozent aller Saisons positiv. Das erste Jahr
+         an einem neuen Ort kostet wirklich etwas, aber irgendwann ist
+         man angekommen, und dann ist "angekommen" der Normalzustand
+         und kein Zuschlag. Der Gipfel liegt jetzt im dritten Jahr und
+         klingt danach ab.
+         ------------------------------------------------------------------ */
       const eingewoehnung = st.klubJahre === 0 ? -0.055
-                          : st.klubJahre === 1 ? 0.01
-                          : Math.min(0.055, 0.02 + st.klubJahre * 0.008);
+                          : st.klubJahre === 1 ? 0.012
+                          : clamp(0.032 - (st.klubJahre - 3) * 0.006, 0.004, 0.032);
       const mitspieler = clamp(
         (klubStaerke(st.club) - ligaSchnittJetzt(st.club.lg)) * 0.006, -0.06, 0.07);
       const bindung = klubBindung() * 0.022;
@@ -2941,15 +2956,27 @@ const PUCKERO = (() => {
         }
         const wieOft = st.altlasten[V.n] || 0;
         const zaeher = 1 + wieOft * 0.28;         // jedes Mal laenger
-        missed = Math.round(clamp(ri(r, V.min, V.max) * zaeher / robust, 2, 62));
+        /* ------------------------------------------------------------
+           Die Verletzung kommt zu dem, was schon fehlt, hinzu
+
+           Hier stand "missed = ...", also eine Zuweisung: die schon
+           gezaehlten Spiele aus Reha und Sperre wurden ueberschrieben.
+           Wer drei Spiele gesperrt war und sich danach verletzte,
+           verlor die Sperre wieder - und die Meldung schrieb der
+           Verletzung alle Spiele zu, die in Wahrheit zwei Ursachen
+           hatten.
+           ------------------------------------------------------------ */
+        const durchVerletzung = Math.round(
+          clamp(ri(r, V.min, V.max) * zaeher / robust, 2, 62));
+        missed += durchVerletzung;
         if (V.schwere >= 1)
           st.verletzungsjahre = (st.verletzungsjahre || 0) + V.schwere + (rueckfall ? 1 : 0);
         st.altlasten[V.n] = wieOft + 1;
-        season.verletzung = { n: V.n, spiele: missed, schwere: V.schwere,
+        season.verletzung = { n: V.n, spiele: durchVerletzung, schwere: V.schwere,
                               rueckfall, malNr: wieOft + 1 };
         season.events.push({
           t: (rueckfall ? V.n + ' – schon wieder' : V.n)
-             + ' – ' + missed + ' Spiele verpasst', c: 'bad' });
+             + ' – ' + durchVerletzung + ' Spiele verpasst', c: 'bad' });
       }
       const fullGp = lg.k === 'NHL' ? 82 : (istJugend(lg.k) ? 60 : 52);
 
@@ -2978,8 +3005,8 @@ const PUCKERO = (() => {
       /* ---- Eingewoehnung beim Klub ----
          Das erste Jahr an einem neuen Ort kostet, ab dem dritten zahlt es sich aus. */
       const eingewoehnung = st.klubJahre === 0 ? -0.055
-                          : st.klubJahre === 1 ? 0.01
-                          : Math.min(0.055, 0.02 + st.klubJahre * 0.008);
+                          : st.klubJahre === 1 ? 0.012
+                          : clamp(0.032 - (st.klubJahre - 3) * 0.006, 0.004, 0.032);
 
       /* ---- Mitspieler ----
          In einer starken Mannschaft faellt es leichter zu punkten. */
@@ -4247,7 +4274,40 @@ const PUCKERO = (() => {
             : [{ t: st.age >= 20 ? 'Free Agent' : 'Naechstes Jahr wieder', gut: false }]
         };
         if (klub){
-          st.draftRechte = { klub: klub.n, liga, runde, bis: st.year + 4 };
+          /* Fuenf Jahre statt vier: in Nordamerika behaelt ein Klub die
+             Rechte an einem Spieler, der in Europa oder am College
+             bleibt, deutlich laenger als vier Jahre. */
+          st.draftRechte = { klub: klub.n, liga, runde, bis: st.year + 5 };
+
+          /* ------------------------------------------------------------
+             NHL und KHL ziehen getrennt
+
+             Bisher entschied ein Wurf, welche der beiden Ligen einen
+             zieht - die andere kam nie vor. In Wirklichkeit sind es
+             zwei Veranstaltungen, und ein guter Jahrgang steht auf
+             beiden Listen. Wer gut genug war, wird jetzt auch drueben
+             gezogen und hat spaeter zwei Tueren offen.
+
+             Die zweite Wahl faellt spaeter: man hat sich ja schon
+             gebunden - drueben zieht man dich auf Verdacht.
+             ------------------------------------------------------------ */
+          const andere = liga === 'KHL' ? 'NHL' : 'KHL';
+          const zweitChance = runde === 1 ? 0.55 : runde <= 3 ? 0.38
+                            : runde <= 5 ? 0.22 : 0.10;
+          if (r() < zweitChance){
+            const poolZwei = clubsOf(andere).slice()
+              .sort((a, b) => klubStaerke(a) - klubStaerke(b));
+            const runde2 = clamp(runde + ri(r, 0, 2), 1, 7);
+            const platz2 = Math.round((ri(r, 1, 32) - 1) * (poolZwei.length / 32));
+            const klub2 = poolZwei[clamp(platz2, 0, poolZwei.length - 1)];
+            if (klub2){
+              st.draftRechte2 = { klub: klub2.n, liga: andere, runde: runde2,
+                                  bis: st.year + 5 };
+              season.events.push({ t: (andere === 'KHL' ? 'KHL-Draft' : 'Entry Draft')
+                + ': auch ' + klub2.n + ' sichert sich deine Rechte (Runde '
+                + runde2 + ')', c: 'good' });
+            }
+          }
         }
 
         /* Ein Spieler desselben Jahrgangs, an dem du dich messen wirst.
@@ -4576,9 +4636,13 @@ const PUCKERO = (() => {
       }
       else if (zuGross)       grund = 'Ein größerer Klub klopft an und kauft dich aus dem Vertrag.';
       else if (st.vertragJahre <= 0) grund = 'Dein Vertrag läuft aus.';
-      /* macheAngebote braucht das: wer herausgekauft wird, bekommt kein
-         Angebot mehr vom eigenen Verein. */
+      /* macheAngebote braucht das: wer herausgekauft wird oder dem der
+         Klub den Vertrag aufloest, bekommt kein Angebot mehr vom
+         eigenen Verein. Gemessen stand er in 14 Prozent dieser Faelle
+         trotzdem da - "Der Klub loest den Vertrag auf" und daneben
+         "Verbleib bei deinem Klub". */
       st.kauftRaus = !!zuGross && !zuSchwach && !juniorEnde;
+      st.klubIstRaus = !!zuSchwach || !!juniorEnde;
 
       if (!grund){
         season.events.push({ t: 'Vertrag läuft noch ' + st.vertragJahre +
@@ -4817,9 +4881,15 @@ const PUCKERO = (() => {
          halbwegs passt und solange die Frist laeuft. Er nimmt eine
          Wertung in Kauf, die sonst nicht reichen wuerde: bei einem
          Erstrundenpick acht Punkte, bei einem Spaeten drei. */
-      const dr = st.draftRechte;
+      [st.draftRechte, st.draftRechte2].forEach(dr => {
       if (dr && st.year <= dr.bis && aktuell.n !== dr.klub){
-        const geduld = dr.runde === 1 ? 8 : dr.runde <= 3 ? 5 : 3;
+        /* Gemessen meldete sich der Rechteinhaber bei einem
+           Siebtrundenpick nur in 24 Prozent der Laufbahnen: er haette
+           bis zweiundzwanzig die Wertung 83 erreichen muessen. Ein
+           Verein, der jemanden gezogen hat, wartet aber laenger und
+           nimmt mehr in Kauf - er hat ja nichts zu verlieren. */
+        const geduld = dr.runde === 1 ? 10 : dr.runde <= 3 ? 7
+                     : dr.runde <= 5 ? 5 : 4;
         if (bewertung >= LG_MIN[dr.liga] - geduld){
           const rechteKlub = clubsOf(dr.liga).find(c => c.n === dr.klub);
           if (rechteKlub){
@@ -4829,8 +4899,13 @@ const PUCKERO = (() => {
               letzterEintrag.draftRecht = true;
               letzterEintrag.rolle = 'Holt dich als Draftpick';
             }
-            if (!st.draftRuf){
-              st.draftRuf = true;
+            /* Je Verein einmal - seit zwei Klubs die Rechte halten
+               koennen, haette ein gemeinsames Flag die zweite Meldung
+               verschluckt. */
+            st.draftRuf = st.draftRuf || {};
+            if (st.draftRuf === true) st.draftRuf = {};
+            if (!st.draftRuf[dr.klub]){
+              st.draftRuf[dr.klub] = true;
               /* macheAngebote laeuft ausserhalb der Saisonschleife und
                  kennt kein season - die Engine hat fuer genau diesen
                  Fall eine nachgereichte Notiz. */
@@ -4840,6 +4915,7 @@ const PUCKERO = (() => {
           }
         }
       }
+      });
 
       // 1. Verbleib, sofern die aktuelle Liga noch reicht
       /* Wer beim Verein etwas bedeutet, bekommt praktisch immer ein
@@ -4900,7 +4976,7 @@ const PUCKERO = (() => {
          steht "Verbleib bei deinem Klub" - das widerspricht sich. Wer
          herausgekauft wird, ist beim alten Verein weg. Gemessen war
          der eigene Klub in 96 Prozent dieser Faelle trotzdem dabei. */
-      const bleibtMoeglich = !ligaZuHoch && !absage && !st.kauftRaus;
+      const bleibtMoeglich = !ligaZuHoch && !absage && !st.kauftRaus && !st.klubIstRaus;
       if (bleibtMoeglich) nimm(aktuell, true);
       else {
         /* ----------------------------------------------------------------
@@ -5221,6 +5297,7 @@ const PUCKERO = (() => {
       st.angebotsBelege = null;
       st.keineVerlaengerung = null;
       st.kauftRaus = false;
+      st.klubIstRaus = false;
       return true;
     }
 
@@ -6053,20 +6130,20 @@ const PUCKERO = (() => {
        deshalb die gemessenen Perzentile von siebenhundert Laufbahnen:
        ein Viertel bleibt Journeyman, einer von zwanzig kommt in die
        Ruhmeshalle, einer von hundert darueber hinaus. */
-    if (v >= 2675) return { n:'Unsterblich', c:'gold', d:'Ein Name, den man in hundert Jahren noch kennt.' };
-    if (v >= 1975) return { n:'Hall of Fame', c:'gold', d:'Trikot unter dem Hallendach, Platz in der Ruhmeshalle.' };
-    if (v >= 1450) return { n:'Franchise-Ikone', c:'', d:'Ein Klub hat eine Ära nach dir benannt.' };
-    if (v >= 1115) return { n:'Topstar', c:'', d:'Jahrelang erste Reihe, erste Wahl, erste Schlagzeile.' };
-    if (v >= 785) return { n:'Leistungsträger', c:'', d:'Solide Karriere in starken Ligen.' };
-    if (v >= 490) return { n:'Profi', c:'', d:'Ein ehrliches Eishockeyleben.' };
+    if (v >= 2340) return { n:'Unsterblich', c:'gold', d:'Ein Name, den man in hundert Jahren noch kennt.' };
+    if (v >= 1790) return { n:'Hall of Fame', c:'gold', d:'Trikot unter dem Hallendach, Platz in der Ruhmeshalle.' };
+    if (v >= 1305) return { n:'Franchise-Ikone', c:'', d:'Ein Klub hat eine Ära nach dir benannt.' };
+    if (v >= 1010) return { n:'Topstar', c:'', d:'Jahrelang erste Reihe, erste Wahl, erste Schlagzeile.' };
+    if (v >= 685) return { n:'Leistungsträger', c:'', d:'Solide Karriere in starken Ligen.' };
+    if (v >= 475) return { n:'Profi', c:'', d:'Ein ehrliches Eishockeyleben.' };
     return { n:'Journeyman', c:'', d:'Viele Busfahrten, wenig Rampenlicht.' };
   }
   /* Dieselben Zahlen wie in legacyRank - zwei Kopien sind zwei
      Gelegenheiten auseinanderzulaufen, aber die Liste wird an anderer
      Stelle in dieser Reihenfolge gebraucht. */
   const RANG_SCHWELLEN = [
-    ['Unsterblich', 2675], ['Hall of Fame', 1975], ['Franchise-Ikone', 1450],
-    ['Topstar', 1115], ['Leistungsträger', 785], ['Profi', 490]
+    ['Unsterblich', 2340], ['Hall of Fame', 1790], ['Franchise-Ikone', 1305],
+    ['Topstar', 1010], ['Leistungsträger', 685], ['Profi', 475]
   ];
 
   /* ---------------- Herausforderungen ---------------- */
