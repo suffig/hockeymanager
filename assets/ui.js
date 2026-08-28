@@ -2187,13 +2187,26 @@ const UI = (() => {
       ? (L.kinder === 1 ? 'Familie, ein Kind' : 'Familie, ' + L.kinder + ' Kinder')
       : fam.n;
 
-    /* Ein Satz statt drei Zahlen - die Zahlen stehen darunter. */
-    const satz = L.heimweh >= 65 ? 'Du willst nach Hause.'
-               : L.heimweh >= 40 ? 'Die Heimat zieht.'
-               : L.daheim        ? 'Du spielst da, wo du herkommst.'
-               : L.wurzeln >= 70 ? 'Hier bist du zu Hause geworden.'
-               : L.wurzeln >= 40 ? 'Du hast dich eingelebt.'
-               : 'Noch alles neu.';
+    /* ------------------------------------------------------------------
+       Ein Satz, der sagt, was los ist
+
+       "Die Heimat zieht" liess offen, was das heisst. Und wer sich
+       eingelebt hatte und trotzdem Heimweh, bekam den einen Satz und
+       nicht den anderen - dabei sind beide wahr: man kann sich beim
+       Verein zu Hause fuehlen und das eigene Land trotzdem vermissen.
+       Der Satz nennt jetzt beides, wenn beides gilt.
+       ------------------------------------------------------------------ */
+    const eingelebt = !L.daheim && L.wurzeln >= 55;
+    const satz = L.heimweh >= 65
+        ? (eingelebt ? 'Du hast dich eingelebt – und willst trotzdem nach Hause.'
+                     : 'Du willst nach Hause.')
+      : L.heimweh >= 40
+        ? (eingelebt ? 'Angekommen bist du, angekommen fühlst du dich nicht ganz.'
+                     : 'Die Heimat zieht – Angebote von daheim rücken vor.')
+      : L.daheim        ? 'Du spielst da, wo du herkommst.'
+      : L.wurzeln >= 70 ? 'Hier bist du zu Hause geworden.'
+      : L.wurzeln >= 40 ? 'Du hast dich eingelebt.'
+      : 'Noch alles neu.';
 
     const messwert = (n, wert, farbe) => `
       <div class="lb-wert">
@@ -2220,7 +2233,9 @@ const UI = (() => {
              sie an drei Dingen gleichzeitig: an der Stimmung, an dem,
              was einem angeboten wird, und am Gedanken ans Aufhoeren.
              ---------------------------------------------------------------- */ ''}
-      ${!L.daheim && L.heimweh >= 25 ? `<div class="lb-folgen">
+      ${!L.daheim && L.heimweh >= 25 ? `<details class="lb-mehr">
+        <summary>Was das Heimweh bewirkt</summary>
+        <div class="lb-folgen">
         ${L.heimweh >= 55 ? `<span class="lb-folge gut">${ikone('flug', 11)}
           Ein Verein von daheim wird dir anbieten</span>`
         : `<span class="lb-folge">${ikone('flug', 11)}
@@ -2229,7 +2244,12 @@ const UI = (() => {
           Drückt auf die Stimmung</span>` : ''}
         ${L.heimweh >= 60 ? `<span class="lb-folge schlecht">${ikone('kalender', 11)}
           Der Gedanke ans Aufhören kommt früher</span>` : ''}
-      </div>` : ''}
+        </div>
+        <p class="lb-erklaerung">Heimweh steigt mit jeder Saison im Ausland und
+          fällt, sobald du in deinem Land spielst. Verwurzelung bremst es:
+          wer sich eingelebt hat, vermisst weniger. Ab 55 legt dir dein Verein
+          immer auch ein Angebot von daheim vor – notfalls eine Liga tiefer.</p>
+      </details>` : ''}
       ${L.daheim && L.heimweh <= 10 ? `<div class="lb-folgen">
         <span class="lb-folge gut">${ikone('flug', 11)}
           Du spielst zu Hause – kein Heimweh, keine Unruhe</span>

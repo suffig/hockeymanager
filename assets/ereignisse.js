@@ -1103,7 +1103,11 @@ const EREIGNISSE = (() => {
       bedingung: st => st.age >= 22 && st.klubJahre >= 1,
       optionen:[
         { t:'Auf den Schuss setzen', chance:60, hinweis:'Deine offensichtliche Stärke',
-          gut:{ attr:{ schuss:5, praezision:3 }, text:'Vierzehn Überzahltore in einer Saison. Die Diskussion ist beendet.' },
+          gut:{ attr:{ schuss:5, praezision:3 }, /* Die Engine zaehlt keine Ueberzahltore - die Zahl konnte also
+             groesser sein als die Tore der ganzen Saison. Alle anderen
+             Zahlen in Ereignistexten beschreiben einzelne Spiele und
+             widersprechen nichts; nur diese behauptete eine Saisonsumme. */
+          text:'Die Überzahl läuft ab jetzt über deinen Schlagschuss. Die Diskussion ist beendet.' },
           schlecht:{ form:-0.04, text:'Der Gegner stellt sich in den Schusskanal. Nach zwei Monaten bist du raus.' } },
         { t:'Auf Passspiel umstellen', chance:55, hinweis:'Umlernen mitten in der Saison',
           gut:{ attr:{ pass:5, uebersicht:4 }, ruf:4,

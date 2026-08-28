@@ -1947,19 +1947,43 @@ function CareerGame(root, cfg){
           </div>`).join('')}
         </div>` : ''}
         <p class="small mt">Ein starker Klub bringt Titel, ein schwächerer mehr Eiszeit.</p>
-        ${berater && berater.frei ? `<button class="beraterknopf" data-berater>
-          ${UI.ikone('fluestern', 15)}
-          <span class="bk-text">
-            <b>Deinen Berater herumtelefonieren lassen</b>
-            <span>Draht ${berater.draht}/100 · einmal je Verhandlung ·
-              kostet etwas vom Draht</span>
-          </span>
-        </button>` : ''}
+        ${/* ----------------------------------------------------------------
+             Wie der Draht zustande kommt
+
+             Der Knopf nannte nur den Stand. Woher die Zahl kommt und was
+             sie kostet, stand nirgends - man sah eine Groesse, die sich
+             bewegt, ohne zu wissen wodurch.
+             ---------------------------------------------------------------- */ ''}
+        ${berater ? `<div class="beraterfeld">
+          ${berater.frei ? `<button class="beraterknopf" data-berater>
+            ${UI.ikone('fluestern', 15)}
+            <span class="bk-text">
+              <b>Deinen Berater herumtelefonieren lassen</b>
+              <span>Er holt drei neue Angebote – einmal je Verhandlung</span>
+            </span>
+          </button>` : ''}
+          <details class="bk-mehr">
+            <summary>Draht zum Berater: ${berater.draht}/100${berater.frei
+              ? '' : (berater.draht < 55 ? ' – ab 55 telefoniert er für dich'
+                                         : ' – diesmal schon genutzt')}</summary>
+            <ul class="bk-liste">
+              <li>Jeder gemeinsam ausgehandelte Vertrag bringt <b>+6</b>.</li>
+              <li>Ihn hart verhandeln lassen bringt <b>+14</b> – an ihm vorbei
+                mit dem Sportdirektor zu sprechen kostet <b>10</b>.</li>
+              <li>Ihn herumtelefonieren zu lassen kostet <b>8</b>: er verbraucht
+                dabei etwas von dem, was ihn trägt.</li>
+              <li>Ab <b>55</b> holt er dir einmal je Verhandlung drei neue
+                Angebote. Die eben gezeigten Vereine treten dabei zurück.</li>
+            </ul>
+          </details>
+        </div>` : ''}
         <div class="grid g3 mt-l stagger">
           ${angebote.map((a, i) => `
             <button class="jugendkarte" data-angebot="${i}">
               <div class="jk-liga">${a.bleibt ? 'Verbleib · ' : a.draftRecht
                 ? 'Draftrechte · ' : ''}${esc(a.lgName)}</div>
+              ${/* "Extraliga" sagt einem Deutschen nichts, "Tschechien" schon. */ ''}
+              <div class="jk-land">${a.daheim ? '<span class="jk-daheim">Heimat</span> ' : ''}${esc(a.land || '')}</div>
               <div class="jk-wappen">${UI.wappenBild(a.club.n, 58)}</div>
               <div class="jk-name">${esc(a.club.n)}</div>
               ${a.klubRang && a.klubRang !== 'zugang'

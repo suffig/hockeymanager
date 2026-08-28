@@ -458,7 +458,7 @@ const DRAFT = (() => {
      beide "lernwillig". Reicht der Vorrat nicht, wird aufgefuellt: es
      muessen immer drei Karten zur Wahl stehen.
      ------------------------------------------------------------------ */
-  function ohneWiederholung(liste, seed, wieviele, gewichte, schonDa){
+  function ohneWiederholung(liste, seed, wieviele, gewichte, schonDa, verboten){
     const roh = ziehe(liste, seed, liste.length, gewichte);
     const raus = [];
     const soll = wieviele || 3;
@@ -486,6 +486,9 @@ const DRAFT = (() => {
       for (const k of roh){
         if (raus.some(x => (x.__quelle || x) === k)) continue;
         const eig = k.eig || [];
+        /* Was eine frueh getroffene Entscheidung ausschliesst, kommt gar
+           nicht erst zur Wahl - auch nicht auf der Notstufe. */
+        if (verboten && eig.some(id => verboten.has(id))) continue;
         const frisch = eig.filter(id => !hier.has(id) && !schonDa.has(id));
         /* Stufe 0: die Karte ist rundum neu.
            Stufe 1: sie bringt wenigstens eine offene Eigenschaft mit.
@@ -509,22 +512,54 @@ const DRAFT = (() => {
     return raus;
   }
 
-  function fragen(posGruppe, seed, nation){
+  /* ------------------------------------------------------------------
+     Was sich gegenseitig ausschliesst
+
+     Wer als Kind ausgewandert ist, kann nicht heimatverbunden sein -
+     die Herkunftskarte erzaehlt eine neue Sprache und eine neue Halle,
+     und zwei Fragen spaeter stand "Heimatverbunden" zur Wahl. Dasselbe
+     gilt fuer andere Paare: wer den Raum traegt, ist kein
+     Einzelgaenger, und wessen Koerper alles aushaelt, hat keine
+     Glasknochen.
+
+     Ausgeschlossen wird nur, was man wirklich GEWAEHLT hat - was bloss
+     zur Auswahl stand, zaehlt nicht.
+     ------------------------------------------------------------------ */
+  const GEGENSAETZE = {
+    weltenbummler:   ['heimverbunden'],
+    heimverbunden:   ['weltenbummler', 'heimschwaeche'],
+    heimschwaeche:   ['heimverbunden'],
+    einzelgaenger:   ['kabinenherz'],
+    kabinenherz:     ['einzelgaenger'],
+    eisenmann:       ['glasknochen'],
+    glasknochen:     ['eisenmann'],
+    spaetzuender:    ['wunderkind'],
+    wunderkind:      ['spaetzuender'],
+    fleissbiene:     ['dickkopf'],
+    dickkopf:        ['fleissbiene']
+  };
+
+  function fragen(posGruppe, seed, nation, gewaehlt){
     const s0 = String(seed || 'eiszeit');
     const schonDa = new Set();
+    /* Was die bisherigen Entscheidungen ausschliessen. */
+    const verboten = new Set();
+    (gewaehlt || []).forEach(k => (k.eig || []).forEach(id => {
+      (GEGENSAETZE[id] || []).forEach(x => verboten.add(x));
+    }));
     return [
       { id:'herkunft',  frage:'Wo hast du Eishockey gelernt?',
         text:'Die ersten Jahre prägen mehr als jedes Profitraining.',
-        karten: ohneWiederholung(HERKUNFT, s0 + ':h', 3, HERKUNFT_LAND[nation], schonDa) },
+        karten: ohneWiederholung(HERKUNFT, s0 + ':h', 3, HERKUNFT_LAND[nation], schonDa, verboten) },
       { id:'waffe',     frage:'Was ist deine Waffe?',
         text:'Wofür holt dich ein Trainer aufs Eis, wenn es eng wird?',
-        karten: ohneWiederholung(WAFFE[posGruppe] || WAFFE.skater, s0 + ':w', 3, null, schonDa) },
+        karten: ohneWiederholung(WAFFE[posGruppe] || WAFFE.skater, s0 + ':w', 3, null, schonDa, verboten) },
       { id:'charakter', frage:'Wer bist du in der Kabine?',
         text:'Zwanzig Männer, ein Raum. Deine Rolle darin entscheidet mehr, als du denkst.',
-        karten: ohneWiederholung(CHARAKTER, s0 + ':c', 3, null, schonDa) },
+        karten: ohneWiederholung(CHARAKTER, s0 + ':c', 3, null, schonDa, verboten) },
       { id:'preis',     frage:'Was kostet dich dein Spiel?',
         text:'Niemand bekommt alles. Wähle, womit du leben willst.',
-        karten: ohneWiederholung(PREIS, s0 + ':p', 3, null, schonDa) }
+        karten: ohneWiederholung(PREIS, s0 + ':p', 3, null, schonDa, verboten) }
     ];
   }
 

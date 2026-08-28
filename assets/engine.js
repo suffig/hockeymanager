@@ -328,7 +328,10 @@ const PUCKERO = (() => {
      Fuenf Fragen, jede Antwort verschiebt Werte und gibt Eigenschaften. */
   function draftFrage(player, runde){
     if (typeof DRAFT === 'undefined') return null;
-    const alle = DRAFT.fragen(pos(player.pos).group, player.seed, player.nation);
+    /* Die bisher gewaehlten Karten mitgeben - erst damit kann der
+       Draft ausschliessen, was einer frueheren Wahl widerspricht. */
+    const alle = DRAFT.fragen(pos(player.pos).group, player.seed,
+                              player.nation, player.picks);
     return alle[runde] || null;
   }
 
@@ -888,11 +891,28 @@ const PUCKERO = (() => {
 
     /* ---- Angebote aus dem Nachwuchs (Karrierestart) ---- */
     function macheJugendangebote(){
-      const heim = HOME_LG[player.nation] || 'AHL';
-      const kandidaten = shuffle(r, clubsOf(heimJugend)).slice(0, 2);
-      // Ein Angebot aus dem Unterbau der Heimat, damit die Wahl etwas bedeutet
+      /* ------------------------------------------------------------------
+         Wer als Kind ausgewandert ist, lernt woanders Eishockey
+
+         Die Angebote kamen alle aus der Heimatjugend plus einem Verein
+         aus dem heimischen Unterbau - auch fuer den, dessen
+         Herkunftskarte "Neue Sprache, neue Halle, neue Regeln" sagt.
+         Die Karte erzaehlte eine Auswanderung, das Spiel schickte ihn
+         nach Hause.
+         ------------------------------------------------------------------ */
+      const ausgewandert = (player.picks || []).some(x => x.id === 'h_ausland');
+      const fremdeJugend = D.LEAGUES.filter(l => l.jugend && l.k !== heimJugend
+                                            && clubsOf(l.k).length);
+      const quelle = ausgewandert && fremdeJugend.length
+        ? shuffle(r, fremdeJugend).slice(0, 2).map(l => pick(r, clubsOf(l.k)))
+        : shuffle(r, clubsOf(heimJugend)).slice(0, 2);
+      const kandidaten = quelle.filter(Boolean);
+      // Ein Angebot aus dem Unterbau - daheim, oder eben auch nicht
       const unten = D.LEAGUES.filter(l => l.prestige >= 8 && l.prestige <= 22);
-      const heimLiga = unten.find(l => l.land === (nation(player.nation) || {}).n) || pick(r, unten);
+      const heimatLand = (nation(player.nation) || {}).n;
+      const heimLiga = ausgewandert
+        ? (pick(r, unten.filter(l => l.land !== heimatLand)) || pick(r, unten))
+        : (unten.find(l => l.land === heimatLand) || pick(r, unten));
       const dritter = pick(r, clubsOf(heimLiga.k));
       const alle = kandidaten.concat(dritter ? [dritter] : []);
 
@@ -4710,7 +4730,21 @@ const PUCKERO = (() => {
            eine Liga erreichbar, die die Wertung sonst ausschliesst. */
         const bonus = l.k === homeLg
           ? 4 + ((player.wirkung || {}).heimbonus || 0) * 0.4 + st.leben.heimweh * 0.05 : 0;
-        return bewertung >= LG_MIN[l.k] - bonus;
+        /* ------------------------------------------------------------
+           Ein Klub kaempft um seinen Kapitaen
+
+           Gemessen bekamen 35 Prozent aller Kapitaene keine
+           Verlaengerung - immer mit derselben Begruendung, die Liga sei
+           zu hoch geworden. Ein Verein wirft aber nicht den Mann
+           raus, dem er das C gegeben hat, weil er zwei Punkte unter
+           der Norm liegt. Der eigene Verein raeumt deshalb Spielraum
+           ein, gestaffelt nach dem, was man ihm bedeutet.
+           ------------------------------------------------------------ */
+        const traegt = l.k === aktuell.lg
+          ? (st.kapitaenSeit === aktuell.n ? 6
+             : st.rollenStand === 'saeule' ? 4 : 0) + klubBindung() * 4
+          : 0;
+        return bewertung >= LG_MIN[l.k] - bonus - traegt;
       });
       if (!moeglicheLigen.length) moeglicheLigen = [league(st.age <= 20 ? heimJugend : 'AHL')];
 
@@ -4736,6 +4770,9 @@ const PUCKERO = (() => {
         if (bleibt && klubBindung() >= 0.6) jahre = Math.min(5, jahre + 1);
         angebote.push({
           club, lgKey: club.lg, lgName: lg.n, bleibt: !!bleibt, rolle,
+          /* Das Land gehoert dazu: "Extraliga" sagt einem Deutschen
+             nichts, "Tschechien" schon. */
+          land: lg.land, daheim: istHeimatLiga(club.lg, player.nation),
           /* "Teamstaerke 88" sagte nichts: die Zahl hat nur Bedeutung
              im Verhaeltnis zum Schnitt der Liga, und der ist je Liga
              ein anderer. Deshalb der Abstand dazu - wie im Auftakt
@@ -4865,13 +4902,32 @@ const PUCKERO = (() => {
          der eigene Klub in 96 Prozent dieser Faelle trotzdem dabei. */
       const bleibtMoeglich = !ligaZuHoch && !absage && !st.kauftRaus;
       if (bleibtMoeglich) nimm(aktuell, true);
-      else st.keineVerlaengerung = {
-        klub: aktuell.n,
-        grund: ligaZuHoch
-          ? ('Für die ' + league(aktuell.lg).n + ' reicht deine Wertung nicht mehr – '
-             + 'der Klub kann dich nicht halten.')
-          : absage
-      };
+      else {
+        /* ----------------------------------------------------------------
+           Nur eine echte Absage ist eine Absage
+
+           Wird man herausgekauft, ist weder die Liga zu hoch noch ein
+           Grund gesetzt - und im Kasten stand "null". Das Herauskaufen
+           ist auch gar keine Absage des eigenen Vereins: er haette
+           gern verlaengert, jemand anders war schneller. Das steht
+           schon oben als Grund fuer die Angebote.
+           ---------------------------------------------------------------- */
+        /* Eine Juniorenliga fordert keine Wertung - dort ist man mit
+           einundzwanzig schlicht zu alt. "Fuer die DNL reicht deine
+           Wertung nicht mehr" stand trotzdem da, und die DNL verlangt
+           null. */
+        const grund = ligaZuHoch
+          ? (istJugend(aktuell.lg)
+              ? ('Mit ' + st.age + ' ist die Zeit in der ' + league(aktuell.lg).n
+                 + ' vorbei.')
+              : (st.kapitaenSeit === aktuell.n
+                  ? ('Auch das C hält dich nicht mehr: für die '
+                     + league(aktuell.lg).n + ' reicht deine Wertung nicht.')
+                  : ('Für die ' + league(aktuell.lg).n + ' reicht deine Wertung nicht mehr – '
+                     + 'der Klub kann dich nicht halten.')))
+          : absage;
+        st.keineVerlaengerung = grund ? { klub: aktuell.n, grund } : null;
+      }
 
       // 2. Zwei bis drei Angebote aus den erreichbaren Ligen
       /* Wer nichts zurueckgelegt hat, schaut zuerst auf das Gehalt -
@@ -5669,8 +5725,19 @@ const PUCKERO = (() => {
         st.ruf = clamp(st.ruf + 4, 20, 99);
         player.traits.playoff = (player.traits.playoff || 0) + 4;
         if (letzte){
-          letzte.kapitaen = true;
-          letzte.events.push({ t: 'Kapitän von ' + k.klub, c: 'good' });
+          /* ------------------------------------------------------------
+             Das C gilt ab der naechsten Saison
+
+             Hier stand "letzte.kapitaen = true" - die gerade beendete
+             Saison bekam also rueckwirkend das C, obwohl man es darin
+             nicht getragen hat. Gemessen wichen dadurch 118 von 8027
+             Saisonkarten vom Zustand ab, und wer danach den Verein
+             wechselte, sah eine Saison mit C, in der er keiner war.
+             Die Nachricht gehoert trotzdem hierher - sie ist das
+             Ergebnis dieser Saison.
+             ------------------------------------------------------------ */
+          letzte.events.push({ t: 'Kapitän von ' + k.klub + ' – ab der nächsten Saison',
+            c: 'good' });
           letzte.story = pick(r, D.STORY.kapitaen);
         }
       } else if (letzte){
