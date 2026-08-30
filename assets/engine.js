@@ -2040,6 +2040,9 @@ const PUCKERO = (() => {
                             soll: st.rolle.soll } : null,
         rollenStand: st.rollenStand,
         klubJahre: st.klubJahre,
+        /* Das Land gehoert auch spaeter dazu, nicht nur bei der
+           ersten Wahl - "National League" sagt nichts, "Schweiz" schon. */
+        ligaLand: (league(st.club.lg) || {}).land || null,
         klubRang: (st.klubKonto[st.club.n] || {}).rang || 'zugang',
         /* Solange jemand die Rechte haelt, gehoert das in den Auftakt -
            es ist die Tuer, die einem offensteht, ohne dass man etwas
@@ -2751,6 +2754,31 @@ const PUCKERO = (() => {
            passierte nicht. gehaltFaktor ist die Groesse, die auch die
            Verhandlung bewegt. */
         if (w.gehalt) st.gehaltFaktor = clamp((st.gehaltFaktor || 1) + w.gehalt, 0.7, 1.9);
+        /* ------------------------------------------------------------
+           Beim Draftverein unterschreiben heisst dorthin gehen
+
+           "Du unterschreibst" - und danach stand man weiter beim alten
+           Klub und verhandelte im Sommer mit dreien, unter denen der
+           Draftverein nicht war. Der Wechsel findet jetzt statt.
+           ------------------------------------------------------------ */
+        if (w.zumDraftklub){
+          const dr = [st.draftRechte, st.draftRechte2]
+            .find(d => d && st.club && d.klub !== st.club.n);
+          const ziel = dr && clubsOf(dr.liga).find(c => c.n === dr.klub);
+          if (ziel){
+            if (!st.ehemalige.includes(st.club.n)) st.ehemalige.push(st.club.n);
+            st.wechselVon = st.club.n;
+            st.club = ziel;
+            st.klubJahre = 0;
+            st.kapitaenSeit = null;
+            st.vertragJahre = 3;
+            /* Die Rechte sind eingeloest. */
+            if (st.draftRechte && st.draftRechte.klub === ziel.n) st.draftRechte = null;
+            if (st.draftRechte2 && st.draftRechte2.klub === ziel.n) st.draftRechte2 = null;
+            umfeldBenennen();
+            merke('Wechsel zu ' + ziel.n + ' (' + league(ziel.lg).n + ')', true);
+          }
+        }
         /* ------------------------------------------------------------
            Ein Wechsel mitten in der Vorbereitung
 
@@ -4693,26 +4721,15 @@ const PUCKERO = (() => {
       /* Eine Jugendliga fordert nichts - "verlangt 0 (60 darueber)"
          waere zwar richtig gerechnet und trotzdem Unsinn. Dort zaehlt
          nicht die Schwelle, sondern was der naechste Schritt fordert. */
-      if (noetig) {
-        const ab = wert - noetig;
-        b.push({ ik:'waage',
-                 t: 'Die ' + league(st.club.lg).n + ' verlangt ' + noetig
-                    + (ab >= 0 ? ' – du liegst ' + ab + ' darüber'
-                               : ' – dir fehlen ' + Math.abs(ab)),
-                 gut: ab >= 0 });
-      } else {
-        /* Die naechsterreichbare Profiliga als Massstab. */
-        const naechste = D.LEAGUES
-          .filter(l => !l.jugend && LG_MIN[l.k] !== undefined)
-          .sort((x, y) => LG_MIN[x.k] - LG_MIN[y.k])
-          .find(l => LG_MIN[l.k] > wert);
-        b.push({ ik:'waage',
-                 t: naechste
-                    ? 'Für die ' + naechste.n + ' fehlen dir '
-                      + (LG_MIN[naechste.k] - wert)
-                    : 'Reif für den Profibereich',
-                 gut: !naechste });
-      }
+      /* ------------------------------------------------------------------
+         Die Ligahuerde steht nicht mehr dabei
+
+         "Die DEL verlangt 72 - du liegst 2 darueber" war eine Zahl aus
+         der Innenmechanik: sie erklaerte nicht, warum es Angebote gibt,
+         sondern wiederholte nur, was die Angebote selbst schon zeigen.
+         Was zaehlt, steht weiter unten - erfuellte Ziele, Trend, die
+         Rolle beim Klub.
+         ------------------------------------------------------------------ */
 
       /* Die letzten beiden Saisons: erfuellt oder verfehlt? */
       const letzten = st.seasons.slice(-2).filter(x => x.ziele);
@@ -5401,7 +5418,16 @@ const PUCKERO = (() => {
          weniger. */
       if (daheim){
         L.heimatjahre++;
-        L.heimweh = Math.round(clamp(L.heimweh - 11, 0, 100));
+        /* ------------------------------------------------------------
+           Heimkehr ist eine Erloesung, kein langsames Abklingen
+
+           Es fiel um feste elf Punkte. Wer mit 75 heimkam, stand danach
+           bei 64 - und die Anzeige sagte weiter "Du willst nach Hause",
+           obwohl er zu Hause war. Genau das fuehlte sich kaputt an.
+           Jetzt faellt es anteilig: aus 75 werden 31, aus 40 werden 14.
+           Der Rest verschwindet im zweiten Jahr.
+           ------------------------------------------------------------ */
+        L.heimweh = Math.round(clamp(L.heimweh * 0.5 - 6, 0, 100));
       } else if (!hatHeimatLiga(player.nation)){
         /* Kein Ort, an dem das Heimweh je fallen koennte - dann steigt
            es auch nicht. Siehe hatHeimatLiga. */

@@ -538,8 +538,11 @@ function CareerGame(root, cfg){
           <div style="flex:1;min-width:240px">
             <h2 style="margin-bottom:4px">${esc(S.player.name)}
               <span style="color:var(--dim)">#${S.player.num}</span></h2>
+            ${/* Hier stand fest "18 Jahre" - seit die Laufbahn mit
+                 sechzehn beginnt, war das die einzige Stelle, die noch
+                 das alte Startalter nannte. */ ''}
             <p class="small">${nat.flag} ${nat.n} · ${PUCKERO.pos(S.player.pos).n}
-              · 18 Jahre · Juniorenliga</p>
+              · 16 Jahre · Juniorenliga</p>
             <div class="eig-liste mt">${(S.player.eigenschaften || []).map(id => {
               return eigChip(id);
             }).join('')}</div>
@@ -916,7 +919,12 @@ function CareerGame(root, cfg){
         <div class="folge-blatt draftblatt ${d.gezogen ? 'gezogen' : 'ungezogen'}">
           <div class="db-marke">${UI.ikone('krone', 15)} ${esc(folge.tag)}</div>
           ${d.gezogen ? `
-            <div class="db-nummer"><span>Nr.</span><b>${d.gesamt}</b></div>
+            ${/* Die Nummer zaehlt hoch, statt einfach dazustehen - im
+                 Draft wartet man darauf, dass der eigene Name faellt,
+                 und die Sekunden davor sind der Moment. */ ''}
+            <div class="db-nummer"><span>Nr.</span>
+              <b data-zahl="${d.gesamt}" data-von="${Math.max(1, d.gesamt - 60)}">${
+                Math.max(1, d.gesamt - 60)}</b></div>
             <div class="db-klub">${UI.wappenBild(d.klub, 54)}<span>${esc(d.klub)}</span></div>
             <div class="db-runde">Runde ${d.runde} · Position ${d.pick}</div>`
           : `<div class="db-nummer leer"><b>—</b></div>
@@ -935,6 +943,8 @@ function CareerGame(root, cfg){
       w.addEventListener('click', () => weiterNachFolge());
       requestAnimationFrame(() => {
         w.classList.add('an');
+        /* Erst wenn das Blatt steht, laeuft die Nummer hoch. */
+        setTimeout(() => UI.alleZahlenHoch(w), 240);
         /* Eine Wahl in der ersten Runde ist der Abend, von dem ein
            Achtzehnjaehriger sein Leben lang erzaehlt. */
         if (d.gezogen && d.runde === 1 && typeof UI.konfetti === 'function')
@@ -955,12 +965,25 @@ function CareerGame(root, cfg){
         </div>
 
         ${folge.chance !== undefined ? `
-          <div class="fb-wurf ${folge.gelungen ? 'traf' : 'daneben'}"
-               title="Der Wurf musste unter ${folge.chance} liegen">
+          ${/* ----------------------------------------------------------------
+               Der Strich sagte nicht, was er bedeutet
+
+               Die Erklaerung stand im title-Attribut - auf dem Telefon
+               also nirgends. Jetzt steht unter dem Balken, wo die Zone
+               endet und wo der Wurf gelandet ist, und die Nadel faehrt
+               sichtbar dorthin.
+               ---------------------------------------------------------------- */ ''}
+          <div class="fb-wurf ${folge.gelungen ? 'traf' : 'daneben'}">
             <span class="fb-bahn"><i style="width:${folge.chance}%"></i></span>
             ${folge.wurf !== undefined ? `
               <span class="fb-einschlag" style="left:${Math.min(98, folge.wurf)}%"></span>
               <span class="fb-nadel" style="left:${Math.min(98, folge.wurf)}%"></span>` : ''}
+          </div>
+          <div class="fb-skala">
+            <span class="fb-zone">Gelingt bis ${folge.chance}</span>
+            ${folge.wurf !== undefined ? `<span class="fb-wurfzahl ${
+              folge.gelungen ? 'traf' : 'daneben'}">Dein Wurf: ${Math.round(folge.wurf)}
+              ${folge.gelungen ? '– drin' : '– daneben'}</span>` : ''}
           </div>` : ''}
 
         ${folge.wahl ? `<div class="fb-wahl">${esc(folge.wahl)}</div>` : ''}
@@ -1265,7 +1288,9 @@ function CareerGame(root, cfg){
           <div class="au-wer">
             <span class="au-jahr">Saison ${v.jahr}/${String(v.jahr + 1).slice(2)}</span>
             <b class="klubname">${esc(v.klub)}</b>
-            <span class="au-liga">${esc(v.ligaName)} · ${esc(v.erwartung)}
+            <span class="au-liga">${esc(v.ligaName)}${v.ligaLand
+                ? ' <span class="au-land">' + esc(v.ligaLand) + '</span>' : ''} ·
+              ${esc(v.erwartung)}
               ${v.kapitaen ? '<span class="kapitaen-c">C</span>' : ''}</span>
             ${v.trend ? trendChip(v.trend) : ''}
           </div>

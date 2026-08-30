@@ -2112,7 +2112,10 @@ const EREIGNISSE = (() => {
       optionen:[
         { t:'Sofort unterschreiben', chance:78,
           hinweis:'Der Weg, für den du gedraftet wurdest',
-          gut:{ ruf:7, moral:11, trait:{ playoff:3 },
+          /* Unterschreiben heisst hingehen - vorher blieb man, wo man
+             war, und verhandelte im Sommer mit Vereinen, unter denen
+             der Draftklub nicht war. */
+          gut:{ ruf:7, moral:11, trait:{ playoff:3 }, zumDraftklub:true,
                 text:'Du unterschreibst, ohne die zweite Seite zu lesen. Manche Wege gehen '
                    + 'nur einmal auf.' },
           schlecht:{ moral:-4,
@@ -2123,7 +2126,17 @@ const EREIGNISSE = (() => {
                 text:'Sie gehen mit. Wer so lange wartet, gibt nicht im letzten Moment auf.' },
           schlecht:{ moral:-10, ruf:-6,
                 text:'Sie ziehen das Angebot zurück. Zwei Wochen später hörst du, dass sie '
-                   + 'einen anderen genommen haben.' } }
+                   + 'einen anderen genommen haben.' } },
+        /* Es fehlte die dritte Antwort: nein. Ein Angebot ohne
+           Ablehnmoeglichkeit ist keine Entscheidung. */
+        { t:'Ablehnen und deinen eigenen Weg gehen', chance:62,
+          hinweis:'Du hast nicht auf sie gewartet',
+          gut:{ moral:7, ruf:4, attr:{ nerven:3 },
+                text:'Du bleibst, wo du bist, und spielst die beste Saison deiner '
+                   + 'bisherigen Laufbahn. Niemand fragt mehr nach dem Draft.' },
+          schlecht:{ moral:-8, ruf:-5,
+                text:'Sie lassen die Rechte verfallen. Der Weg, der offenstand, '
+                   + 'ist jetzt zu.' } }
       ] },
 
     { id:'kl_naheDran', kat:'karriere', szene:'kabine', tag:'Die Klausel',
