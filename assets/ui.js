@@ -101,6 +101,7 @@ const UI = (() => {
           <button type="button" data-thema-wahl="klassisch">Eis</button>
           <button type="button" data-thema-wahl="verspielt">Bunt</button>
           <button type="button" data-thema-wahl="retro">Retro</button>
+          <button type="button" data-thema-wahl="flutlicht">Flutlicht</button>
         </span>
       </nav>
     </div>
@@ -201,7 +202,8 @@ const UI = (() => {
     if (!m) return;
     const t = document.documentElement.getAttribute('data-thema');
     m.setAttribute('content',
-      t === 'retro' ? '#e9dfcb' : t === 'verspielt' ? '#140f2e' : '#0b1220');
+      t === 'retro' ? '#e9dfcb' : t === 'verspielt' ? '#140f2e'
+      : t === 'flutlicht' ? '#15120e' : '#0b1220');
   }
 
   function installKnopfZeigen(){

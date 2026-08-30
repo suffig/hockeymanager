@@ -977,7 +977,7 @@ function CareerGame(root, cfg){
             <span class="fb-bahn"><i style="width:${folge.chance}%"></i></span>
             ${folge.wurf !== undefined ? `
               <span class="fb-einschlag" style="left:${Math.min(98, folge.wurf)}%"></span>
-              <span class="fb-nadel" style="left:${Math.min(98, folge.wurf)}%"></span>` : ''}
+              <span class="fb-nadel" data-ziel="${Math.min(98, folge.wurf)}"></span>` : ''}
           </div>
           <div class="fb-skala">
             <span class="fb-zone">Gelingt bis ${folge.chance}</span>
@@ -1011,7 +1011,14 @@ function CareerGame(root, cfg){
       /* Die Nadel faehrt erst nach dem Aufblenden an ihre Stelle -
          so sieht man, wo der Wurf gelandet ist. */
       const nadel = w.querySelector('.fb-nadel');
-      if (nadel) setTimeout(() => nadel.classList.add('an'), 90);
+      /* Die Nadel bekommt ihr Ziel erst hier - vorher stand die
+         Endposition inline im style, und der Uebergang fuer "left"
+         hatte nichts zu tun: sie war sofort da. Ein Wurf, den man
+         nicht fahren sieht, ist kein Wurf. */
+      if (nadel) setTimeout(() => {
+        nadel.classList.add('an');
+        requestAnimationFrame(() => { nadel.style.left = nadel.dataset.ziel + '%'; });
+      }, 90);
       /* ----------------------------------------------------------------
          Der Einschlag
 
@@ -1338,14 +1345,16 @@ function CareerGame(root, cfg){
         ${UI.zielKarte(v.ziele)}
         ${blind() ? '' : UI.einflussLeiste(v.einfluesse, true)}
         ${UI.koerperBand(v.verschleiss, v.altlasten)}
-        ${v.draftRechte ? `<div class="draftband">
+        ${/* Seit NHL und KHL getrennt ziehen, koennen zwei Vereine die
+             Rechte halten - angezeigt wurde nur einer. */ ''}
+        ${(v.draftRechteAlle || []).map(d => `<div class="draftband">
           ${UI.ikone('ziel', 14)}
           <div class="db-text">
-            <b>${esc(v.draftRechte.klub)} hält deine Rechte</b>
-            <span>${v.draftRechte.liga === 'KHL' ? 'KHL-Draft' : 'Entry Draft'},
-              Runde ${v.draftRechte.runde} · noch bis ${v.draftRechte.bis}</span>
+            <b>${esc(d.klub)} hält deine Rechte</b>
+            <span>${d.liga === 'KHL' ? 'KHL-Draft' : 'Entry Draft'},
+              Runde ${d.runde} · noch bis ${d.bis}</span>
           </div>
-        </div>` : ''}
+        </div>`).join('')}
         ${UI.lebenKarte(v.leben)}
 
         <div class="row mt-l">
@@ -1431,6 +1440,23 @@ function CareerGame(root, cfg){
           <span class="be-dazu">${esc(u.d)}</span>
         </div>
         ${blind() ? '' : UI.staerkeWandel(b.saison, ATTR_NAMEN)}
+        ${/* Was moeglich gewesen waere - die Bilanz zeigte, wie weit man
+             gekommen ist, aber nicht, wie weit man haette kommen
+             koennen. Genau das ist die Frage nach einer Saison. */ ''}
+        ${(!blind() && b.saison.anlage) ? `<div class="anlage">
+          <div class="an-kopf">${UI.ikone('ziel', 14)} Was in dir steckt</div>
+          <div class="an-leiste">
+            <i style="width:${Math.max(3, Math.min(100, b.saison.anlage.ausgeschoepft))}%"></i>
+            <span class="an-marke" style="left:${
+              Math.max(3, Math.min(100, b.saison.anlage.ausgeschoepft))}%"></span>
+          </div>
+          <div class="an-text">
+            <b>${b.saison.anlage.ausgeschoepft}%</b> deiner Anlage ausgeschöpft ·
+            ${b.saison.anlage.sicher
+              ? 'sie reicht bis etwa <b>' + b.saison.anlage.bis + '</b>'
+              : 'die Schätzung ist noch unscharf: <b>' + esc(b.saison.anlage.text) + '</b>'}
+          </div>
+        </div>` : ''}
         ${UI.seasonCard(b.saison, isG, blind(), true, mobil())}
         ${b.saison.nat ? UI.turnierKarte(b.saison.nat, natName(), isG, mobil()) : ''}
         <div class="row mt-l">
@@ -2004,9 +2030,11 @@ function CareerGame(root, cfg){
         </div>` : ''}
         <div class="grid g3 mt-l stagger">
           ${angebote.map((a, i) => `
-            <button class="jugendkarte" data-angebot="${i}">
-              <div class="jk-liga">${a.bleibt ? 'Verbleib · ' : a.draftRecht
-                ? 'Draftrechte · ' : ''}${esc(a.lgName)}</div>
+            <button class="jugendkarte ${a.draftRecht ? 'draftklub' : ''}"
+                    data-angebot="${i}">
+              ${a.draftRecht ? `<div class="jk-draftmarke">
+                ${UI.ikone('ziel', 11)} Hat dich gedraftet</div>` : ''}
+              <div class="jk-liga">${a.bleibt ? 'Verbleib · ' : ''}${esc(a.lgName)}</div>
               ${/* "Extraliga" sagt einem Deutschen nichts, "Tschechien" schon. */ ''}
               <div class="jk-land">${a.daheim ? '<span class="jk-daheim">Heimat</span> ' : ''}${esc(a.land || '')}</div>
               <div class="jk-wappen">${UI.wappenBild(a.club.n, 58)}</div>

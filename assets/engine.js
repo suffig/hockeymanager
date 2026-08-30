@@ -2812,8 +2812,12 @@ const PUCKERO = (() => {
         /* natSperre in Jahren; 99 heisst "nie wieder". Der Text sagte
            das bisher, und der Verband rief trotzdem im naechsten
            Sommer an. */
+        /* Plus eins: das Ereignis faellt waehrend der Saison, danach
+           laeuft st.year weiter. Eine Sperre von einem Jahr war so
+           schon abgelaufen, bevor der Verband das naechste Mal fragte -
+           er rief also direkt wieder an. */
         if (w.natSperre) st.natGesperrtBis = Math.max(st.natGesperrtBis || 0,
-          st.year + (w.natSperre >= 99 ? 99 : w.natSperre));
+          st.year + 1 + (w.natSperre >= 99 ? 99 : w.natSperre));
       }
       st.verlauf.push({
         jahr: st.year, alter: st.age, art: 'ereignis',
@@ -2908,6 +2912,27 @@ const PUCKERO = (() => {
          Jetzt sammeln sie sich und werden alle gezeigt. */
       (st.offeneNotizen || []).forEach(n => season.events.push(n));
       st.offeneNotizen = [];
+
+      /* ------------------------------------------------------------------
+         Was moeglich gewesen waere
+
+         Die Saisonbilanz zeigte, wie weit man gekommen ist, aber nicht,
+         wie weit man haette kommen koennen. Genau das ist die Frage nach
+         einer Saison: war das gut, oder war da mehr drin? Die Anlage
+         steht ohnehin im Spieler; sie hier zu nennen kostet nichts und
+         macht jede Trainings- und Rollenentscheidung nachvollziehbar.
+
+         Solange man jung ist, ist die Schaetzung unscharf - das steht
+         dabei, statt eine Genauigkeit vorzutaeuschen. */
+      {
+        const e = einschaetzung();
+        season.anlage = {
+          bis: Math.round((player.potenzial || 80) * 0.98),
+          ausgeschoepft: e.ausgeschoepft,
+          sicher: e.sicher,
+          text: e.text
+        };
+      }
 
       /* ------------------------------------------------------------------
          Was aus dem Vorjahr noch nachwirkt
@@ -3385,7 +3410,9 @@ const PUCKERO = (() => {
               && r() < (poStark ? 0.45 : 0.18) + poBoost / 140)
             season.awards.push('playoffMvp');
           if (!isG && season.poP >= poSpiele * 1.1 && r() < 0.4) season.awards.push('poTop');
-          st.ruf += 4;
+          /* Ohne Klammer lief das Ansehen ueber 100 - gemessen 275 mal
+             in 7869 Saisons. Ueberall sonst gilt 20 bis 99. */
+          st.ruf = clamp(st.ruf + 4, 20, 99);
         } else {
           const letzte = serien[serien.length - 1];
           season.events.push({
@@ -3868,15 +3895,37 @@ const PUCKERO = (() => {
            Stammkraft kam auf 0,025 minus 0,06, also null, und damit war
            die Binde fuer fast jeden wieder eine Lebensstellung. Eine
            Legende soll sie schwer verlieren, nicht unmoeglich. */
-        const gefahr = 0.05                              // nichts haelt ewig
-          + (schwach ? 0.34 : 0)
-          + (st.moral < 50 ? 0.14 : 0)
-          + (st.trainerNeu ? 0.16 : 0)
-          + (zielVerfehlt ? 0.09 : 0)
-          + (nachgelassen ? 0.09 : 0)
-          + (season.gp && season.gp < (season.vollGp || 52) * 0.55 ? 0.14 : 0);
+        /* ------------------------------------------------------------
+           Die Binde geht nicht grundlos verloren
+
+           Hier stand eine Grundgefahr von 0,05 - fuenf Prozent je
+           Saison, ohne dass irgendetwas vorgefallen waere. Und die
+           Meldung lautete immer gleich: "Das C geht an einen anderen",
+           ohne ein Wort dazu. Ein Kapitaen, dem man die Binde nimmt,
+           erfaehrt aber, warum.
+
+           Jetzt traegt jeder Grund seinen Namen, und ohne Grund
+           passiert nichts.
+           ------------------------------------------------------------ */
+        const gruende = [];
+        if (schwach) gruende.push({ w: 0.34,
+          t: 'Deine Leistung trägt die Binde nicht mehr.' });
+        if (season.gp && season.gp < (season.vollGp || 52) * 0.55) gruende.push({ w: 0.14,
+          t: 'Wer die halbe Saison fehlt, kann keine Mannschaft führen.' });
+        if (st.trainerNeu) gruende.push({ w: 0.16,
+          t: 'Der neue Trainer bringt seinen eigenen Kapitän mit.' });
+        if (st.moral < 50) gruende.push({ w: 0.14,
+          t: 'Man sieht dir an, dass du selbst nicht mehr überzeugt bist.' });
+        if (zielVerfehlt) gruende.push({ w: 0.09,
+          t: 'Die Mannschaft hat ihr Ziel verfehlt – und einer muss dafür stehen.' });
+        if (nachgelassen) gruende.push({ w: 0.09,
+          t: 'Du hast nachgelassen, und die Kabine hat es gemerkt.' });
+        const gefahr = gruende.reduce((a, g) => a + g.w, 0);
         const risiko = clamp(gefahr * (1 - bindung * 0.55), 0, 0.55);
+        let absetzGrund = null;
         if (risiko > 0 && r() < risiko){
+          /* Der schwerste zutreffende Grund wird genannt. */
+          absetzGrund = gruende.slice().sort((a, b) => b.w - a.w)[0].t;
           st.kapitaenSeit = null;
           /* Nicht sofort wieder fragen. Ohne Sperrfrist stand im Jahr
              darauf die Frage "willst du das C?" auf dem Schirm, obwohl
@@ -3885,16 +3934,19 @@ const PUCKERO = (() => {
              Binde nicht im Jahr darauf zurueck. */
           st.kapitaenSperre = 3;
           st.kapitaenGefragt = false;
-          season.events.push({ t: 'Das C geht an einen anderen', c: 'bad' });
+          season.events.push({ t: 'Das C geht an einen anderen – ' + absetzGrund,
+            c: 'bad' });
           /* Als Folge gemeldet, damit es die Oberflaeche als eigenen
              Moment zeigt statt als Zeile unter zwanzig anderen. */
           st.letzteFolge = {
-            gelungen: false, text: schwach
-              ? 'Der Trainer nimmt dir die Binde. Er sagt, du sollst dich um dein '
-                + 'eigenes Spiel kümmern – das sei gerade genug.'
-              : 'Vor der Saison hängt ein anderes Trikot mit dem C im Spind. '
-                + 'Man hat es dir vorher gesagt, aber gefragt hat dich niemand.',
-            tag: 'Kabine', wahl: 'Das Kapitänsamt abgegeben',
+            /* Der Text nennt denselben Grund wie die Meldung - vorher
+               gab es nur zwei Varianten, und die zweite sagte
+               ausdruecklich "gefragt hat dich niemand", ohne je einen
+               Grund zu nennen. */
+            gelungen: false,
+            text: absetzGrund + ' Vor der Saison hängt ein anderes Trikot mit '
+                + 'dem C im Spind.',
+            tag: 'Kabine', wahl: 'Das Kapitänsamt verloren',
             wirkungen: [{ t: 'Kein Kapitän mehr', gut: false },
                         { t: '-8 Moral', gut: false },
                         { t: '-3 Ansehen', gut: false }]
@@ -4145,7 +4197,10 @@ const PUCKERO = (() => {
       werteRolle(season, kante, posFactor, isG, dev);
       werteSaisonZiel(season);
       st.seasons.push(season);
-      st.ruf = st.ruf * 0.5 + (ovr + season.awards.length * 3 + (season.title ? 4 : 0)) * 0.5;
+      /* Auch hier fehlte die Klammer: eine Wertung von 95 mit drei
+         Auszeichnungen und Titel ergibt 108. */
+      st.ruf = clamp(st.ruf * 0.5
+        + (ovr + season.awards.length * 3 + (season.title ? 4 : 0)) * 0.5, 20, 99);
 
       /* Entry Draft: einmalig im Sommer nach der Saison mit 18 */
       /* ==================================================================
@@ -4645,7 +4700,18 @@ const PUCKERO = (() => {
       /* Ein Verein wirft seine Legende nicht raus, weil sie ein Jahr
          schwach war - er gibt ihr die Saison, die er einem Zugang
          nicht gibt. */
-      const zuSchwach = bewertung < LG_MIN[st.club.lg] - 6 - klubBindung() * 5;
+      /* ------------------------------------------------------------------
+         Ein laufender Vertrag wird nicht wegen der Wertung aufgeloest
+
+         "zuSchwach" griff unabhaengig davon, wie lange der Vertrag noch
+         lief: ein Klub, der einen Draftpick geholt hatte, warf ihn nach
+         einer Saison wieder raus. Das gibt es, aber nicht als
+         Regelfall - ein Vertrag ist ein Vertrag. Erst wenn er auslaeuft,
+         zaehlt die Wertung wieder.
+         ------------------------------------------------------------------ */
+      const vertragLaeuftNoch = st.vertragJahre > 0;
+      const zuSchwach = !vertragLaeuftNoch
+                     && bewertung < LG_MIN[st.club.lg] - 6 - klubBindung() * 5;
       const zuGross = D.LEAGUES.some(l =>
         !istJugend(l.k) && l.prestige >= aktuelleLiga.prestige + 30 && bewertung >= LG_MIN[l.k]);
       const juniorEnde = istJugend(st.club.lg) && st.age > 20;
@@ -4825,6 +4891,16 @@ const PUCKERO = (() => {
           ? (st.kapitaenSeit === aktuell.n ? 6
              : st.rollenStand === 'saeule' ? 4 : 0) + klubBindung() * 4
           : 0;
+        /* ------------------------------------------------------------
+           Wer gerade das C bekommen hat, bleibt
+
+           Gemessen bekamen 22 Prozent aller frisch ernannten Kapitaene
+           im selben Sommer keine Verlaengerung. Ein Verein, der einem
+           die Binde gibt, wirft ihn nicht im selben Atemzug raus - das
+           ist nicht streng, das ist unglaubwuerdig. Die eigene Liga
+           bleibt fuer den Kapitaen deshalb immer erreichbar.
+           ------------------------------------------------------------ */
+        if (l.k === aktuell.lg && st.kapitaenSeit === aktuell.n) return true;
         return bewertung >= LG_MIN[l.k] - bonus - traegt;
       });
       if (!moeglicheLigen.length) moeglicheLigen = [league(st.age <= 20 ? heimJugend : 'AHL')];

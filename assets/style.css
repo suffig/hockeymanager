@@ -2119,7 +2119,10 @@ footer.site a:hover{color:var(--text)}
 .fb-nadel{
   position:absolute;top:-4px;width:3px;height:18px;border-radius:2px;
   background:var(--text);box-shadow:0 0 0 2px var(--ice-800);
-  left:0;opacity:0;transition:left .55s cubic-bezier(.2,.9,.25,1.05),opacity .2s;
+  /* Startet links und faehrt zu ihrem Ziel - die Endposition setzt
+     das Skript erst beim Aufblenden, sonst gaebe es nichts zu sehen. */
+  left:0;opacity:0;
+  transition:left .62s cubic-bezier(.16,.85,.25,1), opacity .18s;
 }
 .fb-nadel.an{opacity:1}
 @keyframes fbEin{from{opacity:0}to{opacity:1}}
@@ -4369,3 +4372,100 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
 .fb-wurfzahl{ font-weight:750 }
 .fb-wurfzahl.traf{ color:var(--green) }
 .fb-wurfzahl.daneben{ color:var(--red) }
+
+/* ------------------------------------------------------------------
+   Was in dir steckt
+
+   Die Saisonbilanz zeigte, wie weit man gekommen ist, aber nicht, wie
+   weit man haette kommen koennen. Genau das ist die Frage nach einer
+   Saison: war das gut, oder war da mehr drin?
+   ------------------------------------------------------------------ */
+.anlage{
+  margin-top:12px; padding:11px 13px; border-radius:12px;
+  border:1px solid var(--line);
+  background:color-mix(in srgb,var(--accent-2) 7%,transparent);
+}
+.an-kopf{
+  display:flex; align-items:center; gap:6px; margin-bottom:8px;
+  font-size:10.5px; letter-spacing:.07em; text-transform:uppercase;
+  font-weight:800; color:var(--accent-2);
+}
+.an-leiste{
+  position:relative; height:7px; border-radius:99px;
+  background:var(--ice-700); overflow:visible;
+}
+.an-leiste i{
+  display:block; height:100%; border-radius:99px;
+  background:linear-gradient(90deg,
+    color-mix(in srgb,var(--accent-2) 55%,transparent), var(--accent-2));
+  animation:anlageWaechst .7s cubic-bezier(.2,.9,.3,1) both;
+  transform-origin:left;
+}
+.an-marke{
+  position:absolute; top:-4px; width:2px; height:15px; border-radius:2px;
+  background:var(--text); box-shadow:0 0 0 2px var(--ice-800);
+}
+.an-text{ margin-top:7px; font-size:11.5px; line-height:1.45; color:var(--muted) }
+.an-text b{ color:var(--text) }
+@keyframes anlageWaechst{ from{ transform:scaleX(0) } to{ transform:scaleX(1) } }
+@media (prefers-reduced-motion:reduce){ .an-leiste i{ animation:none } }
+
+/* Der Verein, der die Rechte haelt, ist kein Angebot wie jedes andere -
+   er hat vier Jahre auf einen gewartet. */
+.jugendkarte.draftklub{
+  border-color:color-mix(in srgb,var(--gold) 50%,var(--line));
+  background:
+    radial-gradient(120% 70% at 50% 0%,
+      color-mix(in srgb,var(--gold) 12%,transparent), transparent 60%),
+    var(--card,var(--ice-800));
+}
+.jk-draftmarke{
+  display:inline-flex; align-items:center; gap:4px;
+  margin-bottom:3px; padding:1px 7px; border-radius:99px;
+  font-size:9.5px; font-weight:800; letter-spacing:.04em;
+  color:var(--gold); background:color-mix(in srgb,var(--gold) 16%,transparent);
+}
+
+/* ==================================================================
+   Thema "Flutlicht" – data-thema="flutlicht"
+
+   Die drei bisherigen Fassungen waren kaltes Blau, kaltes Violett und
+   helles Papier. Es fehlte das Warme: eine Halle am Abend, in der das
+   Licht von oben kommt und alles einen Bernsteinton hat. Dunkel wie
+   "Eis", aber mit warmem statt kaltem Grund - das aendert die ganze
+   Stimmung, ohne eine einzige Regel ausserhalb dieser Variablen.
+   ================================================================== */
+:root[data-thema="flutlicht"]{
+  --ice-900:#15120e;   /* Hallendunkel */
+  --ice-850:#1b1712;
+  --ice-800:#221d16;   /* Kartenflaeche */
+  --ice-700:#2e271e;
+  --ice-600:#3b3327;
+  --line:#4a4032;
+  --line-soft:#332c22;
+
+  --text:#f6efe2;      /* Licht auf Eis */
+  --muted:#c2b49b;
+  --dim:#9b8d76;
+
+  --accent:#ffb340;    /* Flutlicht */
+  --accent-2:#5fc8d8;  /* das Eis darunter */
+  --gold:#ffcf6a;
+
+  --kopf-bg:rgba(21,18,14,.86);
+  --green:#7bc47f;
+  --red:#e8674f;
+
+  --radius:14px;
+  --radius-sm:10px;
+  --shadow:0 18px 40px -22px rgba(0,0,0,.8);
+}
+
+/* Der Lichtkegel von oben - reine Verlaeufe, kein Bild. */
+:root[data-thema="flutlicht"] body{
+  background:
+    radial-gradient(1100px 520px at 50% -12%, rgba(255,179,64,.16), transparent 62%),
+    radial-gradient(760px 520px at 12% 8%, rgba(95,200,216,.07), transparent 60%),
+    var(--ice-900);
+  color:var(--text);
+}
