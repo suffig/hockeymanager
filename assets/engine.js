@@ -372,8 +372,21 @@ const PUCKERO = (() => {
          Alterskurve. Jetzt steht er von Anfang an fest, und beide
          Stellen rechnen dieselbe Zahl. Torhueter reifen spaeter.
          ---------------------------------------------------------------- */
-      scheitel: clamp((pos(opt.pos).group === 'goalie' ? 29 : 27)
-                      + ri(r, -3, 4) + (r() - 0.5) * 1.5, 23, 33),
+/* ------------------------------------------------------------
+         Wo der Koerper seinen Zenit hat
+
+         Vorher 27 plus minus drei bis vier, gekappt bei 23. Das ergab
+         Scheitelpunkte bei 23 und 24, und weil das beste Jahr gemessen
+         im Schnitt ein Jahr VOR dem Scheitel liegt, hatte ein Drittel
+         aller Laufbahnen sein bestes Jahr mit 24 oder frueher. Fuer
+         Eishockey ist das zu frueh: ein Feldspieler ist ueblicherweise
+         zwischen sechsundzwanzig und neunundzwanzig auf seinem Gipfel,
+         ein Torhueter spaeter. Die Spanne ist deshalb nach oben
+         gerueckt und unten enger - der Ausreisser nach unten ist jetzt
+         der Fruehreife und nicht der Regelfall.
+         ------------------------------------------------------------ */
+      scheitel: clamp((pos(opt.pos).group === 'goalie' ? 29.8 : 27.8)
+                      + ri(r, -2, 4) + (r() - 0.5) * 1.5, 25, 34),
       attrs,
       traits: { robust:0, langlebig:0, jung:0, playoff:0 },
       eigenschaften: [],
@@ -511,6 +524,29 @@ const PUCKERO = (() => {
   }
 
   /* ---------------- Alterskurve ---------------- */
+  /* ------------------------------------------------------------------
+     Der wirkliche Scheitelpunkt
+
+     st.scheitel ist nur die Veranlagung; die Eigenschaft "frueh reif"
+     verschiebt den Zenit zusaetzlich. Das stand bisher nur hier in
+     formFactor, weshalb jede andere Stelle - das Sommertraining etwa -
+     mit einem Scheitel rechnete, den der Koerper gar nicht hat.
+
+     Zwei Zahlen sind dabei nachgezogen: der Hebel von "jung" ist von
+     0,12 auf 0,09 gesenkt und das Ergebnis bei 24 nach unten begrenzt.
+     Gemessen ueber 300 Laufbahnen lagen sonst 3 Prozent der
+     Scheitelpunkte bei 21 oder 22 Jahren und ein knappes Viertel bei
+     25 oder frueher - fuer Eishockey zu frueh. Ein Achtzehnjaehriger
+     wird besser, ein Zweiundzwanzigjaehriger auch; wer mit
+     einundzwanzig fertig ist, ist die Ausnahme und nicht der Fall,
+     den ein Wuerfel in jedem dreissigsten Durchgang trifft.
+     ------------------------------------------------------------------ */
+  function scheitelEcht(scheitel, traits){
+    const t = traits || {};
+    return clamp((scheitel || 27) - (t.jung || 0) * 0.09
+                 + (t.langlebig || 0) * 0.06, 23.5, 34);
+  }
+
   function formFactor(age, traits, lernkurve, scheitel){
     const t = traits || {};
     const lk = (lernkurve || 0) * 0.004;
@@ -519,7 +555,7 @@ const PUCKERO = (() => {
     /* Der eigentliche Hebel der Eigenschaft: wer frueh reif ist,
        erreicht seinen Scheitel frueher. Verstaerkt, weil der direkte
        Zuschlag auf die Form jetzt gedeckelt ist. */
-    const peak = (scheitel || 27) - (t.jung || 0) * 0.12 + (t.langlebig || 0) * 0.05;
+    const peak = scheitelEcht(scheitel, t);
     /* Frueher trug allein diese Kurve den Aufstieg: mit achtzehn stand
        ein Spieler bei 0,63 und mit siebenundzwanzig bei 1,0, ganz
        gleich, was er dazwischen tat. Damit waren zweiundneunzig Prozent
@@ -584,7 +620,7 @@ const PUCKERO = (() => {
   /* ---------------- Sommertraining ----------------
      Nach jeder Saison darf der Spieler an einem Bereich arbeiten.
      Junge Spieler machen grosse Spruenge, aeltere halten nur noch. */
-  function trainingsGewinn(age){
+  function trainingsGewinn(age, scheitel){   // scheitel = der ECHTE, aus scheitelEcht
     /* Angehoben, seit die Alterskurve flach ist: was der Spieler im
        Sommer tut, ist jetzt der Hauptantrieb seiner Entwicklung. */
     /* Angehoben, nachdem der Startwert richtig gemessen wird: vorher
@@ -603,17 +639,43 @@ const PUCKERO = (() => {
        ohne dass jemand das wollte. Ein Sechzehnjaehriger in seiner
        Jugendliga arbeitet auch, aber nicht im Profibetrieb.
        ------------------------------------------------------------------ */
+    /* ------------------------------------------------------------------
+       Der Sommer richtet sich nach dem eigenen Koerper, nicht nach dem
+       Kalender
+
+       Diese Treppe hing am absoluten Alter: bis 22 volle Ausbeute, ab 23
+       weniger, ab 28 fast nichts. Der Scheitelpunkt eines Spielers wird
+       aber einzeln gezogen und liegt zwischen 24 und 33. Ein
+       Spaetentwickler mit Scheitel 31 bekam sein Training also schon mit
+       28 gekuerzt - drei Jahre vor seinem Zenit -, und ein Fruehreifer
+       mit Scheitel 24 trainierte bis 22 auf vollem Satz, lange nachdem
+       sein Koerper fertig war.
+
+       Gemessen ueber 600 Laufbahnen war die Folge, dass die Wertung
+       schon zwei Jahre VOR dem eigenen Scheitel zu fallen begann (-0,1
+       bei zwei Jahren davor, -1,0 genau am Scheitel) und 36 Prozent
+       aller Laufbahnen ihr bestes Jahr mit 24 oder frueher hatten,
+       obwohl der mittlere Scheitel bei 27,5 liegt. Das Spiel behauptete
+       einen Zenit und zeigte einen anderen.
+
+       Jetzt zaehlt der Abstand zum eigenen Scheitel. Die Werte der
+       Treppe bleiben, nur ihre Stufen sitzen dort, wo sie hingehoeren -
+       wer spaet reif wird, entwickelt sich auch spaet noch.
+       ------------------------------------------------------------------ */
+    /* Ein Sechzehnjaehriger in seiner Jugendliga arbeitet auch, aber
+       nicht im Profibetrieb - das bleibt am Kalender haengen. */
     if (age <= 17) return 7;
-    if (age <= 22) return 13;  // junge Spieler entwickeln sich sprunghaft
-    if (age <= 27) return 8;
-    if (age <= 31) return 4;
+    const bis = (scheitel === undefined ? 27 : scheitel) - age;
+    if (bis > 4)  return 13;   // weit vor dem Zenit: sprunghafte Entwicklung
+    if (bis > -1) return 8;    // die Jahre um den Zenit herum
+    if (bis > -5) return 4;    // danach wird gehalten
     return 2;                  // spaete Jahre sind reines Halten
   }
 
-  function trainingsOptionen(player, age, seed, zusatz){
+  function trainingsOptionen(player, age, seed, zusatz, scheitel){
     const r = rng(seed);
     const w = pos(player.pos).w;
-    const gewinn = trainingsGewinn(age) + (zusatz || 0);
+    const gewinn = trainingsGewinn(age, scheitel) + (zusatz || 0);
     // Angeboten wird, wo Training am meisten bringt: Positionsgewicht mal
     // verbleibendem Spielraum. Bereits ausgereizte Werte fallen heraus.
     const liste = attrsOf(player.pos)
@@ -956,7 +1018,10 @@ const PUCKERO = (() => {
        noch fuer Laufbahnen, die vor dieser Aenderung gespeichert
        wurden. Der Wurf bleibt an derselben Stelle im Zufallsstrom,
        damit sich gespeicherte Laufbahnen unveraendert nachspielen. */
-    const scheitelAlt = clamp((isG ? 29 : 27) + ri(r, -3, 4) + (r() - 0.5) * 1.5, 23, 33);
+    /* Dieselbe Ziehung wie oben - stehen die beiden verschieden da,
+       hat ein nachgeladener Spieler einen anderen Koerper. */
+    const scheitelAlt = clamp((isG ? 29.8 : 27.8) + ri(r, -2, 4)
+                              + (r() - 0.5) * 1.5, 25, 34);
     st.scheitel = player.scheitel != null ? player.scheitel : scheitelAlt;
     st.jugend = null;   // wird direkt nach der Initialisierung gefuellt
 
@@ -5027,7 +5092,8 @@ const PUCKERO = (() => {
       if (st.age > maxAge) st.altersgrenze = true;
       st.sommer = macheSommer();
       st.training = trainingsOptionen(player, st.age, player.seed + ':train:' + st.age,
-                                      ((player.wirkung || {}).training || 0) + (st.sommerBonus || 0));
+                                      ((player.wirkung || {}).training || 0) + (st.sommerBonus || 0),
+                                      scheitelEcht(st.scheitel, player.traits));
       st.sommerBonus = 0;
       return season;
     }
