@@ -18,6 +18,127 @@ const EREIGNISSE = (() => {
      risiko – zusätzliches Verletzungsrisiko in Prozentpunkten     */
 
   const LISTE = [
+    /* ---------- Vor dem Draft ----------
+       Die Monate zwischen der letzten Juniorensaison und dem
+       Draftabend. Sie wirken auf 'liste' - die Einschaetzung der
+       Sichter -, und die wirkt auf beides: auf die Rangliste, die im
+       Bericht steht, und auf den Abend selbst. auchJugend, weil diese
+       Geschichten sonst nie stattfinden koennten: in Juniorenligen
+       sind Ereignisse gesperrt. */
+    { id:'sicht1', kat:'sichtung', szene:'training', tag:'Das Combine',
+      auchJugend:true, dringend:true,
+      titel:'Zwei Tage lang wirst du vermessen',
+      text:'Eine Halle in Buffalo, dreißig Stationen, und an jeder steht jemand mit einem '
+         + 'Klemmbrett. Sprint, Sprungkraft, Griffstärke, ein Fahrradtest, bei dem reihenweise '
+         + 'Achtzehnjährige absteigen. Am Nachmittag misst dir jemand die Armspannweite und '
+         + 'notiert etwas, das du nicht lesen kannst.',
+      bedingung: st => st.age === 17 && !st.entryDraft,
+      optionen:[
+        { t:'Alles geben, auch beim Fahrradtest', chance:55,
+          hinweis:'Der Test, an dem sie den Willen ablesen – oder das Ende',
+          gut:{ liste:2.4, attr:{ skating:2 }, ruf:3,
+                text:'Du fährst, bis dir schwarz wird, und steigst nicht ab. Am Abend steht dein Name auf mehreren Listen weiter oben.' },
+          schlecht:{ liste:-1.6, moral:-5,
+                text:'Nach elf Minuten kippst du zur Seite. Es steht in jedem Bericht.' } },
+        { t:'Auf die Tests setzen, die dir liegen', chance:80,
+          hinweis:'Sicher, aber niemand redet danach über dich',
+          gut:{ liste:1.0,
+                text:'Du zeigst, was du kannst, und lässt den Rest. Solide Zahlen, keine Ausreißer.' },
+          schlecht:{ liste:-0.5,
+                text:'Ein Sichter schreibt „macht nur, was er sicher trifft". Das bleibt hängen.' } },
+        { t:'Nicht hinfahren und die Playoffs spielen', chance:65,
+          hinweis:'Sie sollen dich im Spiel sehen, nicht beim Sprint',
+          gut:{ liste:1.6, form:0.05,
+                text:'Du spielst stattdessen die Serie deines Lebens. Wer dich sehen wollte, hat dich gesehen.' },
+          schlecht:{ liste:-2.2,
+                text:'Du fehlst auf jedem Datenblatt. In einer Branche, die Tabellen liebt, ist das teuer.' } }
+      ] },
+
+    { id:'lager1', kat:'sichtung', szene:'training', tag:'Das Trainingslager',
+      auchJugend:true, dringend:true,
+      titel:'Eine Einladung, die keine Zusage ist',
+      text:'Ein Klub lädt dich zum Trainingslager ein – auf eigene Kosten, ohne Vertrag, '
+         + 'ohne Versprechen. Achtzig Spieler, achtzehn Plätze, und die meisten hier wurden '
+         + 'gezogen. Am Brett hängt eine Liste, von der jeden Abend Namen verschwinden. '
+         + 'Deiner steht noch da.',
+      bedingung: st => st.ungedraftet && st.age <= 23 && !(st.lagerBonus > 0),
+      optionen:[
+        { t:'Den Zweikampf suchen, den niemand sucht', chance:55,
+          hinweis:'Auffallen oder ausscheiden – dazwischen gibt es nichts',
+          gut:{ lager:5, moral:8, ruf:5, trait:{ robust:3 },
+                text:'Am vierten Tag legst du einen Erstrundenpick an die Bande. Der Trainer sagt nichts, aber du stehst am nächsten Morgen in der ersten Gruppe.' },
+          schlecht:{ risiko:6, moral:-8,
+                text:'Du triffst ihn falsch, gehst zu Boden und liegst zwei Tage. Die Liste am Brett wird ohne dich kürzer.' } },
+        { t:'Fehlerfrei spielen und niemandem auffallen', chance:70,
+          hinweis:'Man wird nicht gestrichen, aber auch nicht behalten',
+          gut:{ lager:2, moral:3,
+                text:'Du machst keinen einzigen Fehler. Am Ende bekommst du einen Zweiwege-Vertrag – nicht viel, aber eine Tür.' },
+          schlecht:{ moral:-5,
+                text:'„Solide", sagt der Trainer beim Abschied. Es ist das Wort, das sie benutzen, wenn sie sich nicht erinnern werden.' } },
+        { t:'Den Trainer nach dem fragen, was ihm fehlt', chance:50,
+          hinweis:'Wer weiß, wonach gesucht wird, kann es liefern',
+          gut:{ lager:4, attr:{ defensive:2 }, moral:6,
+                text:'„Einen, der das dritte Drittel verteidigen kann." Die restlichen fünf Tage tust du nichts anderes.' },
+          schlecht:{ moral:-4,
+                text:'Er sieht dich an, als hätte ein Kegel gesprochen, und geht weiter.' } }
+      ] },
+
+    { id:'sicht2', kat:'sichtung', szene:'presse', tag:'Die Gespräche',
+      auchJugend:true, dringend:true,
+      titel:'Neunzehn Klubs, je zwanzig Minuten',
+      text:'Hotelzimmer im dritten Stock, drei Männer auf der einen Seite des Tisches, du auf '
+         + 'der anderen. Sie fragen nach der Schulter, nach deinem Vater, nach dem Spiel im '
+         + 'Januar, in dem du die Strafe genommen hast. Beim vierten Klub merkst du, dass sie '
+         + 'sich untereinander absprechen.',
+      bedingung: st => st.age === 17 && !st.entryDraft,
+      optionen:[
+        { t:'Ehrlich antworten, auch bei der Januar-Frage', chance:65,
+          hinweis:'Ehrlichkeit fällt auf – in beide Richtungen',
+          gut:{ liste:1.4, draftDraht:true, ruf:4,
+                text:'Du erzählst, was passiert ist, ohne es zu glätten. Einer der drei lehnt sich zurück und notiert nichts mehr – er hört nur noch zu.' },
+          schlecht:{ liste:-1.8,
+                text:'Deine Offenheit steht am nächsten Tag als Zitat in einem Bericht, den du nie sehen wirst.' } },
+        { t:'Sagen, was sie hören wollen', chance:70,
+          hinweis:'Funktioniert, bis einer nachfragt',
+          gut:{ liste:0.7,
+                text:'Saubere Antworten, keine Kanten. Niemand streicht dich, niemand merkt sich dich.' },
+          schlecht:{ liste:-2.0, ruf:-3,
+                text:'Beim siebten Gespräch fragt einer nach – und dann noch einmal. Danach ist der Raum still.' } },
+        { t:'Zurückfragen, was sie mit dir vorhaben', chance:55,
+          hinweis:'Selbstbewusst. Manche mögen das nicht',
+          gut:{ draftDraht:true, moral:6, attr:{ nerven:2 },
+                text:'Einer der drei lacht und holt einen Zettel heraus, auf dem tatsächlich ein Plan steht. Ihr redet zwanzig Minuten über.' },
+          schlecht:{ moral:-6, liste:-0.8,
+                text:'„Wir stellen hier die Fragen." Der Rest des Gesprächs dauert vier Minuten.' } }
+      ] },
+
+    { id:'sicht3', kat:'sichtung', szene:'presse', tag:'Der Bericht',
+      auchJugend:true, dringend:true,
+      titel:'Ein Sichter schreibt etwas über dich, das nicht stimmt',
+      text:'„Guter Schlittschuhläufer, aber scheut den Zweikampf." Vier Wörter, die andere '
+         + 'abschreiben werden, weil niemand Zeit hat, alles selbst zu sehen. Dein Trainer '
+         + 'sagt, du sollst es ignorieren. Dein Berater sagt, du sollst anrufen.',
+      bedingung: st => st.age === 17 && !st.entryDraft,
+      optionen:[
+        { t:'Es auf dem Eis widerlegen', chance:60,
+          hinweis:'Die einzige Antwort, die zählt – wenn sie zuschauen',
+          gut:{ liste:1.8, attr:{ zweikampf:2 }, trait:{ robust:3 },
+                text:'Im nächsten Spiel gehst du in jeden Zweikampf, den es gibt. Zwei Sichter sitzen oben und schreiben ihre Notiz um.' },
+          schlecht:{ liste:-1.2, risiko:4,
+                text:'Du gehst in jeden Zweikampf – auch in die, die man auslässt. Nach dem zweiten Drittel humpelst du.' } },
+        { t:'Den Sichter anrufen', chance:45,
+          hinweis:'Ungewöhnlich für einen Achtzehnjährigen',
+          gut:{ liste:1.2, ruf:4,
+                text:'Er ist überrascht, dass du seine Nummer hast, und noch überraschter, dass du ruhig bleibst. Er kommt zum nächsten Spiel.' },
+          schlecht:{ liste:-1.5, ruf:-4,
+                text:'Er hört dir zu und schreibt danach dasselbe noch einmal, mit einem Satz mehr über deinen Charakter.' } },
+        { t:'Nichts tun', chance:75,
+          hinweis:'Vier Wörter sind vier Wörter',
+          gut:{ text:'Der Bericht wird von den nächsten überholt. Es hat niemanden interessiert.' },
+          schlecht:{ liste:-1.4,
+                text:'Die vier Wörter tauchen bis zum Draftabend in sieben weiteren Berichten auf.' } }
+      ] },
+
     /* ---------- Kabine ---------- */
     { id:'kabine1', kat:'kabine', szene:'kabine', tag:'Der Neue in der Kabine',
       titel:'Dein Platz ist der schlechteste im Raum',

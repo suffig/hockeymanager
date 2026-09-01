@@ -64,12 +64,13 @@ const PUCKERO = (() => {
      ungenau, sondern falsch.
 
      Der Teiler bestimmt, wie breit die erste Runde ist. Gemessen an
-     der Rundenverteilung: mit 18 bekommen rund vierzehn Prozent
-     der Gezogenen einen Erstrundenpick.
+     der Rundenverteilung, samt der Sichtung im Jahr davor: mit 18
+     bekommen rund fuenfzehn Prozent der Gezogenen einen
+     Erstrundenpick.
      ------------------------------------------------------------------ */
   function draftRang(wert){
     if (wert <= 79) return 0;
-    const sp = clamp((wert - 79) / 17, 0, 1);
+    const sp = clamp((wert - 79) / 18, 0, 1);
     return clamp(Math.round(224 - Math.pow(sp, 0.75) * 220), 1, 224);
   }
 
@@ -2480,12 +2481,19 @@ const PUCKERO = (() => {
 
     function waehleEreignis(letzteSaison){
       if (!window.EREIGNISSE || st.club === null) return null;
-      if (league(st.club.lg).prestige < 8) return null;
+      /* In Juniorenligen war bisher gar nichts moeglich - die Sperre
+         galt fuer alles. Das ist fuer Kabinen- und Pressegeschichten
+         richtig (in einer U20 gibt es keine Pressekonferenz), aber es
+         sperrte auch die Monate vor dem Draft aus, und genau die sind
+         fuer einen Siebzehnjaehrigen die wichtigsten seines Lebens.
+         Wer auch dort spielen darf, sagt es jetzt selbst. */
+      const jugendliga = league(st.club.lg).prestige < 8;
       // Wiederholbare Ereignisse duerfen erneut kommen, nur nicht direkt hintereinander
       const zuletzt = st.erlebt[st.erlebt.length - 1];
       const offen = EREIGNISSE.LISTE.filter(e => {
         const schonDa = st.erlebt.includes(e.id);
         if (schonDa && !e.mehrfach) return false;
+        if (jugendliga && !e.auchJugend) return false;
         if (e.id === zuletzt) return false;
         // Folgeereignisse brauchen eine fruehere Entscheidung
         if (e.benoetigt && !st.freigeschaltet.includes(e.benoetigt)) return false;
@@ -2797,6 +2805,14 @@ const PUCKERO = (() => {
         /* "Am Ende stehst du ohne Verein da" - und man blieb. Der
            Vertrag endet jetzt wirklich, und der Klub bietet nichts
            mehr an; im Sommer steht man auf dem Markt. */
+        /* Was die Sichter von einem halten - das Combine, die
+           Gespraeche, ein Bericht, den jemand abschreibt. Wirkt auf die
+           Rangliste UND auf den Draftabend, denn sonst waere die Liste
+           hinterher nachweislich falsch. */
+        if (w.liste) st.sichtungBonus = (st.sichtungBonus || 0) + w.liste;
+        /* Ein Draht zu einem Klub, der dich zieht. */
+        if (w.draftDraht) st.draftDraht = true;
+        if (w.lager) st.lagerBonus = (st.lagerBonus || 0) + w.lager;
         if (w.vereinslos){
           st.vertragJahre = 0;
           st.klubIstRaus = true;
@@ -4324,7 +4340,7 @@ const PUCKERO = (() => {
            mit Anlage 99 und Prognose 4 landete so auf Nr. 98, und die
            Rangliste davor war Makulatur. Der Abend loest jetzt ein,
            was der Spieler wert ist; unsicher ist die Liste. */
-        const wert = potenzial + punkteWert(season)
+        const wert = potenzial + punkteWert(season) + (st.sichtungBonus || 0)
                    - nachrueckAbzug + (r() - 0.5) * 5;
 
         let runde = 0, pick2 = 0, gesamt = 0, klub = null, liga = 'NHL';
@@ -4392,6 +4408,17 @@ const PUCKERO = (() => {
         } else {
           season.events.push({ t: 'Auch mit zwanzig nicht gezogen – '
             + 'ab jetzt bist du Free Agent', c: 'bad' });
+          /* ----------------------------------------------------------
+             Nicht gezogen ist ein Weg, kein Ende
+
+             Bisher war "Free Agent" nur das Fehlen eines Draftklubs -
+             eine leere Stelle. Wer durchfaellt und trotzdem
+             weitermacht, arbeitet aber anders als einer, dem sie mit
+             achtzehn zugerufen haben. Er hat niemandem etwas zu
+             verdanken und allen etwas zu beweisen.
+             ---------------------------------------------------------- */
+          st.ungedraftet = true;
+          st.trotz = (st.trotz || 0) + 2;
         }
         st.entryDraft = { runde, pick: pick2, gesamt, klub: klub ? klub.n : null,
                           liga, ungezogen: !runde, alter: st.age,
@@ -4499,6 +4526,16 @@ const PUCKERO = (() => {
                     + ' Ansehen', gut: true }]
             : [{ t: st.age >= 20 ? 'Free Agent' : 'Naechstes Jahr wieder', gut: false }]
         };
+        if (klub && st.draftDraht){
+          /* Im Winter mit ihnen geredet - und sie haben zugehoert. */
+          st.ruf = clamp(st.ruf + 3, 20, 99);
+          st.moral = clamp(st.moral + 5, 0, 100);
+          st.letzteFolge.text += ' Im Winter hast du mit ihnen gesprochen. '
+            + 'Sie haben sich gemerkt, was du gesagt hast.';
+          st.letzteFolge.wirkungen.push({ t: 'Der Draht aus dem Winter zahlt sich aus',
+                                          gut: true });
+          st.draftDraht = false;
+        }
         if (abwText){
           st.letzteFolge.draft.prognose = prog;
           st.letzteFolge.draft.abweichung = abw;
@@ -4581,6 +4618,52 @@ const PUCKERO = (() => {
       }
 
       /* ==================================================================
+         Draftrechte sind Ware
+
+         Wer einen zieht, behaelt einen bis zum Ablauf - so war es
+         bisher, und deshalb war der Draftklub eine Konstante. In
+         Wirklichkeit werden Rechte an ungespielten Spielern
+         weitergereicht wie alles andere: ein Klub baut um, ein
+         anderer sammelt Talente, ein dritter gibt auf. Man erfaehrt
+         es aus der Zeitung, und ploetzlich gehoert die eigene Zukunft
+         jemand anderem.
+
+         Das trifft nur, wer noch nicht dort spielt - sobald man
+         unterschrieben hat, ist es ein Vertrag und kein Recht mehr.
+         ================================================================== */
+      [['draftRechte', st.draftRechte], ['draftRechte2', st.draftRechte2]]
+        .forEach(([feld, dr]) => {
+          if (!dr || !dr.klub) return;
+          if (st.club && st.club.n === dr.klub) return;   // man spielt dort
+          if (st.year > dr.bis) return;                   // laeuft ohnehin aus
+          const w = r();
+          if (w < 0.11){
+            /* Weitergereicht - der Pool derselben Liga, ohne den
+               bisherigen Halter und ohne den anderen Draftklub. */
+            const andereKlubs = clubsOf(dr.liga)
+              .filter(x => x.n !== dr.klub
+                        && x.n !== ((st.draftRechte2 || {}).klub)
+                        && x.n !== ((st.draftRechte || {}).klub));
+            if (andereKlubs.length){
+              const neu = pick(r, andereKlubs);
+              const alt = dr.klub;
+              dr.klub = neu.n;
+              dr.getauscht = true;
+              season.events.push({ t: 'Deine Rechte wechseln: ' + alt
+                + ' gibt dich an ' + neu.n + ' ab', c: 'info' });
+            }
+          } else if (w < 0.155){
+            /* Freigegeben - kein Drama, nur eine Zeile im Umlauf. */
+            const alt = dr.klub;
+            st[feld] = null;
+            if (feld === 'draftRechte') st.draftRechte = null;
+            else st.draftRechte2 = null;
+            season.events.push({ t: alt + ' gibt deine Rechte frei – '
+              + 'dort wartet niemand mehr auf dich', c: 'bad' });
+          }
+        });
+
+      /* ==================================================================
          Die Rangliste vor dem Draft
 
          Der Draftabend kam bisher aus dem Nichts - eine Nummer, die
@@ -4619,7 +4702,7 @@ const PUCKERO = (() => {
            selbst hatte ihn dort hinaufgetragen. */
         const beobachtet = clamp((anlage - 79) / 22, 0, 1);
         const gesehen = anlage + (rp() - 0.5) * (11 - 6.5 * beobachtet) + vorlauf
-                      + punkteWert(season)
+                      + punkteWert(season) + (st.sichtungBonus || 0)
                       - Math.max(0, st.age - 17) * 2.2;
         const vorher = (st.draftPrognose || {}).rang || 0;
         const rang = draftRang(gesehen);
@@ -5131,12 +5214,18 @@ const PUCKERO = (() => {
         const steigt = letzteS2 && letzteS2.ovrGewinn > 0
           ? clamp(letzteS2.ovrGewinn * 0.8, 0, 5) : 0;
         const jung = st.age <= 24 ? 3 : 0;
-        const traegt = l.k === aktuell.lg
+        /* Wer sich im Trainingslager etwas erkaempft hat, kommt eine
+           Stufe hoeher unter, als seine Wertung allein erlauben
+           wuerde - der Weg der Ungedrafteten. Es traegt ein paar
+           Jahre, dann zaehlt nur noch, was auf dem Eis passiert. */
+        const lager = (st.lagerBonus || 0) > 0 && st.age <= 25
+          ? st.lagerBonus : 0;
+        const traegt = (l.k === aktuell.lg
           ? (st.kapitaenSeit === aktuell.n ? 6
              : st.rollenStand === 'saeule' ? 4 : 0)
             + klubBindung() * 4 + steigt + jung
             + (st.klubJahre >= 3 ? 2 : 0)
-          : 0;
+          : 0) + lager;
         /* ------------------------------------------------------------
            Wer gerade das C bekommen hat, bleibt
 
