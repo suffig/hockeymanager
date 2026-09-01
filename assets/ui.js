@@ -1347,7 +1347,8 @@ const UI = (() => {
     moral:  { n:'Kopf',     ik:'flamme' },
     stand:  { n:'Vertrauen', ik:'schild' },
     form:   { n:'Form',     ik:'blitz' },
-    umfeld: { n:'Umfeld',   ik:'gruppe' }
+    umfeld: { n:'Umfeld',   ik:'gruppe' },
+    trainer:{ n:'Trainer',  ik:'pfeife' }
   };
 
   function einflussLeiste(e, vorschau){
@@ -1413,19 +1414,30 @@ const UI = (() => {
      muessen sie auch dastehen. Aber nicht als weitere Karte: als eine
      Zeile, die nur erscheint, wenn es etwas zu sagen gibt.
      ------------------------------------------------------------------ */
-  function koerperBand(verschleiss, altlasten){
+  function koerperBand(verschleiss, altlasten, dauerschaden){
     const v = verschleiss || 0;
     const alte = Object.entries(altlasten || {})
       .filter(([, n]) => n >= 2)
       .sort((a, b) => b[1] - a[1]);
-    if (v < 2 && !alte.length) return '';
-    const stufe = v >= 6 ? 'schwer' : v >= 3 ? 'mittel' : 'leicht';
-    const satz = v >= 6 ? 'Der Körper hat viel mitgemacht'
+    /* Ein Dauerschaden geht nicht mehr weg - er gehoert deshalb hierher
+       und nicht in die Liste der Wehwehchen, die sich abbauen. Ohne
+       diese Zeile stand er einmal im Saisonbericht und war danach nur
+       noch als kleinere Zahl in den Werten zu sehen, ohne Grund. */
+    const bleibend = dauerschaden || [];
+    if (v < 2 && !alte.length && !bleibend.length) return '';
+    const stufe = bleibend.length ? 'schwer'
+                : v >= 6 ? 'schwer' : v >= 3 ? 'mittel' : 'leicht';
+    const satz = bleibend.length
+                 ? (bleibend.length > 1 ? 'Der Körper trägt bleibende Schäden'
+                                        : 'Etwas ist geblieben')
+               : v >= 6 ? 'Der Körper hat viel mitgemacht'
                : v >= 3 ? 'Der Körper meldet sich'
                : 'Etwas Verschleiß';
     return `<div class="koerper ${stufe}">
       ${ikone('pflaster', 14)}
       <span class="ko-satz">${satz}</span>
+      ${bleibend.map(d => `<span class="ko-bleibt" title="${esc(d.n)} – dauerhaft ${d.wert} Punkte">
+        ${esc(d.n)} <b>−${d.wert}</b></span>`).join('')}
       ${alte.length ? `<span class="ko-alt">${esc(alte[0][0])}
         <b>${alte[0][1]}×</b></span>` : ''}
     </div>`;

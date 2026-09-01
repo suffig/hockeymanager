@@ -948,6 +948,14 @@ footer.site a:hover{color:var(--text)}
   font-weight:600;color:var(--text);white-space:nowrap;
   overflow:hidden;text-overflow:ellipsis;
 }
+/* Der Zusatz hinter dem Namen: die Handschrift des Trainers, wie die
+   Reihe laeuft, ob der Konkurrent draengt. Bewusst leise - der Name
+   ist die Nachricht, der Zusatz die Erklaerung. */
+.sk-umfeld .uf-zusatz{
+  margin-left:auto; padding-left:8px; flex:none;
+  font-size:10.5px; color:var(--muted); white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; max-width:46%;
+}
 .sk-umfeld .uf-punkt{
   flex:0 0 auto;width:6px;height:6px;border-radius:50%;background:var(--accent);
   opacity:.65;animation:ufPuls 3.2s ease-in-out infinite;
@@ -3509,6 +3517,13 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
 }
 .koerper>svg{flex:0 0 auto;color:var(--dim)}
 .koerper .ko-satz{flex:1;min-width:0}
+/* Ein Dauerschaden geht nicht weg - er steht deshalb in Warnfarbe
+   neben dem Verschleiss, der sich abbaut. */
+.koerper .ko-bleibt{
+  display:inline-flex; align-items:center; gap:4px;
+  padding:1px 6px; border-radius:99px; font-size:10px; font-weight:700;
+  color:var(--red); background:color-mix(in srgb,var(--red) 14%,transparent);
+}
 .koerper .ko-alt{flex:0 0 auto;font-size:11px;color:var(--muted);white-space:nowrap}
 .koerper .ko-alt b{color:var(--text)}
 .koerper.mittel{border-left-color:var(--gold)}

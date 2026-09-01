@@ -1030,6 +1030,7 @@ const PUCKERO = (() => {
       umfeldBenennen();
       st.jugend = null;
       st.vertragJahre = 2;
+      vertragsmerkmaleZuruecksetzen();
     /* Der Ruhepunkt aus Nerven bzw. Konstanz, plus ein Eigenanteil,
        damit zwei gleich veranlagte Spieler nicht dieselbe Stimmung
        haben. Die Spanne bleibt eng - es geht um eine Neigung, nicht
@@ -1557,7 +1558,6 @@ const PUCKERO = (() => {
              geprueft wird. */
           && r() < 0.26){
         const neuerKlub = pick(r, abgebend);
-        const weitWeg = league(st.club.lg).land !== league(neuerKlub.lg).land;
         return {
           art: 'abgegeben', ikone: 'transfer', tag: 'Wechselfrist',
           titel: 'Du erfährst es aus dem Radio',
@@ -2209,6 +2209,8 @@ const PUCKERO = (() => {
         entryDraft: st.entryDraft,
         verschleiss: st.verletzungsjahre || 0,
         altlasten: Object.assign({}, st.altlasten),
+        /* Was bleibt, gehoert in dieselbe Anzeige wie das, was vergeht. */
+        dauerschaden: (st.dauerschaden || []).slice(),
         klubRangName: (KLUBRANG.find(x =>
           x.k === ((st.klubKonto[st.club.n] || {}).rang || 'zugang')) || {}).n,
         kapitaen: st.kapitaenSeit === st.club.n,
@@ -2236,6 +2238,15 @@ const PUCKERO = (() => {
     /* Die Kraefte vor der Saison. Bewusst dieselben Ausdruecke wie in
        simulate() - stehen sie zweimal verschieden da, zeigt die
        Vorschau etwas anderes, als danach passiert. */
+    /* Dieselbe Traegheit wie in simulate() - an einer Stelle, damit
+       Vorschau und Saison nicht auseinanderlaufen. */
+    function traegheitJetzt(){
+      const dev = devAttrs(player.attrs, formFactor(st.age, player.traits,
+                    (player.wirkung || {}).lernkurve, st.scheitel));
+      const kw = isG ? (dev.konstanz || 50) : (dev.nerven || 50);
+      return 0.45 + kw / 260;
+    }
+
     function kraefteVorschau(){
       if (!st.club) return null;
       const moralAbstand = (clamp(st.moral, 10, 100) - MORAL_MITTE) / 28;
@@ -2261,9 +2272,23 @@ const PUCKERO = (() => {
       return {
         moral:  Math.round(moral * 1000) / 10,
         stand:  Math.round(stand * 1000) / 10,
-        form:   Math.round(st.formzustand * 0.055 * 1000) / 10,
+        /* ------------------------------------------------------------
+           Die Form klingt ab, bevor die Saison beginnt
+
+           Hier stand der Formzustand von letztem Jahr unveraendert.
+           In der Saison wird er aber zuerst mit der Traegheit
+           multipliziert (0,64 bis 0,83, je nach Nervenstaerke) und
+           dann zufaellig angestossen. Der Stoss ist nicht vorhersehbar
+           - die Traegheit schon. Die Vorschau ueberzeichnete die Form
+           deshalb systematisch um rund ein Viertel, in welche Richtung
+           sie gerade auch zeigte.
+           ------------------------------------------------------------ */
+        form:   Math.round(st.formzustand * traegheitJetzt() * 0.055 * 1000) / 10,
         umfeld: Math.round((eingewoehnung + mitspieler + reihenWirkungJetzt() + bindung)
-                           * 1000) / 10
+                           * 1000) / 10,
+        /* Muss dasselbe zeigen wie season.einfluesse - sonst sagt die
+           Vorschau etwas anderes, als danach passiert. */
+        trainer: Math.round(((TRAINERSTILE[st.trainerStil] || {}).kante || 0) * 1000) / 10
       };
     }
 
@@ -2948,6 +2973,7 @@ const PUCKERO = (() => {
             st.klubJahre = 0;
             st.kapitaenSeit = null;
             st.vertragJahre = 3;
+            vertragsmerkmaleZuruecksetzen();
             /* Die Rechte sind eingeloest. */
             if (st.draftRechte && st.draftRechte.klub === ziel.n) st.draftRechte = null;
             if (st.draftRechte2 && st.draftRechte2.klub === ziel.n) st.draftRechte2 = null;
@@ -2980,6 +3006,7 @@ const PUCKERO = (() => {
               st.klubJahre = 0;
               st.kapitaenSeit = null;
               st.vertragJahre = 2;
+              vertragsmerkmaleZuruecksetzen();
               umfeldBenennen();
               merke('Wechsel zu ' + st.club.n + ' (' + ziel.n + ')', true);
             }
@@ -3253,7 +3280,7 @@ const PUCKERO = (() => {
          Laeufe und Krisen halten ueber Saisons an, statt jedes Jahr neu zu wuerfeln.
          Konstante Spieler schwanken weniger. */
       const konstanzWert = isG ? (dev.konstanz || 50) : (dev.nerven || 50);
-      const traegheit = 0.45 + konstanzWert / 260;             // 0.64 bis 0.83
+      const traegheit = traegheitJetzt();                      // 0.64 bis 0.83
       const stoss = (r() - 0.5) * 2 * (1.25 - konstanzWert / 130);
       st.formzustand = clamp(st.formzustand * traegheit + stoss * 0.5, -1, 1);
       season.formzustand = Math.round(st.formzustand * 100) / 100;
@@ -3318,7 +3345,12 @@ const PUCKERO = (() => {
         stand: Math.round(standWirkung * 1000) / 10,
         form:  Math.round(st.formzustand * 0.055 * 1000) / 10,
         umfeld: Math.round((eingewoehnung + mitspieler + reihenWirkung + bindungsWirkung)
-                           * 1000) / 10
+                           * 1000) / 10,
+        /* Die Handschrift des Trainers gehoert in dieselbe Aufstellung
+           wie alles andere, was auf die Ausbeute wirkt - sonst fehlen
+           in der Rechnung ploetzlich fuenf Prozent, die niemand
+           zuordnen kann. */
+        trainer: Math.round((stil ? stil.kante : 0) * 1000) / 10
       };
       const kante = clamp((ovr * tagesform - lg.level * 0.58) / 32, -0.35, 1.7);
       season.kante = Math.round(kante * 100) / 100;
@@ -5500,8 +5532,11 @@ const PUCKERO = (() => {
         /* Einer Legende bietet der Verein laenger an - auch spaet. */
         if (bleibt && klubBindung() >= 0.6) jahre = Math.min(5, jahre + 1);
         /* Ein Zweiwege-Vertrag nur dort, wo die Wertung sonst nicht
-           reicht - beim eigenen Klub, der einen ohnehin haelt, waere
-           er eine Herabstufung ohne Anlass. */
+           reicht. Das schliesst den eigenen Klub ein: wenn die eigene
+           Liga selbst mit dem Treuebonus nicht mehr zu halten ist,
+           behaelt er einen eben so - "wir behalten dich, aber nur
+           so". Das ist keine Ausnahme, das ist der haeufigste Fall
+           dieser Vertragsform ueberhaupt. */
         const zweiwege = zweiwegeLigen.has(club.lg)
                       && bewertung < (LG_MIN[club.lg] !== undefined
                                       ? LG_MIN[club.lg] : 58);
@@ -5856,6 +5891,32 @@ const PUCKERO = (() => {
       return chemie * 0.026 + (chemie > 0 ? eingespielt : 0);
     }
 
+    /* ------------------------------------------------------------------
+       Ein neuer Vertrag hat keine alten Bedingungen
+
+       Beim Unterschreiben wurden Ausstiegsklausel, Wechselsperre,
+       Bonusklausel und Gehaltsfaktor zurueckgesetzt - an drei anderen
+       Stellen aber entsteht ebenfalls ein neuer Vertrag bei einem neuen
+       Klub (die Juniorenwahl, das Einloesen der Draftrechte, der
+       Aufstieg in eine andere Liga), und dort blieb alles stehen.
+       Gemessen trugen 337 von 1937 Klubwechseln Vertragsmerkmale des
+       alten Vereins weiter: eine Wechselsperre, die beim neuen Klub
+       still weiter schuetzte, ein ausgehandelter Gehaltsaufschlag, der
+       nie ausgehandelt wurde, ein Zweiwege-Merkmal an einem regulaeren
+       Vertrag.
+
+       Nicht betroffen ist der Trade an der Wechselfrist: dort wandert
+       der Vertrag mit, so wie im echten Betrieb auch - deshalb steht
+       das hier als eigener Aufruf und nicht in umfeldBenennen().
+       ------------------------------------------------------------------ */
+    function vertragsmerkmaleZuruecksetzen(){
+      st.klausel = false;
+      st.sperre = false;
+      st.bonus = null;
+      st.zweiwege = false;
+      st.gehaltFaktor = 1;
+    }
+
     /* Trainer und engster Mitspieler beim aktuellen Klub */
     function umfeldBenennen(){
       const rr = rng(player.seed + ':umfeld:' + (st.club ? st.club.n : '') + ':' + st.year);
@@ -6034,11 +6095,8 @@ const PUCKERO = (() => {
       if (!a.bleibt || !st.rolle){
         st.rollenwahl = baueRollenwahl(a.club, a.gehalt);
       }
-      st.klausel = false;              // neuer Vertrag, neue Bedingungen
-      st.sperre = false;
+      vertragsmerkmaleZuruecksetzen();   // neuer Vertrag, neue Bedingungen
       st.zweiwege = !!a.zweiwege;
-      st.bonus = null;
-      st.gehaltFaktor = 1;
       st.verhandlung = macheVerhandlung(a);
       st.angebote = null;
       st.angebotsGrund = null;

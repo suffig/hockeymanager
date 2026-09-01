@@ -668,19 +668,49 @@ function CareerGame(root, cfg){
     weggefaehrte:'Weggefährte'
   };
 
+  /* Was der Trainer verlangt - kurz genug, dass es in eine Zeile passt. */
+  const STIL_KURZ = {
+    offensiv:   'lässt laufen',
+    defensiv:   'verlangt die eigene Zone',
+    streng:     'zählt jeden Fehler',
+    vaeterlich: 'deckt seine Spieler'
+  };
+
   function umfeldBlock(st){
     if (!st.club || (!st.trainer && !st.mitspieler)) return '';
     const straenge = (st.freigeschaltet || []).filter(k => STRANG_NAMEN[k]);
-    const zeile = (ik, rolle, name, warm) => name ? `
-      <div class="uf-zeile" title="${rolle}">
+    const zeile = (ik, rolle, name, warm, zusatz) => name ? `
+      <div class="uf-zeile" title="${rolle}${zusatz ? ' – ' + zusatz : ''}">
         <span class="uf-ik">${UI.ikone(ik, 15)}</span>
         <span class="uf-punkt ${warm ? 'warm' : ''}"></span>
         <span class="uf-name">${esc(name)}</span>
+        ${zusatz ? `<span class="uf-zusatz">${esc(zusatz)}</span>` : ''}
       </div>` : '';
+    /* ----------------------------------------------------------------
+       Der Mann neben dir und der Mann hinter dir gehoeren hierher
+
+       Beide entstehen im Verein und wirken auf jede Saison - der eine
+       auf die Ausbeute, der andere auf die Einsaetze. Sie standen aber
+       nur in Saisonmeldungen ("Neue Reihe: du spielst jetzt neben ..."),
+       also einmal und dann nie wieder. Wer wissen wollte, neben wem er
+       gerade spielt, konnte es nirgends nachsehen.
+       ---------------------------------------------------------------- */
+    const chem = st.reihe ? st.reihe.chemie : 0;
+    const chemWort = chem >= 0.4 ? 'blind verstanden'
+                   : chem >= 0.15 ? 'läuft gut'
+                   : chem <= -0.4 ? 'läuft nicht'
+                   : chem <= -0.15 ? 'zäh' : 'unauffällig';
     return `
       <div class="sk-umfeld">
-        ${zeile('pfeife', 'Trainer', st.trainer, straenge.includes('trainerpakt'))}
+        ${zeile('pfeife', 'Trainer', st.trainer, straenge.includes('trainerpakt'),
+                STIL_KURZ[st.trainerStil] || '')}
         ${zeile('gruppe', 'Kabine', st.mitspieler, straenge.includes('weggefaehrte'))}
+        ${st.reihe ? zeile('puck', 'In deiner Reihe', st.reihe.partner,
+                           chem >= 0.4, chemWort) : ''}
+        ${st.platzrivale ? zeile('waage', 'Konkurrent um deinen Platz',
+                                 st.platzrivale.name, false,
+                                 st.platzrivale.abstand < -0.2 ? 'drängt'
+                                 : st.platzrivale.abstand > 0.2 ? 'hinter dir' : 'auf Augenhöhe') : ''}
         ${st.rivale ? zeile('flamme', 'Rivale', st.rivale.name,
                             straenge.includes('rivalitaet')) : ''}
         ${straenge.length ? `<div class="sk-straenge">${straenge
@@ -1358,7 +1388,7 @@ function CareerGame(root, cfg){
 
         ${UI.zielKarte(v.ziele)}
         ${blind() ? '' : UI.einflussLeiste(v.einfluesse, true)}
-        ${UI.koerperBand(v.verschleiss, v.altlasten)}
+        ${UI.koerperBand(v.verschleiss, v.altlasten, v.dauerschaden)}
         ${/* Seit NHL und KHL getrennt ziehen, koennen zwei Vereine die
              Rechte halten - angezeigt wurde nur einer. */ ''}
         ${(v.draftRechteAlle || []).map(d => `<div class="draftband">
@@ -1782,7 +1812,12 @@ function CareerGame(root, cfg){
     verkaeufer: { n:'Abbau',      ik:'runter', k:'lage-abbau' },
     mittelmass: { n:'Stillstand', ik:'waage',  k:'lage-halt' },
     kaeufer:    { n:'Angriff',    ik:'hoch',   k:'lage-angriff' },
-    ligasprung: { n:'Der Anruf',  ik:'flug',   k:'lage-sprung' }
+    ligasprung: { n:'Der Anruf',  ik:'flug',   k:'lage-sprung' },
+    /* Ohne diesen Eintrag fiel das Blatt "Abgegeben" auf die
+       Beschriftung "Stillstand" zurueck - fuer den Moment, in dem man
+       aus dem Radio erfaehrt, dass man verkauft wurde, das denkbar
+       falscheste Wort. */
+    abgegeben:  { n:'Abgegeben',  ik:'transfer', k:'lage-abbau' }
   };
 
   function wechselfristHtml(w){
