@@ -4677,3 +4677,12 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
   .fw-zeile{grid-template-columns:minmax(70px,1fr) 1.6fr auto auto;gap:6px;padding:4px}
   .fw-name{font-size:12px}
 }
+
+
+/* Der Prozentwert auf der Stufentaste - klein, aber es ist die Zahl,
+   um die es geht. */
+.choice .ch-wert{
+  font-style:normal; font-family:var(--display); font-size:12px;
+  opacity:.72; margin-left:5px;
+}
+.choice.on .ch-wert{opacity:1}

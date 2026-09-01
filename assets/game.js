@@ -11,7 +11,7 @@ function CareerGame(root, cfg){
     phase: 'ident',          // ident | draft | fein | start | karriere | ergebnis
     runde: 0,                // Draftrunde 0..7
     ident: cfg.ident || { name:'', num:9, nation:'GER', pos:'C', mode:'klassisch',
-                          trainingAuto:true },
+                          trainingAuto:true, trainerstufe:'einfach' },
     seed: cfg.seed || cfg.startSeed || null,
     player: null,
     lauf: null,              // laufende Karriere (createCareer)
@@ -328,6 +328,24 @@ function CareerGame(root, cfg){
             </div>
             <p class="small mt">Automatisch heißt: Dein Trainerstab wählt jeden Sommer den
               Bereich mit dem größten Nachholbedarf. Du kannst das jederzeit in der Karriere umstellen.</p>
+            ${/* ----------------------------------------------------------------
+                 Wie stark der Stab ist, ist die Schwierigkeit des Spiels
+
+                 Wer selbst waehlt, bekommt immer den vollen Wert der Karte -
+                 die Stufe misst nur, wie viel das Abgeben kostet. Auf
+                 "einfach" kostet es nichts; das ist zugleich der Stand, auf
+                 den die Rangschwellen geeicht sind.
+                 ---------------------------------------------------------------- */ ''}
+            <label class="field mt"><span>Stärke des Trainerstabs</span></label>
+            <div class="choice-row" id="f-stufe">
+              ${Object.entries(PUCKERO.TRAINERSTUFEN).map(([k, v]) => `
+                <button class="choice ${(i.trainerstufe || 'einfach') === k ? 'on' : ''}"
+                        data-stufe="${k}" title="${esc(v.d)}">
+                  ${v.n} <em class="ch-wert">${Math.round(v.f * 100)} %</em></button>`).join('')}
+            </div>
+            <p class="small mt" id="stufe-text">${esc(
+              (PUCKERO.TRAINERSTUFEN[i.trainerstufe || 'einfach'] || {}).d || '')}
+              Wer von Hand die richtige Karte nimmt, bekommt immer 100 %.</p>
             <p class="small mt warnung" id="t-hinweis"
                ${i.trainingAuto === false ? '' : 'hidden'}>${UI.ikone('waage', 14)}
               <span>Der Trainerstab wählt gemessen nahezu ideal. Selbst zu wählen lohnt sich nur mit
@@ -383,6 +401,13 @@ function CareerGame(root, cfg){
       el.onkeydown = e => {
         if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); posWaehlen(el.dataset.feldPos); }
       };
+    });
+    root.querySelectorAll('[data-stufe]').forEach(b => b.onclick = () => {
+      S.ident.trainerstufe = b.dataset.stufe;
+      root.querySelectorAll('[data-stufe]').forEach(x => x.classList.toggle('on', x === b));
+      const t = root.querySelector('#stufe-text');
+      const v = PUCKERO.TRAINERSTUFEN[S.ident.trainerstufe];
+      if (t && v) t.textContent = v.d + ' Wer von Hand die richtige Karte nimmt, bekommt immer 100 %.';
     });
     root.querySelectorAll('[data-training-auto]').forEach(b => b.onclick = () => {
       S.ident.trainingAuto = b.dataset.trainingAuto === '1';

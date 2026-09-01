@@ -364,6 +364,7 @@ const PUCKERO = (() => {
     return {
       name: opt.name, num: opt.num, nation: opt.nation, pos: opt.pos,
       mode: opt.mode || 'klassisch',
+      trainerstufe: TRAINERSTUFEN[opt.trainerstufe] ? opt.trainerstufe : 'einfach',
       seed: opt.seed,
       /* Die Grenze, an die dieser Koerper heranwachsen kann.
 
@@ -405,8 +406,8 @@ const PUCKERO = (() => {
          gerueckt und unten enger - der Ausreisser nach unten ist jetzt
          der Fruehreife und nicht der Regelfall.
          ------------------------------------------------------------ */
-      scheitel: clamp((pos(opt.pos).group === 'goalie' ? 29.8 : 27.8)
-                      + ri(r, -2, 4) + (r() - 0.5) * 1.5, 25, 34),
+      scheitel: clamp((pos(opt.pos).group === 'goalie' ? 32.2 : 30.9)
+                      + ri(r, -2, 4) + (r() - 0.5) * 1.5, 27, 36),
       attrs,
       traits: { robust:0, langlebig:0, jung:0, playoff:0 },
       eigenschaften: [],
@@ -520,6 +521,26 @@ const PUCKERO = (() => {
      derselben Regel wie das Sommertraining: Positionsgewicht mal
      verbleibendem Spielraum.
      ================================================================== */
+  /* ------------------------------------------------------------------
+     Wie stark der Trainerstab ist
+
+     Wer das Sommertraining abgibt, gibt eine Entscheidung ab - und was
+     der Stab daraus macht, ist eine Einstellung. Auf "einfach" holt er
+     alles heraus, was zu holen ist; auf "schwer" nur einen Teil, und
+     die restlichen vierzig Prozent liegen fuer den da, der selbst
+     waehlt. Wer von Hand die richtige Karte nimmt, bekommt immer den
+     vollen Wert - unabhaengig von der Stufe. Die Stufe misst also nur,
+     wie viel Arbeit das Abgeben kostet.
+     ------------------------------------------------------------------ */
+  const TRAINERSTUFEN = {
+    einfach: { n: 'Einfach', f: 1.00,
+      d: 'Der Trainerstab holt alles heraus. Selbst wählen bringt nichts dazu.' },
+    mittel:  { n: 'Mittel',  f: 0.80,
+      d: 'Der Stab holt vier Fünftel heraus. Wer gut selbst wählt, liegt darüber.' },
+    schwer:  { n: 'Schwer',  f: 0.60,
+      d: 'Der Stab holt gut die Hälfte. Selbst zu wählen ist hier ein echter Vorteil.' }
+  };
+
   const FEIN_PUNKTE = 10;
   const FEIN_PRO_WERT = 4;
 
@@ -666,7 +687,7 @@ const PUCKERO = (() => {
   function scheitelEcht(scheitel, traits){
     const t = traits || {};
     return clamp((scheitel || 27) - (t.jung || 0) * 0.09
-                 + (t.langlebig || 0) * 0.06, 23.5, 34);
+                 + (t.langlebig || 0) * 0.06, 26, 36);
   }
 
   function formFactor(age, traits, lernkurve, scheitel){
@@ -805,14 +826,24 @@ const PUCKERO = (() => {
       .map(a => ({ a, gewicht: (w[a.k] || 0.8) * (99 - player.attrs[a.k]) * (0.75 + r() * 0.5) }))
       .sort((x, y) => y.gewicht - x.gewicht);
 
-    const optionen = liste.slice(0, 2).map(x => ({
+    /* ----------------------------------------------------------------
+       Sechs Karten statt drei
+
+       Zwei Werte und eine Eigenschaft waren zu wenig, um von einer Wahl
+       zu sprechen - gemessen nahm die Automatik in fast allen Faellen
+       eine der beiden Wertkarten, und die dritte war eine Falle. Jetzt
+       stehen drei Werte, eine Eigenschaft und zwei Karten mit einem
+       eigenen Charakter da: eine, die mehr bringt und etwas kostet, und
+       eine, die nichts bringt und etwas repariert.
+       ---------------------------------------------------------------- */
+    const optionen = liste.slice(0, 3).map(x => ({
       art: 'attr', k: x.a.k, n: x.a.n,
       titel: x.a.n + ' schulen',
       text: '+' + gewinn + ' auf ' + x.a.n + '. Wirkt sofort und dauerhaft.',
       wert: gewinn
     }));
 
-    // Dritte Karte: Koerper oder Kopf statt Technik
+    // Eigenschaft statt Technik
     const extra = shuffle(r, [
       { art:'robust', titel:'Athletiktraining',
         text:'Weniger Verletzungen und kürzere Ausfälle.', wert: 5 },
@@ -822,14 +853,40 @@ const PUCKERO = (() => {
         text:'Mehr Nervenstärke in der K.-o.-Phase.', wert: 6 }
     ])[0];
     optionen.push(extra);
+
+    /* Die Doppelschicht bringt die Haelfte mehr auf den staerksten Wert
+       und laesst den Koerper das bezahlen. */
+    if (liste.length){
+      const top = liste[0].a;
+      optionen.push({
+        art: 'doppel', k: top.k, n: top.n,
+        titel: 'Doppelschicht',
+        text: '+' + Math.round(gewinn * 1.5) + ' auf ' + top.n
+              + ' – aber der Sommer geht in die Knochen.',
+        wert: Math.round(gewinn * 1.5)
+      });
+    }
+
+    /* Und die Gegenkarte: nichts lernen, dafuer heil werden. */
+    optionen.push({
+      art: 'erholung', titel: 'Sommer ohne Eis',
+      text: 'Kein Zuwachs – dafür heilt aus, was die Saison hinterlassen hat.',
+      wert: 0
+    });
     return optionen;
   }
 
-  function trainingAnwenden(player, option){
-    if (option.art === 'attr'){
-      attrHeben(player, option.k, option.wert);
+  function trainingAnwenden(player, option, faktor){
+    /* Der Faktor ist die Staerke des Trainerstabs. Von Hand gewaehlt
+       ist er immer 1 - wer selbst entscheidet, bekommt den Wert, der
+       auf der Karte steht. */
+    const f = faktor === undefined ? 1 : faktor;
+    if (option.art === 'attr' || option.art === 'doppel'){
+      attrHeben(player, option.k, option.wert * f);
+    } else if (option.art === 'erholung'){
+      /* wirkt auf den Zustand, nicht auf die Werte - siehe chooseTraining */
     } else {
-      player.traits[option.art] = (player.traits[option.art] || 0) + option.wert;
+      player.traits[option.art] = (player.traits[option.art] || 0) + option.wert * f;
     }
     return player;
   }
@@ -910,6 +967,14 @@ const PUCKERO = (() => {
       erlebt: [],             // bereits gezeigte Ereignisse
       formBonus: 0,           // Nachwirkung einer Entscheidung
       risikoBonus: 0,
+      /* Wie stark der Trainerstab ist, wenn man ihm den Sommer
+         ueberlaesst. Steht am Spieler, damit eine nachgespielte
+         Laufbahn dieselbe Stufe hat wie die gespeicherte. */
+      /* Standard ist "einfach", weil das genau das bisherige Verhalten
+         ist - die Rangschwellen sind daran geeicht. Wer haerter spielt,
+         spielt gegen dieselben Schwellen, und das ist der Sinn einer
+         Schwierigkeitsstufe. */
+      trainerstufe: TRAINERSTUFEN[player.trainerstufe] ? player.trainerstufe : 'einfach',
       jugend: null,           // Angebote aus dem Nachwuchs
       tabelle: [],            // Ligatabelle der laufenden Saison
       kapitaenSeit: null,     // Klub, bei dem das C getragen wird
@@ -1142,8 +1207,8 @@ const PUCKERO = (() => {
        damit sich gespeicherte Laufbahnen unveraendert nachspielen. */
     /* Dieselbe Ziehung wie oben - stehen die beiden verschieden da,
        hat ein nachgeladener Spieler einen anderen Koerper. */
-    const scheitelAlt = clamp((isG ? 29.8 : 27.8) + ri(r, -2, 4)
-                              + (r() - 0.5) * 1.5, 25, 34);
+    const scheitelAlt = clamp((isG ? 32.2 : 30.9) + ri(r, -2, 4)
+                              + (r() - 0.5) * 1.5, 27, 36);
     st.scheitel = player.scheitel != null ? player.scheitel : scheitelAlt;
     st.jugend = null;   // wird direkt nach der Initialisierung gefuellt
 
@@ -5221,12 +5286,34 @@ const PUCKERO = (() => {
     }
 
     /* ---- Sommertraining wählen ---- */
-    function chooseTraining(index){
+    function chooseTraining(index, vomStab){
       if (!st.training) return false;
       const opt = st.training[clamp(index, 0, st.training.length - 1)];
-      trainingAnwenden(player, opt);
+      const stufe = TRAINERSTUFEN[st.trainerstufe] || TRAINERSTUFEN.einfach;
+      const f = vomStab ? stufe.f : 1;
+      trainingAnwenden(player, opt, f);
       const letzte = st.seasons[st.seasons.length - 1];
-      letzte.events.push({ t: 'Sommertraining: ' + opt.titel, c: '' });
+
+      /* Die Doppelschicht kostet: der Koerper traegt den Sommer mit ins
+         Jahr. */
+      if (opt.art === 'doppel'){
+        st.risikoBonus = (st.risikoBonus || 0) + 0.05;
+        st.formzustand = clamp(st.formzustand - 0.12, -1, 1);
+        letzte.events.push({ t: 'Doppelschicht im Sommer – der Körper geht müde '
+          + 'in die Saison', c: 'bad' });
+      }
+      /* Und der Sommer ohne Eis heilt: ein Verletzungsjahr weniger auf
+         dem Konto, und der Kopf wird frei. */
+      if (opt.art === 'erholung'){
+        st.verletzungsjahre = Math.max(0, (st.verletzungsjahre || 0) - 1);
+        st.risikoBonus = Math.max(0, (st.risikoBonus || 0) - 0.04);
+        st.formzustand = clamp(st.formzustand + 0.15, -1, 1);
+        moralAendern(6);
+      }
+
+      letzte.events.push({ t: 'Sommertraining: ' + opt.titel
+        + (vomStab && f < 1 ? ' (Trainerstab, ' + Math.round(f * 100) + ' %)' : ''),
+        c: '' });
       st.training = null;
       vertragspruefung(letzte);
       return true;
@@ -5278,7 +5365,7 @@ const PUCKERO = (() => {
                        : anwaerter;
         return { i, s: o.wert * 1.2 + dringend * 5.5 + r() * 2 };
       }).sort((a, b) => b.s - a.s);
-      return chooseTraining(bewertet[0].i);
+      return chooseTraining(bewertet[0].i, true);
     }
 
     /* ---- Läuft der Vertrag weiter oder kommen Angebote? ---- */
@@ -7188,17 +7275,17 @@ const PUCKERO = (() => {
      haette.
      ------------------------------------------------------------------ */
   const RAENGE = [
-    { n:'Unsterblich',     ab:3137, c:'gold',
+    { n:'Unsterblich',     ab:3243, c:'gold',
       d:'Ein Name, den man in hundert Jahren noch kennt.' },
-    { n:'Hall of Fame',    ab:2234, c:'gold',
+    { n:'Hall of Fame',    ab:2468, c:'gold',
       d:'Trikot unter dem Hallendach, Platz in der Ruhmeshalle.' },
-    { n:'Franchise-Ikone', ab:1615, c:'',
+    { n:'Franchise-Ikone', ab:1848, c:'',
       d:'Ein Klub hat eine Ära nach dir benannt.' },
-    { n:'Topstar',         ab:1275, c:'',
+    { n:'Topstar',         ab:1447, c:'',
       d:'Jahrelang erste Reihe, erste Wahl, erste Schlagzeile.' },
-    { n:'Leistungsträger', ab:816,  c:'',
+    { n:'Leistungsträger', ab:973,  c:'',
       d:'Solide Karriere in starken Ligen.' },
-    { n:'Profi',           ab:497,  c:'',
+    { n:'Profi',           ab:610,  c:'',
       d:'Ein ehrliches Eishockeyleben.' }
   ];
 
@@ -7343,7 +7430,7 @@ const PUCKERO = (() => {
     createCareer, simulate, legacyRank, RANG_SCHWELLEN, marktwert,
     saveCareer, loadCareers, clearCareers, randomIdentity,
     ladeHerausforderungen, pruefeHerausforderungen, werteHerausforderungen, clearHerausforderungen,
-    trainingsOptionen, trainingAnwenden,
+    trainingsOptionen, trainingAnwenden, TRAINERSTUFEN,
     DRAFT_ROUNDS, LG_MIN, HOME_LG, D
   };
 })();

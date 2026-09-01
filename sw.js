@@ -16,7 +16,7 @@
      Speicher; sie aendern sich mit ihrem Dateinamen.
    ========================================================== */
 
-const VERSION = 'rinkrise-f8769913';
+const VERSION = 'rinkrise-b7184f6c';
 const SCHALE = [
   './',
   './index.html',
@@ -27,17 +27,17 @@ const SCHALE = [
   './schnellkarriere.html',
   './taeglich.html',
   './konto.html',
-  './assets/style.css?v=f8769913',
-  './assets/data.js?v=f8769913',
-  './assets/draft.js?v=f8769913',
-  './assets/engine.js?v=f8769913',
-  './assets/ereignisse.js?v=f8769913',
-  './assets/wappen.js?v=f8769913',
-  './assets/ui.js?v=f8769913',
-  './assets/game.js?v=f8769913',
-  './assets/konto-config.js?v=f8769913',
-  './assets/konto.js?v=f8769913',
-  './assets/bestenliste.js?v=f8769913',
+  './assets/style.css?v=b7184f6c',
+  './assets/data.js?v=b7184f6c',
+  './assets/draft.js?v=b7184f6c',
+  './assets/engine.js?v=b7184f6c',
+  './assets/ereignisse.js?v=b7184f6c',
+  './assets/wappen.js?v=b7184f6c',
+  './assets/ui.js?v=b7184f6c',
+  './assets/game.js?v=b7184f6c',
+  './assets/konto-config.js?v=b7184f6c',
+  './assets/konto.js?v=b7184f6c',
+  './assets/bestenliste.js?v=b7184f6c',
   './manifest.json',
   './assets/app/symbol-192.png',
   './assets/app/symbol-512.png',
