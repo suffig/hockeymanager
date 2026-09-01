@@ -4765,3 +4765,84 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
   .an-weg .an-marke{animation:none}
   .fw-balken b{transition:none}
 }
+
+
+/* ==================================================================
+   Feinschliff an der Oberflaeche
+
+   Lauter Kleinigkeiten, die einzeln niemand nennt und die zusammen
+   den Unterschied machen zwischen "funktioniert" und "gemacht".
+   ================================================================== */
+
+/* ---- Auswahl und Bildlauf tragen die Farben des Spiels ---- */
+::selection{ background:color-mix(in srgb,var(--accent) 34%,transparent); color:var(--text) }
+*{ scrollbar-width:thin; scrollbar-color:color-mix(in srgb,var(--muted) 40%,transparent) transparent }
+*::-webkit-scrollbar{ width:10px; height:10px }
+*::-webkit-scrollbar-track{ background:transparent }
+*::-webkit-scrollbar-thumb{
+  background:color-mix(in srgb,var(--muted) 34%,transparent);
+  border-radius:99px; border:2px solid transparent; background-clip:content-box;
+}
+*::-webkit-scrollbar-thumb:hover{ background:color-mix(in srgb,var(--accent) 50%,transparent);
+  background-clip:content-box }
+
+/* ---- Ein sichtbarer Fokus fuer alles, was man antippen kann ----
+   Vorher trugen ihn fuenf Klassen; wer mit der Tastatur durch eine
+   Seite geht, verlor ihn ueberall sonst. */
+a:focus-visible, button:focus-visible, select:focus-visible,
+input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+  border-radius:8px;
+}
+
+/* ---- Karten heben sich einheitlich ---- */
+.legend-card, .fein-karte, .charakterkarte, .jugendkarte, .rollenkarte{
+  transition:transform .18s cubic-bezier(.2,.9,.25,1),
+             box-shadow .18s ease, border-color .18s ease;
+}
+.legend-card:active, .fein-karte:active,
+.charakterkarte:active, .jugendkarte:active, .rollenkarte:active{
+  transform:translateY(0) scale(.988);
+}
+
+/* ---- Die Gesamtwertung bekommt Tiefe ----
+   Sie ist die Zahl, auf die als erstes jeder sieht. */
+.ovr{ position:relative; overflow:hidden }
+.ovr::after{
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(120% 90% at 50% -20%,
+             rgba(255,255,255,.20), transparent 62%);
+}
+.ovr.gold::before{
+  content:''; position:absolute; inset:-40% -60%;
+  background:linear-gradient(105deg, transparent 42%,
+             rgba(255,255,255,.30) 50%, transparent 58%);
+  animation:ovrGlanz 4.6s ease-in-out infinite;
+}
+@keyframes ovrGlanz{ 0%,72%{transform:translateX(-120%)} 100%{transform:translateX(120%)} }
+
+/* ---- Ueberschriften bekommen einen Anlauf ---- */
+.panel-head{ position:relative }
+.panel-head::after{
+  content:''; position:absolute; left:0; right:0; bottom:-1px; height:1px;
+  background:linear-gradient(90deg, var(--accent), transparent 62%);
+  opacity:.5;
+}
+
+/* ---- Trennlinien sind Verlaeufe, keine Striche ---- */
+hr, .trenner{
+  border:0; height:1px;
+  background:linear-gradient(90deg, transparent,
+             color-mix(in srgb,var(--muted) 42%,transparent) 18%,
+             color-mix(in srgb,var(--muted) 42%,transparent) 82%, transparent);
+}
+
+/* ---- Kleine Chips atmen mit ---- */
+.pill{ transition:background-color .18s ease, color .18s ease }
+
+@media (prefers-reduced-motion: reduce){
+  .ovr.gold::before{ animation:none; opacity:0 }
+  .legend-card, .fein-karte, .charakterkarte,
+  .jugendkarte, .rollenkarte{ transition:none }
+}

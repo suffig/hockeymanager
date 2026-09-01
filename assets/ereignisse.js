@@ -2614,6 +2614,265 @@ const EREIGNISSE = (() => {
                 text:'Du hältst dich zurück, und die Jahre gehen vorbei, ohne dass '
                    + 'etwas Besonderes passiert.' } }
       ] }
+,
+
+    /* ==================================================================
+       Nachgelegt, wo der Vorrat duenn war
+
+       Gezaehlt ueber die Liste: Kabine 27, Privat 26, Trainer 20, Spiel
+       17, Presse 12 - aber Karriere nur 6, Sichtung 4 und Koerper 2.
+       Von 114 Ereignissen galten sieben nur Torhuetern, obwohl jeder
+       fuenfte Spieler einer ist. Dort wird jetzt aufgefuellt.
+       ================================================================== */
+
+    /* ---------- Koerper ---------- */
+    { id:'koerper1', kat:'koerper', szene:'arzt', tag:'Die Rückkehr',
+      titel:'Freigegeben – aber der Kopf ist noch nicht so weit',
+      text:'Der Arzt sagt, alles sei verheilt, und die Werte geben ihm recht. '
+         + 'Trotzdem gehst du in den ersten Zweikampf einen halben Schritt langsamer, '
+         + 'und du merkst es als Einziger.',
+      bedingung: st => (st.verletzungsjahre || 0) >= 1 && st.age >= 20,
+      optionen:[
+        { t:'Sofort in den ersten Zweikampf gehen', chance:52,
+          hinweis:'Einmal richtig, und der Kopf ist wieder frei',
+          gut:{ moral:9, attr:{ nerven:4 }, form:0.06,
+                text:'Beim zweiten Wechsel gehst du voll rein und stehst wieder auf. '
+                   + 'Damit ist die Sache erledigt.' },
+          schlecht:{ risiko:9, moral:-6, verschleiss:1,
+                text:'Du gehst rein und bleibst liegen. Diesmal sind es nur zwei Wochen, '
+                   + 'aber der Gedanke bleibt länger.' } },
+        { t:'Es langsam angehen lassen', chance:72,
+          hinweis:'Sicher, aber es dauert',
+          gut:{ form:0.04, attr:{ uebersicht:3 },
+                text:'Nach acht Spielen ist alles zurück, ohne dass etwas passiert ist.' },
+          schlecht:{ moral:-5, form:-0.05,
+                text:'Die Vorsicht wird zur Gewohnheit. Der Trainer sieht das auch.' } }
+      ] },
+
+    { id:'koerper2', kat:'koerper', szene:'training', tag:'Das Gewicht',
+      titel:'Fünf Kilo mehr oder fünf Kilo weniger',
+      text:'Der Athletiktrainer legt zwei Pläne hin. Der eine macht dich schwerer und '
+         + 'schwerer zu verschieben, der andere leichter und schneller. Beides geht nicht.',
+      bedingung: st => st.age >= 19 && st.age <= 30,
+      nurPos:['C','LW','RW','D'],
+      optionen:[
+        { t:'Masse aufbauen', chance:64, hinweis:'Für die Bande und den Slot',
+          gut:{ attr:{ zweikampf:6, defensive:4, skating:-2 }, trait:{ robust:3 },
+                text:'Du gewinnst Zweikämpfe, die du im Vorjahr verloren hast.' },
+          schlecht:{ attr:{ antritt:-4 }, form:-0.04,
+                text:'Das Gewicht kommt, die Beweglichkeit geht. Kein guter Tausch.' } },
+        { t:'Leichter und schneller werden', chance:64,
+          hinweis:'Für die erste Sekunde',
+          gut:{ attr:{ antritt:6, skating:5, zweikampf:-2 },
+                text:'Der erste Schritt ist wieder da, und mit ihm die Räume.' },
+          schlecht:{ attr:{ zweikampf:-5 }, risiko:5,
+                text:'An der Bande wirst du jetzt weggeschoben wie ein Junior.' } },
+        { t:'Nichts ändern', chance:78, hinweis:'Was funktioniert, funktioniert',
+          gut:{ moral:4, attr:{ nerven:3 },
+                text:'Du bleibst, wie du bist, und spielst dein bestes Jahr genau so.' },
+          schlecht:{ form:-0.03,
+                text:'Die Liga wird schneller. Du bleibst, wie du bist.' } }
+      ] },
+
+    { id:'koerper3', kat:'koerper', szene:'arzt', tag:'Das Protokoll',
+      titel:'Ein Schlag an den Kopf, und niemand fragt dich',
+      text:'Du weißt nicht mehr, wie du in die Kabine gekommen bist. Der Arzt weiß es, '
+         + 'und er hat ein Protokoll, das nicht verhandelbar ist. Draußen läuft die Serie.',
+      bedingung: st => st.age >= 20 && !!st.club,
+      /* Gemessen mit Gewicht 3 kam es in 42 Prozent aller Laufbahnen -
+         zu viel fuer eine Gehirnerschuetterung. */
+      gewicht: 1.4,
+      optionen:[
+        { t:'Das Protokoll durchziehen', chance:80,
+          hinweis:'Zwei Wochen jetzt gegen zehn Jahre später',
+          gut:{ moral:4, trait:{ langlebig:3 },
+                text:'Du fehlst fünf Spiele und kommst vollständig zurück. In zehn Jahren '
+                   + 'wirst du wissen, dass das die Entscheidung war.' },
+          schlecht:{ moral:-6, ruf:-3,
+                text:'Die Mannschaft verliert ohne dich, und irgendwer sagt laut, '
+                   + 'dass er trotzdem gespielt hätte.' } },
+        { t:'Sagen, es gehe schon', chance:40,
+          hinweis:'Die Serie läuft. Der Kopf nicht.',
+          gut:{ ruf:6, moral:5,
+                text:'Du spielst und triffst. Niemand fragt mehr nach.' },
+          schlecht:{ risiko:12, verschleiss:1, attr:{ nerven:-4 },
+                text:'Im nächsten Spiel steht die Halle schief. Diesmal sind es drei Monate.' } }
+      ] },
+
+    /* ---------- Karriere ---------- */
+    { id:'karriere1', kat:'karriere', szene:'buero', tag:'Die Nummer',
+      titel:'Ein Zurückgekehrter will deine Rückennummer',
+      text:'Er hat hier zwölf Jahre gespielt, bevor du geboren wurdest, und kommt für '
+         + 'eine letzte Saison zurück. Es ist deine Nummer, seit du hier bist.',
+      bedingung: st => (st.klubJahre || 0) >= 2,
+      optionen:[
+        { t:'Sie ihm geben', chance:76, hinweis:'Eine Nummer ist eine Nummer',
+          folgt:'weggefaehrte',
+          gut:{ ruf:6, moral:5,
+                text:'Er bedankt sich vor der Mannschaft. So etwas spricht sich in einer '
+                   + 'Liga schneller herum als jedes Tor.' },
+          schlecht:{ moral:-4,
+                text:'Er nimmt sie, sagt nichts, und spielt eine schlechte Saison.' } },
+        { t:'Sie behalten', chance:66, hinweis:'Auch das versteht man',
+          gut:{ moral:6, attr:{ nerven:3 },
+                text:'Er nickt nur. Er hätte es genauso gemacht.' },
+          schlecht:{ ruf:-5, moral:-4,
+                text:'In der Zeitung steht ein Satz über die Jugend von heute, und '
+                   + 'jeder weiß, wer gemeint ist.' } }
+      ] },
+
+    { id:'karriere2', kat:'karriere', szene:'stadt', tag:'Das Vertragsjahr',
+      titel:'Im letzten Vertragsjahr sieht jeder auf dich',
+      text:'Jeder Fehlpass wird ein Argument, jedes Tor eine Verhandlungsposition. '
+         + 'Du weißt das. Alle wissen das. Und genau deshalb spielt es sich anders.',
+      bedingung: st => st.vertragJahre === 1 && st.age >= 21,
+      gewicht: 2.5,
+      optionen:[
+        { t:'Es ausblenden und spielen', chance:60,
+          hinweis:'Leichter gesagt',
+          gut:{ form:0.08, moral:6,
+                text:'Du spielst, als ginge es um nichts – und genau deshalb um alles.' },
+          schlecht:{ form:-0.06, moral:-5,
+                text:'Es geht nicht. Bei jedem Wechsel rechnest du mit.' } },
+        { t:'Früh verlängern, egal zu welchen Bedingungen', chance:70,
+          hinweis:'Ruhe gegen Geld',
+          gut:{ moral:9, form:0.05, gehalt:-0.04,
+                text:'Zwei Wochen später ist es unterschrieben, und der Kopf ist frei.' },
+          schlecht:{ gehalt:-0.08, moral:-4,
+                text:'Sie nutzen die Eile. Du unterschreibst unter Wert.' } },
+        { t:'Einen Berater einschalten und laut werden', chance:48,
+          hinweis:'Mehr Geld, mehr Gegenwind',
+          gut:{ gehalt:0.10, ruf:4,
+                text:'Der Markt wird auf dich aufmerksam, und der Klub zahlt, was er '
+                   + 'vorher nicht zahlen wollte.' },
+          schlecht:{ ruf:-6, moral:-6,
+                text:'Der Sportchef nennt es Theater. Die Fans übernehmen das Wort.' } }
+      ] },
+
+    { id:'karriere3', kat:'karriere', szene:'presse', tag:'Der Anruf aus der Heimat',
+      titel:'Dein alter Verein steht vor dem Abstieg',
+      text:'Der Klub, bei dem du angefangen hast, verliert seit November jedes Spiel. '
+         + 'Der Präsident ruft nicht an, um dich zu holen – er ruft an, weil er sonst '
+         + 'niemanden mehr hat, den er anrufen kann.',
+      bedingung: st => (st.ehemalige || []).length >= 1 && st.age >= 24,
+      optionen:[
+        { t:'Öffentlich für sie eintreten', chance:66,
+          hinweis:'Kostet nichts außer Haltung',
+          gut:{ ruf:7, moral:6,
+                text:'Dein Name unter dem Aufruf bringt dreitausend Zuschauer mehr. '
+                   + 'Sie bleiben drin.' },
+          schlecht:{ moral:-5,
+                text:'Es hilft nichts. Sie steigen ab, und dein Name steht darunter.' } },
+        { t:'Geld schicken und nichts sagen', chance:82,
+          hinweis:'Still, aber es kommt an',
+          gut:{ moral:8, leben:{ vermoegen:-2 },
+                text:'Niemand erfährt es. Der Nachwuchstrainer schon.' },
+          schlecht:{ leben:{ vermoegen:-3 }, moral:-3,
+                text:'Das Geld verschwindet in einem Loch, das größer war als gedacht.' } },
+        { t:'Es ist nicht mehr dein Verein', chance:70,
+          hinweis:'Auch das ist eine Antwort',
+          gut:{ form:0.04,
+                text:'Du konzentrierst dich auf deine eigene Saison. Sie wird gut.' },
+          schlecht:{ ruf:-5, moral:-6,
+                text:'Beim nächsten Auswärtsspiel dort pfeift dich eine ganze Kurve aus.' } }
+      ] },
+
+    /* ---------- Torhüter ---------- */
+    { id:'tor_neu1', kat:'spiel', szene:'eis', tag:'Die Serie', nurPos:['G'],
+      titel:'Drei Spiele ohne Gegentor, und alle reden darüber',
+      text:'Niemand in der Kabine sagt das Wort. Die Zeitung sagt es auf der Titelseite. '
+         + 'Deine Verteidiger spielen plötzlich, als müssten sie etwas beschützen.',
+      bedingung: st => st.age >= 20 && !!st.club,
+      optionen:[
+        { t:'Die Serie annehmen und mitspielen', chance:54,
+          hinweis:'Wer es genießt, hält es länger',
+          gut:{ ruf:9, moral:8, attr:{ konstanz:4 },
+                text:'Zwei weitere Spiele. Danach steht dein Name in einer Liste, in der '
+                   + 'sonst nur alte Namen stehen.' },
+          schlecht:{ moral:-6, attr:{ nerven:-3 },
+                text:'Im vierten Spiel fällt das Tor nach zwei Minuten. Der Rest des '
+                   + 'Abends ist eine Qual.' } },
+        { t:'So tun, als wäre nichts', chance:72,
+          hinweis:'Dieselbe Vorbereitung wie immer',
+          gut:{ attr:{ konstanz:5, nerven:3 },
+                text:'Die Serie endet irgendwann, aber deine Fangquote nicht.' },
+          schlecht:{ moral:-4,
+                text:'Es lässt sich nicht ausblenden. Du wirst müde davon.' } }
+      ] },
+
+    { id:'tor_neu2', kat:'kabine', szene:'kabine', tag:'Der Zweite', nurPos:['G'],
+      titel:'Der Ersatzmann sitzt seit vier Monaten nur da',
+      text:'Er trainiert jeden Tag, er hält jeden Schuss, und er spielt nicht. '
+         + 'Beim Frühstück redet er nicht mehr viel. Ihr teilt euch dieselbe Position '
+         + 'und dieselbe Kabine.',
+      bedingung: st => st.age >= 21 && !!st.club,
+      optionen:[
+        { t:'Dem Trainer sagen, er soll spielen', chance:56,
+          hinweis:'Ein Spiel abgeben, eine Mannschaft gewinnen',
+          folgt:'weggefaehrte',
+          gut:{ ruf:6, moral:7,
+                text:'Er gewinnt, und er weiß, wem er das verdankt. Ihr seid ab da zwei '
+                   + 'Torhüter statt einer und ein Ersatz.' },
+          schlecht:{ moral:-5, ruf:-3,
+                text:'Er hält alles und bekommt das nächste Spiel auch. Und das danach.' } },
+        { t:'Nichts sagen – es ist sein Weg', chance:70,
+          hinweis:'Jeder kämpft für sich',
+          gut:{ attr:{ nerven:4 }, form:0.04,
+                text:'Du spielst jedes Spiel und lässt keinen Zweifel zu.' },
+          schlecht:{ moral:-5,
+                text:'Die Kabine merkt, dass ihr nicht mehr redet. Es wird kühl.' } }
+      ] },
+
+    { id:'tor_neu3', kat:'trainer', szene:'eis', tag:'Der Torwarttrainer', nurPos:['G'],
+      titel:'Er will deine Technik von Grund auf umbauen',
+      text:'Er sagt, deine Beinarbeit sei zehn Jahre alt und funktioniere nur, solange '
+         + 'du jung bist. Er hat vermutlich recht. Der Umbau kostet eine Saison.',
+      bedingung: st => st.age >= 22 && st.age <= 31,
+      optionen:[
+        { t:'Alles umstellen', chance:50,
+          hinweis:'Ein schlechtes Jahr für fünf gute', folgt:'trainerpakt',
+          gut:{ attr:{ stellung:7, beweglich:5, lesen:4 }, trait:{ langlebig:4 },
+                text:'Die Saison wird zäh. Die drei danach sind die besten deiner Laufbahn.' },
+          schlecht:{ form:-0.10, moral:-7,
+                text:'Du findest weder in das Neue noch zurück ins Alte.' } },
+        { t:'Nur Teile übernehmen', chance:68,
+          hinweis:'Der Kompromiss',
+          gut:{ attr:{ stellung:4, konstanz:3 },
+                text:'Ein paar Dinge übernimmst du, den Rest lässt du. Es reicht.' },
+          schlecht:{ moral:-3,
+                text:'Halb umgestellt ist nicht umgestellt. Es bleibt unrund.' } },
+        { t:'Bei deiner Technik bleiben', chance:64,
+          hinweis:'Was dich hierher gebracht hat',
+          gut:{ moral:5, attr:{ nerven:4 },
+                text:'Du hältst weiter, wie du immer gehalten hast. Es funktioniert.' },
+          schlecht:{ attr:{ beweglich:-4 }, moral:-4,
+                text:'Mit dreißig merkst du, was er gemeint hat.' } }
+      ] },
+
+    /* ---------- Sichtung ---------- */
+    { id:'sicht_neu1', kat:'sichtung', szene:'presse', tag:'Die Rangliste',
+      titel:'Ein Scout hat dich öffentlich heruntergestuft',
+      text:'Vierzehn Plätze nach unten, mit Begründung: zu leicht, zu einseitig, '
+         + 'zu abhängig von einer Reihe. Es steht online, und deine Mitspieler haben '
+         + 'es vor dir gelesen.',
+      bedingung: st => st.age <= 21 && !st.entryDraft,
+      gewicht: 2,
+      optionen:[
+        { t:'Genau das abstellen, was er nennt', chance:58,
+          hinweis:'Der unangenehme Weg',
+          gut:{ attr:{ defensive:5, zweikampf:4 }, ruf:5,
+                text:'Beim nächsten Bericht steht dein Name wieder oben – mit demselben '
+                   + 'Scout darunter.' },
+          schlecht:{ moral:-6,
+                text:'Du arbeitest daran und verlierst dabei, was dich ausgemacht hat.' } },
+        { t:'Es als Ansporn nehmen und weitermachen', chance:66,
+          hinweis:'Nichts ändern, mehr wollen',
+          gut:{ moral:7, form:0.07,
+                text:'Du legst die beste Rückrunde des Jahrgangs hin. Die Liste korrigiert '
+                   + 'sich von selbst.' },
+          schlecht:{ moral:-5, ruf:-3,
+                text:'Du willst zu viel und triffst zu wenig.' } }
+      ] }
   );
 
   return { LISTE, WAGNISSE };
