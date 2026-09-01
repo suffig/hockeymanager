@@ -342,7 +342,22 @@ const PUCKERO = (() => {
     const attrs = {};
     /* Weiter unten als frueher (42 bis 56): der Abstand zur eigenen
        Grenze ist der Weg, den die Laufbahn zurueckzulegen hat. */
-    attrsOf(opt.pos).forEach(a => { attrs[a.k] = ri(r, 33, 46); });
+    /* ----------------------------------------------------------------
+       Der Feinschliff verteilt, er verschenkt nicht
+
+       Mit den zehn frei verteilbaren Punkten obendrauf sprang der
+       Gipfel gemessen von 85,5 auf 87,0, der Anteil "Hall of Fame" von
+       3,0 auf 8,5 Prozent und "Unsterblich" von 0,3 auf 2,5 - das Spiel
+       wurde nebenbei leichter, was niemand wollte.
+
+       Also werden dieselben zehn Punkte hier vorher abgezogen. Wer sie
+       gut setzt, steht danach besser da als vorher; wer sie streut,
+       genauso; wer sie schlecht setzt, schlechter. Das ist der Sinn
+       einer Verteilung.
+       ---------------------------------------------------------------- */
+    const wieViele = attrsOf(opt.pos).length || 1;
+    const ausgleich = FEIN_PUNKTE / wieViele;
+    attrsOf(opt.pos).forEach(a => { attrs[a.k] = ri(r, 33, 46) - ausgleich; });
     Object.entries(nat.bonus || {}).forEach(([k, v]) => {
       if (attrs[k] !== undefined) attrs[k] = clamp(attrs[k] + v, 1, 99);
     });
@@ -361,7 +376,12 @@ const PUCKERO = (() => {
          werden solide Profis, wenige werden Stars, ganz wenige
          Ausnahmespieler. Die Grenze bleibt verborgen; spuerbar wird
          sie daran, dass die Spruenge kleiner werden. */
-      potenzial: zieheGrenze(r),
+      /* Der Ausgleich fuer den Feinschliff: die zusaetzliche
+         Eigenschaft hebt die Talentgrenze mit, und gemessen sprang der
+         Gipfel dadurch von 85,5 auf 86,7 und "Hall of Fame" von 3,0 auf
+         8,5 Prozent. Zwei Punkte weniger Grenze gleichen das aus - die
+         Wahl bleibt eine Wahl, sie ist nur kein Geschenk mehr. */
+      potenzial: zieheGrenze(r) - 2,
       /* ----------------------------------------------------------------
          Der Scheitelpunkt des Koerpers gehoert zum Spieler
 
@@ -482,6 +502,96 @@ const PUCKERO = (() => {
     return s;
   }
 
+  /* ==================================================================
+     Der Feinschliff
+
+     Der Charakterdraft stellt vier Fragen, und danach stand der Spieler
+     fest. Das ist wenig fuer den einzigen Moment, in dem man den
+     eigenen Mann wirklich formt - und es ist alles Wahl aus Vorgaben:
+     man nimmt eine Karte, die Karte bringt, was sie bringt.
+
+     Hier kommt beides dazu, was gefehlt hat. Erstens eine letzte
+     Eigenschaft aus dreien, die noch frei sind - keine davon ist reiner
+     Gewinn, jede hat ihren Preis. Zweitens ein Punktebudget, das man
+     selbst verteilt: zehn Punkte, hoechstens vier auf denselben Wert,
+     damit daraus kein einzelner Ausreisser wird.
+
+     Wer nicht verteilen will, laesst verteilen - der Vorschlag folgt
+     derselben Regel wie das Sommertraining: Positionsgewicht mal
+     verbleibendem Spielraum.
+     ================================================================== */
+  const FEIN_PUNKTE = 10;
+  const FEIN_PRO_WERT = 4;
+
+  function feinschliffAngebot(player){
+    if (typeof DRAFT === 'undefined') return null;
+    const r = rng(player.seed + ':feinschliff');
+    const hat = player.eigenschaften || [];
+    const frei = Object.keys(DRAFT.EIGENSCHAFTEN).filter(id => !hat.includes(id));
+    if (!frei.length) return null;
+    const w = pos(player.pos).w;
+    return {
+      eigenschaften: shuffle(r, frei).slice(0, 3),
+      punkte: FEIN_PUNKTE,
+      proWert: FEIN_PRO_WERT,
+      werte: attrsOf(player.pos)
+        .filter(a => player.attrs[a.k] < 95)
+        .map(a => ({ k: a.k, n: a.n, wert: player.attrs[a.k],
+                     gewicht: Math.round((w[a.k] || 0.8) * 100) / 100 }))
+    };
+  }
+
+  /* Der Vorschlag des Trainerstabs - dieselbe Regel wie im Sommer. */
+  function feinschliffVorschlag(player, angebot){
+    const a = angebot || feinschliffAngebot(player);
+    if (!a) return {};
+    const stand = {};
+    const rest = Object.assign({}, player.attrs);
+    for (let i = 0; i < a.punkte; i++){
+      let besteK = null, bestes = -1;
+      a.werte.forEach(x => {
+        if ((stand[x.k] || 0) >= a.proWert) return;
+        if (rest[x.k] >= 99) return;
+        const g = x.gewicht * (99 - rest[x.k]);
+        if (g > bestes){ bestes = g; besteK = x.k; }
+      });
+      if (!besteK) break;
+      stand[besteK] = (stand[besteK] || 0) + 1;
+      rest[besteK]++;
+    }
+    return stand;
+  }
+
+  /* Wahl anwenden. Bewusst ueber applyKarte-Wege, damit eine hier
+     gewaehlte Eigenschaft genauso zaehlt wie eine aus dem Draft -
+     einschliesslich der Stufe, wenn sie doch schon da war. */
+  function feinschliffAnwenden(player, wahl){
+    const a = feinschliffAngebot(player);
+    if (!a) return player;
+    const w = wahl || {};
+    player.eigenschaften = player.eigenschaften || [];
+    player.eigStufe = player.eigStufe || {};
+    (w.eig ? [w.eig] : []).forEach(id => {
+      if (!a.eigenschaften.includes(id)) return;   // nur was angeboten war
+      if (!player.eigenschaften.includes(id)) player.eigenschaften.push(id);
+      player.eigStufe[id] = (player.eigStufe[id] || 0) + 1;
+    });
+    /* Das Budget wird hier hart begrenzt: die Wahl kommt aus der
+       Oberflaeche und aus gespeicherten Staenden, also darf sie nicht
+       mehr ausgeben, als sie hat. */
+    let uebrig = a.punkte;
+    Object.entries(w.punkte || {}).forEach(([k, v]) => {
+      if (!a.werte.some(x => x.k === k)) return;
+      const n = clamp(Math.round(v) || 0, 0, Math.min(a.proWert, uebrig));
+      if (n <= 0) return;
+      attrHeben(player, k, n);
+      uebrig -= n;
+    });
+    wirkungNeu(player);
+    player.feinschliff = { eig: w.eig || null, punkte: w.punkte || {} };
+    return player;
+  }
+
   /* Automatischer Charakterdraft fuer Schnellkarriere und Markt */
   function autoDraft(player, seedSuffix){
     if (typeof DRAFT === 'undefined') return player;
@@ -492,6 +602,18 @@ const PUCKERO = (() => {
       const bewertet = f.karten.map(k => ({ k, s: karteWert(player, k) + r() * 26 }));
       bewertet.sort((a, b) => b.s - a.s);
       applyKarte(player, bewertet[0].k);
+    }
+    /* Auch der Feinschliff gehoert dazu - sonst waere ein gewuerfelter
+       Spieler zehn Punkte schwaecher als ein gespielter. */
+    const ang = feinschliffAngebot(player);
+    if (ang){
+      const bew = ang.eigenschaften.map(id => {
+        const e = DRAFT.EIGENSCHAFTEN[id] || { w: {} };
+        const summe = Object.values(e.w || {}).reduce((x, y) => x + y, 0);
+        return { id, s: summe + r() * 6 };
+      }).sort((x, y) => y.s - x.s);
+      feinschliffAnwenden(player, { eig: bew[0].id,
+                                    punkte: feinschliffVorschlag(player, ang) });
     }
     return player;
   }
@@ -7045,33 +7167,52 @@ const PUCKERO = (() => {
      Spieler auf denselben Gesamtwert zulief. Mit der individuellen
      Grenze waeren zweiundvierzig Prozent aller Laufbahnen als
      Journeyman geendet. */
-  function legacyRank(v){
-    /* Zuletzt gemessen, nachdem Torhueter bekommen, was ihnen zusteht:
-       vorher prallten 35 Wirkungen an ihnen ab (siehe attrHeben), und
-       ihr Gipfelwert lag entsprechend tiefer. Davor schon einmal, seit
-       die Laufbahn mit sechzehn beginnt: zwei
-       Saisons mehr bedeuten mehr Produktion und mehr Vereinsjahre, und
-       gegen die alten Schwellen gemessen wurde jede achte Laufbahn
-       "Unsterblich" statt jeder zwanzigsten. Die Raenge sollen ihre
-       Seltenheit behalten, nicht ihre Zahl - die Schwellen sind
-       deshalb die gemessenen Perzentile von siebenhundert Laufbahnen:
-       ein Viertel bleibt Journeyman, einer von zwanzig kommt in die
-       Ruhmeshalle, einer von hundert darueber hinaus. */
-    if (v >= 2340) return { n:'Unsterblich', c:'gold', d:'Ein Name, den man in hundert Jahren noch kennt.' };
-    if (v >= 1790) return { n:'Hall of Fame', c:'gold', d:'Trikot unter dem Hallendach, Platz in der Ruhmeshalle.' };
-    if (v >= 1305) return { n:'Franchise-Ikone', c:'', d:'Ein Klub hat eine Ära nach dir benannt.' };
-    if (v >= 1010) return { n:'Topstar', c:'', d:'Jahrelang erste Reihe, erste Wahl, erste Schlagzeile.' };
-    if (v >= 685) return { n:'Leistungsträger', c:'', d:'Solide Karriere in starken Ligen.' };
-    if (v >= 475) return { n:'Profi', c:'', d:'Ein ehrliches Eishockeyleben.' };
-    return { n:'Journeyman', c:'', d:'Viele Busfahrten, wenig Rampenlicht.' };
-  }
-  /* Dieselben Zahlen wie in legacyRank - zwei Kopien sind zwei
-     Gelegenheiten auseinanderzulaufen, aber die Liste wird an anderer
-     Stelle in dieser Reihenfolge gebraucht. */
-  const RANG_SCHWELLEN = [
-    ['Unsterblich', 2340], ['Hall of Fame', 1790], ['Franchise-Ikone', 1305],
-    ['Topstar', 1010], ['Leistungsträger', 685], ['Profi', 475]
+  /* ------------------------------------------------------------------
+     Die Raenge, an einer Stelle
+
+     Diese Schwellen standen zweimal: einmal als Kette von if-Zeilen in
+     legacyRank und einmal als RANG_SCHWELLEN fuer die Anzeige. Der
+     Kommentar dazwischen warnte selbst davor, dass zwei Kopien zwei
+     Gelegenheiten sind auseinanderzulaufen - und genau das ist beim
+     Nachziehen passiert: die Liste war neu, die if-Kette alt, und die
+     Raenge kamen weiter aus den alten Zahlen. Jetzt ist es eine Liste,
+     und beide lesen daraus.
+
+     Die Zahlen sind gemessene Perzentile aus 900 gewuerfelten
+     Laufbahnen, gerechnet auf dieselben Anteile wie zuvor: ein Viertel
+     bleibt Journeyman, drei von hundert kommen in die Ruhmeshalle,
+     einer von dreihundert darueber hinaus. Nachgezogen, nachdem
+     Alterskurve, Trainingsautomatik und Feinschliff die Laufbahnen
+     laenger und besser gemacht haben - sonst waere "Unsterblich"
+     neunmal so haeufig geworden, ohne dass jemand das entschieden
+     haette.
+     ------------------------------------------------------------------ */
+  const RAENGE = [
+    { n:'Unsterblich',     ab:3137, c:'gold',
+      d:'Ein Name, den man in hundert Jahren noch kennt.' },
+    { n:'Hall of Fame',    ab:2234, c:'gold',
+      d:'Trikot unter dem Hallendach, Platz in der Ruhmeshalle.' },
+    { n:'Franchise-Ikone', ab:1615, c:'',
+      d:'Ein Klub hat eine Ära nach dir benannt.' },
+    { n:'Topstar',         ab:1275, c:'',
+      d:'Jahrelang erste Reihe, erste Wahl, erste Schlagzeile.' },
+    { n:'Leistungsträger', ab:816,  c:'',
+      d:'Solide Karriere in starken Ligen.' },
+    { n:'Profi',           ab:497,  c:'',
+      d:'Ein ehrliches Eishockeyleben.' }
   ];
+
+  function legacyRank(v){
+    const stufe = RAENGE.find(x => v >= x.ab);
+    return stufe
+      ? { n: stufe.n, c: stufe.c, d: stufe.d }
+      : { n:'Journeyman', c:'', d:'Viele Busfahrten, wenig Rampenlicht.' };
+  }
+
+  /* Die Liste in der Reihenfolge, in der sie an anderer Stelle
+     gebraucht wird - dieselben Zahlen wie oben, weil es dieselbe Liste
+     ist. */
+  const RANG_SCHWELLEN = RAENGE.map(x => [x.n, x.ab]);
 
   /* ---------------- Herausforderungen ---------------- */
   const HKEY = 'rinkrise.herausforderungen';
@@ -7196,6 +7337,7 @@ const PUCKERO = (() => {
     pos, nation, league, clubsOf, attrsOf, lgAvgStr, istHeimatLiga, hatHeimatLiga,
     wertungMitAlter,
     newPlayer, autoDraft,
+    feinschliffAngebot, feinschliffVorschlag, feinschliffAnwenden,
     draftFrage, applyKarte, karteWert, wirkungNeu,
     overall, formFactor, devAttrs,
     createCareer, simulate, legacyRank, RANG_SCHWELLEN, marktwert,

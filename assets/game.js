@@ -8,7 +8,7 @@ function CareerGame(root, cfg){
   const D = PUCKERO_DATA;
 
   const S = {
-    phase: 'ident',          // ident | draft | start | karriere | ergebnis
+    phase: 'ident',          // ident | draft | fein | start | karriere | ergebnis
     runde: 0,                // Draftrunde 0..7
     ident: cfg.ident || { name:'', num:9, nation:'GER', pos:'C', mode:'klassisch',
                           trainingAuto:true },
@@ -17,6 +17,7 @@ function CareerGame(root, cfg){
     lauf: null,              // laufende Karriere (createCareer)
     zuege: [],               // jeder Zug, damit sich die Laufbahn nachspielen laesst
     karten: [],              // die gewaehlten Draftkarten, in ihrer Reihenfolge
+    fein: { eig:null, punkte:{} },   // Eigenschaft und Punkte aus dem Feinschliff
     result: null,
     neueZiele: []
   };
@@ -47,14 +48,15 @@ function CareerGame(root, cfg){
     /* Auch Identitaet und Moduswahl gehoeren zum Spielen - dort stand
        sonst weiter die ganze Landingpage darum herum (gemessen 8302 px). */
     const imSpiel = S.phase === 'ident' || S.phase === 'start'
-                 || S.phase === 'draft' || S.phase === 'karriere'
-                 || S.phase === 'ergebnis';
+                 || S.phase === 'draft' || S.phase === 'fein'
+                 || S.phase === 'karriere' || S.phase === 'ergebnis';
     document.documentElement.toggleAttribute('data-spiel', imSpiel);
     /* Wird beim Zeichnen der App-Huelle gesetzt - hier nur geloescht,
        damit keine andere Ansicht mit gesperrtem Scrollen zurueckbleibt. */
     document.documentElement.removeAttribute('data-vollbild');
     if (S.phase === 'ident')    return renderIdent();
     if (S.phase === 'draft')    return renderDraft();
+    if (S.phase === 'fein')     return renderFein();
     if (S.phase === 'start')    return renderStart();
     if (S.phase === 'karriere') return renderKarriere();
     return renderResult();
@@ -113,6 +115,9 @@ function CareerGame(root, cfg){
         v: 1, t: Date.now(),
         ident: S.ident, seed: S.seed,
         karten: S.karten || [],
+        /* Ohne den Feinschliff waere der nachgespielte Spieler ein
+           anderer als der gespeicherte. */
+        fein: S.fein || null,
         zuege: S.zuege,
         /* Nur fuer die Anzeige des Angebots - so muss dafuer nicht die
            ganze Laufbahn nachgespielt werden. */
@@ -155,6 +160,11 @@ function CareerGame(root, cfg){
         S.karten.push(id);
       });
       S.runde = S.karten.length;
+      /* Der Feinschliff gehoert zum Spieler, nicht zur Laufbahn - er
+         muss vor createCareer angewandt werden, sonst ist der
+         nachgespielte Mann ein anderer als der gespeicherte. */
+      S.fein = stand.fein || { eig:null, punkte:{} };
+      if (S.runde >= DRAFT.RUNDEN) PUCKERO.feinschliffAnwenden(S.player, S.fein);
 
       const roh = PUCKERO.createCareer(S.player);
       S.zuege = [];
@@ -480,14 +490,138 @@ function CareerGame(root, cfg){
       S.karten.push(k.id);
       S.runde++;
       if (S.runde >= DRAFT.RUNDEN){
-        S.lauf = mitProtokoll(PUCKERO.createCareer(S.player));
-        S.zuege = [];
-        S.phase = 'start';
-        standSichern();
+        /* Nach den vier Fragen kommt der Feinschliff - erst danach
+           steht der Spieler fest und die Laufbahn beginnt. */
+        S.fein = { eig: null, punkte: {} };
+        S.phase = 'fein';
       }
       render(); scrollTop();
     });
     root.querySelector('#restart').onclick = bestaetigtNeustart;
+  }
+
+  /* ==================================================================
+     Der Feinschliff
+
+     Die letzte Entscheidung vor der ersten Saison: eine Eigenschaft aus
+     dreien und zehn Punkte auf die eigenen Werte. Beides zusammen ist
+     ungefaehr ein zusaetzlicher Sommer - genug, dass es sich lohnt
+     nachzudenken, zu wenig, um die Laufbahn zu entscheiden.
+     ================================================================== */
+  function renderFein(){
+    const ang = PUCKERO.feinschliffAngebot(S.player);
+    if (!ang){ feinFertig(); return; }
+    const gesetzt = Object.values(S.fein.punkte).reduce((a, b) => a + b, 0);
+    const offen = ang.punkte - gesetzt;
+    const bereit = S.fein.eig && offen === 0;
+
+    root.innerHTML = `
+      <div class="wrap schmal">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Der letzte Schliff</h3>
+            <span class="pill">${esc(S.player.name)}</span>
+            <span class="pill">${esc(PUCKERO.pos(S.player.pos).n)}</span>
+          </div>
+          <div class="panel-body">
+            <p class="small">Zwei Dinge legst du noch selbst fest. Danach steht dein Spieler,
+              und ab da entscheidet nur noch, was du aus ihm machst.</p>
+
+            <h4 class="fein-titel">1 · Eine Eigenschaft, die dich prägt</h4>
+            <p class="small">Keine davon ist geschenkt – jede kostet auch etwas.</p>
+            <div class="fein-eig">
+              ${ang.eigenschaften.map(id => {
+                const e = DRAFT.EIGENSCHAFTEN[id];
+                return `<button type="button" class="fein-karte ${S.fein.eig === id ? 'on' : ''}"
+                          data-fein-eig="${id}">
+                  <span class="fk-ikone">${e.icon}</span>
+                  <span class="fk-name">${esc(e.n)}</span>
+                  <span class="fk-text">${esc(e.d)}</span>
+                  <span class="fk-w">${Object.entries(e.w || {})
+                    .map(([k, v]) => `<i class="${v > 0 ? 'plus' : 'minus'}">${
+                      (EIG_WORT[k] || k)} ${v > 0 ? '+' : ''}${v}</i>`).join('')}</span>
+                </button>`;
+              }).join('')}
+            </div>
+
+            <h4 class="fein-titel">2 · Zehn Punkte auf deine Werte</h4>
+            <div class="fein-kopf">
+              <span class="fein-rest ${offen === 0 ? 'leer' : ''}">
+                <b>${offen}</b> ${offen === 1 ? 'Punkt' : 'Punkte'} übrig</span>
+              <span class="fein-knoepfe">
+                <button type="button" class="mini" id="fein-auto">Automatisch verteilen</button>
+                <button type="button" class="mini" id="fein-null">Zurücksetzen</button>
+              </span>
+            </div>
+            <p class="small">Höchstens ${ang.proWert} auf denselben Wert.
+              Der Vorschlag folgt derselben Regel wie das Sommertraining:
+              dort, wo dein Positionsprofil am meisten davon hat.</p>
+            <div class="fein-werte">
+              ${ang.werte.map(x => {
+                const n = S.fein.punkte[x.k] || 0;
+                /* Die Rohwerte sind intern gebrochen - hier wird gerundet,
+                   sonst steht "55.392941176470586" auf dem Schirm. */
+                const w = Math.round(x.wert);
+                return `<div class="fw-zeile ${n ? 'gesetzt' : ''}">
+                  <span class="fw-name">${esc(x.n)}</span>
+                  <span class="fw-balken"><i style="width:${Math.min(100, w)}%"></i>
+                    <b style="width:${Math.min(100 - w, n)}%"></b></span>
+                  <span class="fw-zahl">${w}${n ? `<em>+${n}</em>` : ''}</span>
+                  <span class="fw-tasten">
+                    <button type="button" data-fein-ab="${x.k}" ${n ? '' : 'disabled'}>−</button>
+                    <button type="button" data-fein-auf="${x.k}"
+                      ${offen > 0 && n < ang.proWert ? '' : 'disabled'}>+</button>
+                  </span>
+                </div>`;
+              }).join('')}
+            </div>
+
+            <div class="mt">
+              <button class="btn primary" id="fein-weiter" ${bereit ? '' : 'disabled'}>
+                ${bereit ? 'Karriere beginnen →'
+                  : !S.fein.eig ? 'Wähle eine Eigenschaft'
+                  : 'Noch ' + offen + (offen === 1 ? ' Punkt' : ' Punkte') + ' zu verteilen'}</button>
+              <button class="btn" id="restart">Neu starten</button>
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    root.querySelectorAll('[data-fein-eig]').forEach(b => b.onclick = () => {
+      S.fein.eig = S.fein.eig === b.dataset.feinEig ? null : b.dataset.feinEig;
+      renderFein();
+    });
+    root.querySelectorAll('[data-fein-auf]').forEach(b => b.onclick = () => {
+      const k = b.dataset.feinAuf;
+      const g = Object.values(S.fein.punkte).reduce((a, c) => a + c, 0);
+      if (g >= ang.punkte) return;
+      if ((S.fein.punkte[k] || 0) >= ang.proWert) return;
+      S.fein.punkte[k] = (S.fein.punkte[k] || 0) + 1;
+      renderFein();
+    });
+    root.querySelectorAll('[data-fein-ab]').forEach(b => b.onclick = () => {
+      const k = b.dataset.feinAb;
+      if (!S.fein.punkte[k]) return;
+      S.fein.punkte[k]--;
+      if (!S.fein.punkte[k]) delete S.fein.punkte[k];
+      renderFein();
+    });
+    root.querySelector('#fein-auto').onclick = () => {
+      S.fein.punkte = PUCKERO.feinschliffVorschlag(S.player, ang);
+      renderFein();
+    };
+    root.querySelector('#fein-null').onclick = () => { S.fein.punkte = {}; renderFein(); };
+    root.querySelector('#fein-weiter').onclick = () => { feinFertig(); scrollTop(); };
+    root.querySelector('#restart').onclick = bestaetigtNeustart;
+  }
+
+  function feinFertig(){
+    PUCKERO.feinschliffAnwenden(S.player, S.fein);
+    S.lauf = mitProtokoll(PUCKERO.createCareer(S.player));
+    S.zuege = [];
+    S.phase = 'start';
+    standSichern();
+    render();
   }
 
   function bindeFortsetzen(){
