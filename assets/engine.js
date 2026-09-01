@@ -74,6 +74,33 @@ const PUCKERO = (() => {
     return clamp(Math.round(224 - Math.pow(sp, 0.75) * 220), 1, 224);
   }
 
+  /* ------------------------------------------------------------------
+     Die Handschrift des Trainers
+
+     Trainer wurden gewechselt, gefeuert und benannt - aber sie waren
+     austauschbar: ein Name, sonst nichts. Dabei ist der Unterschied
+     zwischen zwei Trainern fuer einen Spieler oft groesser als der
+     zwischen zwei Vereinen. Der eine laesst laufen und nimmt die
+     Gegentore in Kauf, der naechste zaehlt jeden Fehler, und ploetzlich
+     spielt derselbe Mann eine ganz andere Saison.
+
+     Die Werte sind bewusst klein: die Handschrift faerbt, sie
+     entscheidet nicht. Wer sie zusammenzaehlt, sieht, dass kein Stil
+     durchweg besser ist als ein anderer - sie verschieben nur, wofuer
+     man bezahlt wird.
+     ------------------------------------------------------------------ */
+  const TRAINERSTILE = {
+    offensiv:   { n: 'offensiv',   t: 'lässt laufen und nimmt die Gegentore in Kauf',
+                  kante: 0.055, plus: -3, bank: 0,     schritt: 0,     moral: 0 },
+    defensiv:   { n: 'defensiv',   t: 'verlangt zuerst die eigene Zone',
+                  kante: -0.05, plus: 5,  bank: -0.05, schritt: 0,     moral: 0 },
+    streng:     { n: 'streng',     t: 'zählt jeden Fehler und vergisst keinen',
+                  kante: 0,     plus: 1,  bank: 0.07,  schritt: 0.16,  moral: -3 },
+    vaeterlich: { n: 'väterlich',  t: 'deckt seine Spieler und redet nach dem Spiel',
+                  kante: 0.01,  plus: 0,  bank: -0.06, schritt: 0,     moral: 4 }
+  };
+  const STILNAMEN = Object.keys(TRAINERSTILE);
+
   function punkteWert(s){
     if (!s) return 0;
     const L = league(s.lg);
@@ -848,6 +875,16 @@ const PUCKERO = (() => {
          ---------------------------------------------------------------- */
       grenzeVerschoben: 0,    // wie weit die Anlage sich bewegt hat
       verletzungsjahre: 0,    // aufgelaufener Verschleiss
+      /* ------------------------------------------------------------
+         Die hoechste Anlage, die je dagestanden hat
+
+         player.potenzial ist die Anlage von heute, und die sinkt nach
+         dem Zenit wieder. Am Karriereende stand deshalb "die Anlage
+         reichte bis 82, erreicht hast du 87" - eine Zahl, die dem
+         Spieler in seinem eigenen Zeugnis widerspricht. Was dort
+         gemeint ist, ist die Decke, die einmal da war.
+         ------------------------------------------------------------ */
+      potenzialMax: player.potenzial || 0,
       /* Was nicht mehr weggeht. Verschleiss baut sich ab, ein
          Dauerschaden nicht - er steht am Ende der Laufbahn noch da. */
       dauerschaden: [],
@@ -875,7 +912,8 @@ const PUCKERO = (() => {
       wechselGeprueft: false,
       ziele: null,            // Vorgaben des Klubs fuer die laufende Saison
       zielBilanz: { erfuellt: 0, verfehlt: 0 },
-      trainer: null,          // Name des aktuellen Trainers
+      trainer: null,
+      trainerStil: null,     // wie er spielen laesst - siehe TRAINERSTILE          // Name des aktuellen Trainers
       mitspieler: null,       // engster Weggefaehrte im Team
       torwartrivale: null,    // der zweite Mann im Tor, nur fuer Torhueter
       freigeschaltet: [],     // durch Entscheidungen geoeffnete Stränge
@@ -3231,6 +3269,7 @@ const PUCKERO = (() => {
       const mitspieler = clamp((klubStaerke(club) - ligaSchnittJetzt(club.lg)) * 0.006, -0.06, 0.07);
 
       const reihenWirkung = reihenWirkungJetzt();
+      const stil = TRAINERSTILE[st.trainerStil] || null;
 
       /* ---- Kopf und Umfeld ----
          Gemessen ueber 3700 Saisons hatte die Moral auf die Ausbeute
@@ -3271,6 +3310,7 @@ const PUCKERO = (() => {
       const tagesform = 0.97 + r() * 0.04
                       + st.formzustand * 0.055
                       + eingewoehnung + mitspieler + reihenWirkung
+                      + (stil ? stil.kante : 0)
                       + moralWirkung + standWirkung + bindungsWirkung
                       + (season.sternstunde ? 0.10 : 0) + st.formBonus;
       season.einfluesse = {
@@ -3414,7 +3454,7 @@ const PUCKERO = (() => {
           ? clamp(-ueberHuerde * 0.045, 0, 0.34) : 0;
         const einsatzAnteil = clamp(1 + Math.min(0, ueberHuerde + 4) * 0.055
                                       - Math.max(0, rivalDruck) * 0.16
-                                      - runter, 0.35, 1);
+                                      - runter - (stil ? stil.bank : 0), 0.35, 1);
         if (runter > 0.08)
           season.events.push({ t: 'Zweiwege-Vertrag: '
             + Math.round(runter * 100) + ' % der Saison eine Liga tiefer', c: 'bad' });
@@ -3470,7 +3510,8 @@ const PUCKERO = (() => {
         season.a = punkte - season.g;
         season.p = punkte;
         season.plus = Math.round((kante * 16 + (club.str - 76) * 0.5) * (0.6 + r() * 0.8)
-                                 + (rw.plus || 0) * rStand + rPass * 4);
+                                 + (rw.plus || 0) * rStand + rPass * 4
+                                 + (stil ? stil.plus : 0));
         season.pim = Math.round(ri(r, 8, 12 + Math.round((dev.zweikampf || 50) / 2))
                                 * (rw.strafen || 1));
         // Spezialteams, Schüsse und Eiszeit
@@ -4058,6 +4099,9 @@ const PUCKERO = (() => {
       else if (kante < 0.3 && r() < 0.55)       season.story = pick(r, D.STORY.schlecht);
       else if (r() < 0.35)                      season.story = pick(r, D.STORY.neutral);
       st.klubJahre++;
+      /* Ein vaeterlicher Trainer haelt die Kabine, ein strenger reibt
+         sie auf - jede Saison ein Stueck. */
+      if (stil && stil.moral) moralAendern(stil.moral);
       /* ----------------------------------------------------------------
          Die Reihe haelt oder sie wird auseinandergenommen
 
@@ -4290,6 +4334,11 @@ const PUCKERO = (() => {
         if (st.rollenStand === 'bewaehrung') schritt -= 0.26;
         if ((season.awards || []).length) schritt += 0.22;
         if ((st.verletzungsjahre || 0) >= 3) schritt -= 0.22;
+        /* Ein strenger Trainer ist unangenehm und macht besser. */
+        {
+          const stl = TRAINERSTILE[st.trainerStil];
+          if (stl) schritt += stl.schritt;
+        }
         /* Wer im Draft gefallen ist, hat etwas zu beweisen und
            arbeitet die Jahre danach anders. Es laeuft mit der Jugend
            aus - irgendwann ist der Draftabend nur noch eine Zahl. */
@@ -4309,6 +4358,7 @@ const PUCKERO = (() => {
         if (neuePot !== player.potenzial){
           const rauf = neuePot > player.potenzial;
           player.potenzial = neuePot;
+          st.potenzialMax = Math.max(st.potenzialMax || 0, neuePot);
           /* Nur die vollen Punkte melden, sonst steht es jedes Jahr da. */
           if (Math.round(vorher) !== Math.round(st.grenzeVerschoben)){
             season.events.push({ t: rauf
@@ -4396,8 +4446,13 @@ const PUCKERO = (() => {
           st.trainerVorher = st.trainer;
           const rr2 = rng(player.seed + ':trainer:' + club.n + ':' + st.year);
           st.trainer = pick(rr2, D.FIRST) + ' ' + pick(rr2, D.LAST);
+          st.trainerStil = pick(rr2, STILNAMEN);
           st.trainerJahre = 0;
           st.trainerNeu = true;
+          {
+            const st2 = TRAINERSTILE[st.trainerStil];
+            if (st2) season.events.push({ t: 'Der Neue ' + st2.t, c: '' });
+          }
           season.events.push({ t: st.trainerVorher + ' muss gehen – '
             + st.trainer + ' übernimmt', c: 'bad' });
           /* Der Neue kennt dich nicht. Wer Saeule war, ist erst einmal
@@ -5805,6 +5860,7 @@ const PUCKERO = (() => {
     function umfeldBenennen(){
       const rr = rng(player.seed + ':umfeld:' + (st.club ? st.club.n : '') + ':' + st.year);
       st.trainer = pick(rr, D.FIRST) + ' ' + pick(rr, D.LAST);
+      st.trainerStil = pick(rr, STILNAMEN);
       let m = pick(rr, D.FIRST) + ' ' + pick(rr, D.LAST);
       let versuch = 0;
       while (m === player.name && versuch++ < 5) m = pick(rr, D.FIRST) + ' ' + pick(rr, D.LAST);
@@ -6741,7 +6797,10 @@ const PUCKERO = (() => {
         entryDraft: st.entryDraft,
         draftRechte: st.draftRechte,
         rolle: st.rolle,
-        potenzial: player.potenzial,
+        /* Nicht die Anlage von heute, sondern die hoechste, die je
+           dastand - und nie kleiner als das, was tatsaechlich erreicht
+           wurde: seine eigene Decke kann niemand ueberschritten haben. */
+        potenzial: Math.max(st.potenzialMax || 0, player.potenzial, st.peak || 0),
         ausgeschoepft: einschaetzung().ausgeschoepft,
         rollenStand: st.rollenStand,
         rollenLauf: st.rollenLauf,

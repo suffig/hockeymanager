@@ -2032,6 +2032,11 @@ function CareerGame(root, cfg){
                     data-angebot="${i}">
               ${a.draftRecht ? `<div class="jk-draftmarke">
                 ${UI.ikone('ziel', 11)} Hat dich gedraftet</div>` : ''}
+              ${/* Ein Zweiwege-Vertrag muss man sehen, bevor man
+                    unterschreibt - sonst ist er eine Falle: weniger
+                    Geld, und ein Teil der Saison eine Etage tiefer. */ ''}
+              ${a.zweiwege ? `<div class="jk-zweiwege">
+                ${UI.ikone('waage', 11)} Zweiwege-Vertrag</div>` : ''}
               <div class="jk-liga">${a.bleibt ? 'Verbleib · ' : ''}${esc(a.lgName)}</div>
               ${/* "Extraliga" sagt einem Deutschen nichts, "Tschechien" schon. */ ''}
               <div class="jk-land">${a.daheim ? '<span class="jk-daheim">Heimat</span> ' : ''}${esc(a.land || '')}</div>
@@ -2254,24 +2259,44 @@ function CareerGame(root, cfg){
                    Luft. Nach einer Laufbahn ist sie dagegen die letzte, die
                    bleibt: war das alles, oder war da mehr drin?
                    ---------------------------------------------------------------- */ ''}
-              ${res.potenzial ? `<div class="anlage ende">
+              ${/* ----------------------------------------------------------------
+                   Der Prozentsatz muss zu den beiden Zahlen daneben passen
+
+                   Hier stand "Anlage bis 82, erreicht 87 - 98 % davon
+                   ausgeschoepft": die Anlage war um 0,98 gekuerzt und der
+                   Prozentsatz kam aus einer ganz anderen Rechnung
+                   (Rohwerte gegen die Grenze), sodass der Satz sich selbst
+                   widersprach - hoeher als die Decke und trotzdem nicht
+                   ganz ausgeschoepft. Am Ende einer Laufbahn ist nichts
+                   mehr zu schaetzen: es sind genau diese beiden Zahlen,
+                   und der Anteil ist ihr Verhaeltnis.
+                   ---------------------------------------------------------------- */ ''}
+              ${res.potenzial ? (() => {
+                const decke = Math.max(res.potenzial, res.peak || 0);
+                const genutzt = Math.max(1, Math.min(100,
+                  Math.round((res.peak || 0) / decke * 100)));
+                return `<div class="anlage ende">
                 <div class="an-kopf">${UI.ikone('ziel', 14)} Was möglich gewesen wäre</div>
                 <div class="an-leiste">
-                  <i style="width:${Math.max(3, Math.min(100, res.ausgeschoepft || 0))}%"></i>
-                  <span class="an-marke" style="left:${
-                    Math.max(3, Math.min(100, res.ausgeschoepft || 0))}%"></span>
+                  <i style="width:${genutzt}%"></i>
+                  <span class="an-marke" style="left:${genutzt}%"></span>
                 </div>
                 <div class="an-text">
-                  Deine Anlage reichte bis <b>${Math.round(res.potenzial * 0.98)}</b>,
+                  Deine Anlage reichte bis <b>${decke}</b>,
                   erreicht hast du <b>${res.peak}</b> –
-                  <b>${res.ausgeschoepft}%</b> davon ausgeschöpft.
-                  ${(res.ausgeschoepft || 0) >= 92
+                  <b>${genutzt}%</b> davon ausgeschöpft.
+                  ${/* An der gemessenen Verteilung geeicht (10/25/50/75/90 =
+                       92/94/96/98/99 Prozent), nicht an runden Zahlen: mit
+                       97 und 90 bekamen 42 Prozent den Satz "mehr war nicht
+                       drin" und nur 3 Prozent den anderen - drei Saetze, die
+                       nichts mehr unterscheiden. */ ''}
+                  ${genutzt >= 98
                     ? 'Mehr war aus diesem Körper nicht herauszuholen.'
-                    : (res.ausgeschoepft || 0) >= 80
+                    : genutzt >= 94
                     ? 'Ein gutes Stück davon ist auf dem Eis geblieben.'
                     : 'Da lag deutlich mehr drin, als am Ende dastand.'}
                 </div>
-              </div>` : ''}
+              </div>`; })() : ''}
             </div>
             <div class="ak-raster">
               <div class="kk-zelle"><span>Höchster Marktwert</span><b>${(res.marktwertMax || 0).toFixed(1)} Mio</b></div>
