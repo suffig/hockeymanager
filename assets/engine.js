@@ -387,7 +387,17 @@ const PUCKERO = (() => {
          Eigenschaften mehr verschluckt (6,82 statt 5,61 je Spieler).
          Beides zusammen hielte den Gipfel sonst ueber dem Stand, auf
          den die Rangschwellen geeicht sind. */
-      potenzial: zieheGrenze(r) - 3,
+      /* ------------------------------------------------------------
+         Der Ausgleich fuer alles, was vor der ersten Saison passiert
+
+         Feinschliff und Jugendjahre geben beide Eigenschaften, und
+         Eigenschaften heben die Talentgrenze mit. Gemessen stieg die
+         Zahl der Eigenschaften je Spieler von 6,82 auf 8,46 und die
+         Grenze auf 89,8; der Gipfel lag damit bei 87,9 statt 86,2 und
+         der Anteil Journeyman fiel von 27 auf 17 Prozent. Die
+         Entscheidungen sollen faerben, nicht das Spiel leichter machen.
+         ------------------------------------------------------------ */
+      potenzial: zieheGrenze(r) - 5,
       /* ----------------------------------------------------------------
          Der Scheitelpunkt des Koerpers gehoert zum Spieler
 
@@ -506,6 +516,40 @@ const PUCKERO = (() => {
       if (w[k] !== undefined) s += v * w[k];
     });
     return s;
+  }
+
+  /* ------------------------------------------------------------------
+     Die Jugendjahre
+
+     Drei Momente aus der Zeit vor der ersten Saison. Sie machen den
+     Spieler nicht staerker - gemessen liegt der Nettogewinn einer
+     Antwort bei 0,1 Punkten fuer Feldspieler - sondern anders. Deshalb
+     braucht dieser Schritt auch keinen Ausgleich an anderer Stelle.
+     ------------------------------------------------------------------ */
+  function jugendAngebot(player){
+    if (typeof DRAFT === 'undefined' || !DRAFT.jugendfragen) return null;
+    return DRAFT.jugendfragen(player.seed);
+  }
+
+  function jugendAnwenden(player, wahlen){
+    const momente = jugendAngebot(player);
+    if (!momente) return player;
+    player.eigenschaften = player.eigenschaften || [];
+    player.eigStufe = player.eigStufe || {};
+    player.jugendweg = [];
+    momente.forEach((m, i) => {
+      const w = (wahlen || [])[i];
+      const a = m.antworten[clamp(w === undefined ? 0 : w, 0, m.antworten.length - 1)];
+      if (!a) return;
+      Object.entries(a.b || {}).forEach(([k, v]) => attrHeben(player, k, v));
+      (a.eig || []).forEach(id => {
+        if (!player.eigenschaften.includes(id)) player.eigenschaften.push(id);
+        player.eigStufe[id] = (player.eigStufe[id] || 0) + 1;
+      });
+      player.jugendweg.push({ id: m.id, wahl: a.n });
+    });
+    wirkungNeu(player);
+    return player;
   }
 
   /* ==================================================================
@@ -629,6 +673,12 @@ const PUCKERO = (() => {
       bewertet.sort((a, b) => b.s - a.s);
       applyKarte(player, bewertet[0].k);
     }
+    /* Die Jugendjahre gehen automatisch mit: sie kosten keine
+       Spielstaerke, aber sie faerben den Spieler, und ein gewuerfelter
+       soll dieselbe Faerbung haben koennen wie ein gespielter. */
+    const jm = jugendAngebot(player);
+    if (jm) jugendAnwenden(player, jm.map(m => ri(r, 0, m.antworten.length - 1)));
+
     /* Auch der Feinschliff gehoert dazu - sonst waere ein gewuerfelter
        Spieler zehn Punkte schwaecher als ein gespielter. */
     const ang = feinschliffAngebot(player);
@@ -7430,6 +7480,7 @@ const PUCKERO = (() => {
     wertungMitAlter,
     newPlayer, autoDraft,
     feinschliffAngebot, feinschliffVorschlag, feinschliffAnwenden,
+    jugendAngebot, jugendAnwenden,
     draftFrage, applyKarte, karteWert, wirkungNeu,
     overall, formFactor, devAttrs,
     createCareer, simulate, legacyRank, RANG_SCHWELLEN, marktwert,

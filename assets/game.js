@@ -17,6 +17,7 @@ function CareerGame(root, cfg){
     lauf: null,              // laufende Karriere (createCareer)
     zuege: [],               // jeder Zug, damit sich die Laufbahn nachspielen laesst
     karten: [],              // die gewaehlten Draftkarten, in ihrer Reihenfolge
+    jugend: [],              // Antworten auf die drei Jugendmomente
     fein: { eig:null, punkte:{} },   // Eigenschaft und Punkte aus dem Feinschliff
     result: null,
     neueZiele: []
@@ -48,7 +49,7 @@ function CareerGame(root, cfg){
     /* Auch Identitaet und Moduswahl gehoeren zum Spielen - dort stand
        sonst weiter die ganze Landingpage darum herum (gemessen 8302 px). */
     const imSpiel = S.phase === 'ident' || S.phase === 'start'
-                 || S.phase === 'draft' || S.phase === 'fein'
+                 || S.phase === 'draft' || S.phase === 'jugend' || S.phase === 'fein'
                  || S.phase === 'karriere' || S.phase === 'ergebnis';
     document.documentElement.toggleAttribute('data-spiel', imSpiel);
     /* Wird beim Zeichnen der App-Huelle gesetzt - hier nur geloescht,
@@ -56,6 +57,7 @@ function CareerGame(root, cfg){
     document.documentElement.removeAttribute('data-vollbild');
     if (S.phase === 'ident')    return renderIdent();
     if (S.phase === 'draft')    return renderDraft();
+    if (S.phase === 'jugend')   return renderJugend();
     if (S.phase === 'fein')     return renderFein();
     if (S.phase === 'start')    return renderStart();
     if (S.phase === 'karriere') return renderKarriere();
@@ -115,8 +117,9 @@ function CareerGame(root, cfg){
         v: 1, t: Date.now(),
         ident: S.ident, seed: S.seed,
         karten: S.karten || [],
-        /* Ohne den Feinschliff waere der nachgespielte Spieler ein
-           anderer als der gespeicherte. */
+        /* Ohne Jugendjahre und Feinschliff waere der nachgespielte
+           Spieler ein anderer als der gespeicherte. */
+        jugend: S.jugend || [],
         fein: S.fein || null,
         zuege: S.zuege,
         /* Nur fuer die Anzeige des Angebots - so muss dafuer nicht die
@@ -163,8 +166,14 @@ function CareerGame(root, cfg){
       /* Der Feinschliff gehoert zum Spieler, nicht zur Laufbahn - er
          muss vor createCareer angewandt werden, sonst ist der
          nachgespielte Mann ein anderer als der gespeicherte. */
+      S.jugend = Array.isArray(stand.jugend) ? stand.jugend : [];
       S.fein = stand.fein || { eig:null, punkte:{} };
-      if (S.runde >= DRAFT.RUNDEN) PUCKERO.feinschliffAnwenden(S.player, S.fein);
+      if (S.runde >= DRAFT.RUNDEN){
+        /* Reihenfolge zaehlt: erst die Jugend, dann der Feinschliff -
+           genau so, wie sie gespielt wurden. */
+        PUCKERO.jugendAnwenden(S.player, S.jugend);
+        PUCKERO.feinschliffAnwenden(S.player, S.fein);
+      }
 
       const roh = PUCKERO.createCareer(S.player);
       S.zuege = [];
@@ -515,14 +524,86 @@ function CareerGame(root, cfg){
       S.karten.push(k.id);
       S.runde++;
       if (S.runde >= DRAFT.RUNDEN){
-        /* Nach den vier Fragen kommt der Feinschliff - erst danach
-           steht der Spieler fest und die Laufbahn beginnt. */
+        /* Nach den vier Fragen kommen die Jugendjahre, dann der
+           Feinschliff - erst danach steht der Spieler fest. */
+        S.jugend = [];
         S.fein = { eig: null, punkte: {} };
-        S.phase = 'fein';
+        S.phase = 'jugend';
       }
       render(); scrollTop();
     });
     root.querySelector('#restart').onclick = bestaetigtNeustart;
+  }
+
+  /* ==================================================================
+     Die Jugendjahre
+
+     Drei Momente, einer nach dem anderen. Sie machen den Spieler nicht
+     staerker, sondern anders - jede Antwort gibt etwas und nimmt etwas.
+     Deshalb steht auf jeder Karte, was sie kostet, und nicht nur, was
+     sie bringt.
+     ================================================================== */
+  function renderJugend(){
+    const momente = PUCKERO.jugendAngebot(S.player);
+    if (!momente || S.jugend.length >= momente.length){ jugendFertig(); return; }
+    const i = S.jugend.length;
+    const m = momente[i];
+    const attrName = k => {
+      const gr = PUCKERO.pos(S.player.pos).group === 'goalie' ? 'goalie' : 'skater';
+      const a = (PUCKERO.D.ATTRS[gr] || []).find(x => x.k === k);
+      return a ? a.n : null;
+    };
+
+    root.innerHTML = `
+      <div class="wrap schmal">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Die Jugendjahre</h3>
+            <span class="pill">Moment ${i + 1} von ${momente.length}</span>
+            <span class="pill">${esc(S.player.name)}</span>
+          </div>
+          <div class="panel-body">
+            <div class="jg-punkte">${momente.map((_, n) =>
+              `<span class="dot ${n <= i ? 'on' : ''}"></span>`).join('')}</div>
+            <h2 class="jg-frage">${esc(m.frage)}</h2>
+            <p class="lead" style="font-size:15px">${esc(m.text)}</p>
+            <div class="grid g3 mt-l stagger">
+              ${m.antworten.map((a, n) => {
+                const teile = Object.entries(a.b || {})
+                  .map(([k, v]) => ({ n: attrName(k), v }))
+                  .filter(x => x.n)
+                  .sort((x, y) => Math.abs(y.v) - Math.abs(x.v))
+                  .slice(0, 4);
+                return `
+                <button class="legend-card jg-karte" data-jugend="${n}">
+                  <div class="lc-name" style="font-size:19px">${esc(a.n)}</div>
+                  <p class="small" style="margin:7px 0 9px;color:var(--muted)">${esc(a.d)}</p>
+                  <span class="jg-w">${teile.map(x =>
+                    `<i class="${x.v > 0 ? 'plus' : 'minus'}">${esc(x.n)} ${
+                      x.v > 0 ? '+' : ''}${x.v}</i>`).join('')}</span>
+                  ${(a.eig || []).length ? `<span class="jg-eig">${(a.eig || []).map(id => {
+                    const e = DRAFT.EIGENSCHAFTEN[id];
+                    return e ? e.icon + ' ' + esc(e.n) : '';
+                  }).join(' · ')}</span>` : ''}
+                </button>`;
+              }).join('')}
+            </div>
+            <div class="mt"><button class="btn" id="restart">Neu starten</button></div>
+          </div>
+        </div>
+      </div>`;
+
+    root.querySelectorAll('[data-jugend]').forEach(b => b.onclick = () => {
+      S.jugend.push(parseInt(b.dataset.jugend, 10));
+      render(); scrollTop();
+    });
+    root.querySelector('#restart').onclick = bestaetigtNeustart;
+  }
+
+  function jugendFertig(){
+    PUCKERO.jugendAnwenden(S.player, S.jugend);
+    S.phase = 'fein';
+    render();
   }
 
   /* ==================================================================

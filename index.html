@@ -8,10 +8,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=b1a313dd">
+<link rel="stylesheet" href="assets/style.css?v=376ddaa7">
 
 <!-- Als App auf dem Startbildschirm -->
-<link rel="manifest" href="manifest.json?v=b1a313dd">
+<link rel="manifest" href="manifest.json?v=376ddaa7">
 <meta name="theme-color" content="#0b1220">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -40,8 +40,8 @@ try{var t=localStorage.getItem('rinkrise.thema')||localStorage.getItem('eiszeit.
     <span class="eyebrow">Kostenlos · ohne Anmeldung · im Browser</span>
     <h1>Eine ganze Eishockey&shy;karriere<br>in fünfzehn Minuten</h1>
     <p class="claim">Build your career. Own the rink.</p>
-    <p class="lead">Erstelle deinen Spieler, beantworte vier Charakterfragen, gib ihm den letzten
-      Schliff – und entscheide dann Jahr für Jahr selbst: Vertrag, Rolle, Wechselfrist,
+    <p class="lead">Erstelle deinen Spieler, beantworte vier Charakterfragen, durchlebe drei
+      Jugendmomente, gib ihm den letzten Schliff – und entscheide dann Jahr für Jahr selbst: Vertrag, Rolle, Wechselfrist,
       Nationalmannschaft, Sommer.
       Aus einem Juniorentalent wird ein Kapitän, ein Wandersöldner oder eine Legende –
       und jede Entscheidung holt dich später wieder ein.</p>
@@ -97,7 +97,7 @@ try{var t=localStorage.getItem('rinkrise.thema')||localStorage.getItem('eiszeit.
     <div class="grid g2" style="gap:44px;align-items:start">
       <div>
         <span class="eyebrow">So funktioniert es</span>
-        <h2>In vier Phasen zur Legende</h2>
+        <h2>In fünf Phasen zur Legende</h2>
         <div class="steps mt-l">
           <div class="step">
             <h3>Identität festlegen</h3>
@@ -109,6 +109,13 @@ try{var t=localStorage.getItem('rinkrise.thema')||localStorage.getItem('eiszeit.
             <p style="color:var(--muted)">Wo du es gelernt hast, was deine Waffe ist, wer du in der Kabine bist und was dich dein Spiel kostet.
               Jede Antwort verschiebt Werte <b>und</b> verleiht Eigenschaften, die sich über die
               ganze Laufbahn auswirken – von der Kabinenmoral bis zur Alterskurve.</p>
+          </div>
+          <div class="step">
+            <h3>Die Jugendjahre</h3>
+            <p style="color:var(--muted)">Drei Momente aus der Zeit vor dem Profibetrieb –
+              ein Wechsel mit vierzehn, der erste Bruch, das Endspiel, das ihr verloren habt.
+              Jede Antwort gibt etwas und nimmt etwas: sie machen deinen Spieler nicht besser,
+              sondern zu einem bestimmten.</p>
           </div>
           <div class="step">
             <h3>Der letzte Schliff</h3>
@@ -277,19 +284,19 @@ try{var t=localStorage.getItem('rinkrise.thema')||localStorage.getItem('eiszeit.
 
 <div id="ftr"></div>
 
-<script src="assets/data.js?v=b1a313dd"></script>
-<script src="assets/draft.js?v=b1a313dd"></script>
+<script src="assets/data.js?v=376ddaa7"></script>
+<script src="assets/draft.js?v=376ddaa7"></script>
 <!-- Der Kontozugang: ohne ihn kann die Spielseite weder eine
      abgeschlossene Laufbahn in die Datenbank schreiben noch den
      Eintrag in die Bestenliste anbieten. Er war hier nie geladen,
      und damit lief der Speicheraufruf der Engine ins Leere. -->
-<script src="assets/konto-config.js?v=b1a313dd"></script>
-<script src="assets/konto.js?v=b1a313dd"></script>
-<script src="assets/engine.js?v=b1a313dd"></script>
-<script src="assets/ereignisse.js?v=b1a313dd"></script>
-<script src="assets/wappen.js?v=b1a313dd"></script>
-<script src="assets/ui.js?v=b1a313dd"></script>
-<script src="assets/game.js?v=b1a313dd"></script>
+<script src="assets/konto-config.js?v=376ddaa7"></script>
+<script src="assets/konto.js?v=376ddaa7"></script>
+<script src="assets/engine.js?v=376ddaa7"></script>
+<script src="assets/ereignisse.js?v=376ddaa7"></script>
+<script src="assets/wappen.js?v=376ddaa7"></script>
+<script src="assets/ui.js?v=376ddaa7"></script>
+<script src="assets/game.js?v=376ddaa7"></script>
 <script>
   const urlSeed = new URLSearchParams(location.search).get('seed');
   CareerGame(document.getElementById('game'), { startSeed: urlSeed || null });

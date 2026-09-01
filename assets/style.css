@@ -4846,3 +4846,30 @@ hr, .trenner{
   .legend-card, .fein-karte, .charakterkarte,
   .jugendkarte, .rollenkarte{ transition:none }
 }
+
+
+/* ==========================================================
+   Die Jugendjahre
+   Drei Momente, drei Antworten. Auf jeder Karte steht, was
+   sie kostet - deshalb tragen die Zahlen zwei Farben.
+   ========================================================== */
+.jg-punkte{display:flex;gap:7px;margin-bottom:12px}
+.jg-punkte .dot{
+  width:26px;height:4px;border-radius:99px;
+  background:color-mix(in srgb,var(--muted) 26%,transparent);
+  transition:background-color .3s ease;
+}
+.jg-punkte .dot.on{background:var(--accent)}
+.jg-frage{font-size:clamp(21px,4.6vw,29px);margin:2px 0 4px;line-height:1.15}
+.jg-karte{display:flex;flex-direction:column;text-align:left}
+.jg-w{display:flex;flex-wrap:wrap;gap:5px;margin-top:auto}
+.jg-w i{
+  font-style:normal;font-size:10.5px;font-weight:700;
+  padding:1px 6px;border-radius:99px;white-space:nowrap;
+}
+.jg-w i.plus{color:var(--green);background:color-mix(in srgb,var(--green) 14%,transparent)}
+.jg-w i.minus{color:var(--red);background:color-mix(in srgb,var(--red) 14%,transparent)}
+.jg-eig{
+  margin-top:8px;padding-top:7px;font-size:11.5px;color:var(--gold);
+  border-top:1px solid var(--line-soft);
+}

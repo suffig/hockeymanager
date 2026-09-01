@@ -683,9 +683,167 @@ const DRAFT = (() => {
     ];
   }
 
+  /* ==================================================================
+     Die Jugendjahre
+
+     Zwischen den vier Charakterfragen und der ersten Saison lag nichts -
+     dabei ist genau dort die Zeit, in der aus einem Kind ein Spieler
+     wird. Drei Momente aus diesen Jahren, je einer aus einem eigenen
+     Vorrat, jeder mit drei Antworten.
+
+     Sie machen den Spieler bewusst NICHT staerker: jede Antwort gibt
+     etwas und nimmt etwas. Wer hier waehlt, entscheidet, was fuer ein
+     Spieler er wird - nicht, wie gut. Sonst waere es nur eine weitere
+     Runde Punkte, und das Spiel muesste sie an anderer Stelle wieder
+     abziehen.
+     ================================================================== */
+  const JUGEND = [
+    { id:'j_wechsel', frage:'Mit vierzehn kommt das Angebot eines größeren Vereins',
+      text:'Zwei Stunden Fahrt, jeden Tag. Bessere Trainer, härtere Konkurrenz, '
+         + 'und zu Hause bist du nur noch zum Schlafen.',
+      antworten:[
+        { n:'Gehen', d:'Der weite Weg, früh angefangen.',
+          b:{ zweikampf:4, nerven:4, uebersicht:-9,
+              beweglich:4, konstanz:4, lesen:-9 }, eig:['weltenbummler'] },
+        { n:'Bleiben', d:'Dieselbe Halle, dieselben Freunde, mehr Eiszeit.',
+          b:{ puck:5, praezision:4, zweikampf:-9,
+              puckspiel:5, reflexe:4, rebound:-9 }, eig:['heimverbunden'] },
+        { n:'Erst zusagen, dann doch absagen', d:'Eine Entscheidung, die du nie ganz getroffen hast.',
+          b:{ nerven:-9, uebersicht:5, antritt:3,
+              lesen:5, konstanz:-9, stellung:3 }, eig:[] }
+      ] },
+
+    { id:'j_verein', frage:'Dein Jugendtrainer wird entlassen',
+      text:'Er hat dich sechs Jahre trainiert und einmal zu laut gesagt, was er '
+         + 'vom Vorstand hält. Am Montag steht ein anderer auf dem Eis.',
+      antworten:[
+        { n:'Ihm hinterherziehen', d:'Loyalität kostet ein Jahr.',
+          b:{ nerven:4, uebersicht:4, skating:-9,
+              lesen:4, konstanz:3, beweglich:-9 }, eig:['dickkopf'] },
+        { n:'Bleiben und sich arrangieren', d:'Der Neue hat andere Ideen.',
+          b:{ defensive:5, konstanz:4, puck:-9,
+              stellung:5, rebound:3, puckspiel:-9 }, eig:['lernwillig'] },
+        { n:'Nichts sagen und einfach spielen', d:'Es geht ja um Eishockey.',
+          b:{ schuss:4, antritt:4, nerven:-9,
+              fanghand:4, beweglich:4, lesen:-9 }, eig:[] }
+      ] },
+
+    { id:'j_schule', frage:'Die Schule oder das Eis',
+      text:'Der Klassenlehrer sagt, so gehe es nicht weiter. Der Trainer sagt, '
+         + 'jetzt entscheide sich alles. Beide haben recht.',
+      antworten:[
+        { n:'Die Schule durchziehen', d:'Ein Netz für den Fall der Fälle.',
+          b:{ uebersicht:6, nerven:4, antritt:-9,
+              lesen:6, konstanz:4, beweglich:-9 }, eig:['spaetzuender'] },
+        { n:'Alles auf Eishockey', d:'Kein Netz, dafür jeden Tag zwei Einheiten.',
+          b:{ antritt:5, schuss:4, uebersicht:-9,
+              reflexe:5, beweglich:4, lesen:-9 }, eig:['arbeitstier'] },
+        { n:'Beides halb', d:'Und nichts davon ganz.',
+          b:{ konstanz:4, praezision:3, nerven:-7, defensive:2,
+              stellung:4, fanghand:3 }, eig:[] }
+      ] },
+
+    { id:'j_bruch', frage:'Der erste richtige Bruch',
+      text:'Handgelenk, im Januar, bei einem Zweikampf, an den sich niemand erinnert. '
+         + 'Zehn Wochen Gips, und die halbe Saison ist weg.',
+      antworten:[
+        { n:'Härter zurückkommen', d:'Der Sommer danach war der härteste.',
+          b:{ zweikampf:5, nerven:4, praezision:-9,
+              rebound:5, konstanz:4, fanghand:-9 }, eig:['eisenmann'] },
+        { n:'Vorsichtiger werden', d:'Man geht anders in die Ecke.',
+          b:{ uebersicht:5, defensive:4, zweikampf:-9,
+              lesen:5, stellung:4, rebound:-9 }, eig:[] },
+        { n:'Die Zeit im Kraftraum verbringen', d:'Alles außer Eis.',
+          b:{ schuss:6, zweikampf:4, skating:-9,
+              fanghand:6, rebound:4, beweglich:-9 }, eig:['fleissbiene'] }
+      ] },
+
+    { id:'j_kapitaen', frage:'Sie machen dich mit sechzehn zum Kapitän',
+      text:'Du bist der Jüngste in der Mannschaft und trägst das C. Zwei Ältere '
+         + 'finden das nicht richtig, und sie sagen es dir nicht ins Gesicht.',
+      antworten:[
+        { n:'Es annehmen und vorangehen', d:'Früh Verantwortung, früh Gegenwind.',
+          b:{ nerven:6, uebersicht:4, praezision:-9,
+              konstanz:6, lesen:4, beweglich:-9 }, eig:['frueheBuerde'] },
+        { n:'Ablehnen und einfach spielen', d:'Noch nicht.',
+          b:{ schuss:4, antritt:4, nerven:-9,
+              reflexe:4, fanghand:4, konstanz:-9 }, eig:[] },
+        { n:'Es teilen', d:'Zwei Buchstaben auf zwei Trikots.',
+          b:{ pass:5, uebersicht:4, schuss:-9,
+              puckspiel:5, lesen:4, fanghand:-9 }, eig:['kabinenherz'] }
+      ] },
+
+    { id:'j_ausland', frage:'Ein Sommer im Ausland',
+      text:'Ein Camp, sechs Wochen, eine Sprache, die du nicht sprichst, und '
+         + 'Trainer, die alles anders machen als zu Hause.',
+      antworten:[
+        { n:'Alles mitnehmen, was geht', d:'Die Technik verändert sich.',
+          b:{ praezision:5, puck:4, zweikampf:-9,
+              beweglich:5, puckspiel:4, rebound:-9 }, eig:['lernwillig'] },
+        { n:'Bei deinem Stil bleiben', d:'Was zu Hause funktioniert.',
+          b:{ zweikampf:5, nerven:4, praezision:-9,
+              rebound:5, konstanz:4, beweglich:-9 }, eig:['dickkopf'] },
+        { n:'Vor allem Leute kennenlernen', d:'Das Netzwerk zählt auch.',
+          b:{ nerven:4, uebersicht:4, schuss:-9,
+              konstanz:4, lesen:4, fanghand:-9 }, eig:['medienliebling'] }
+      ] },
+
+    { id:'j_geld', frage:'Zu Hause wird das Geld knapp',
+      text:'Ausrüstung, Fahrten, Lehrgänge – es summiert sich. Am Küchentisch '
+         + 'wird nicht mehr darüber geredet, ob, sondern wie.',
+      antworten:[
+        { n:'Nebenher arbeiten', d:'Weniger Schlaf, mehr Selbstverständlichkeit.',
+          b:{ nerven:5, zweikampf:4, antritt:-9,
+              konstanz:5, rebound:4, beweglich:-9 }, eig:['arbeitstier'] },
+        { n:'Einen Förderer suchen', d:'Es gibt Leute, die so etwas tun.',
+          b:{ uebersicht:4, praezision:4, defensive:-9,
+              lesen:4, stellung:4, rebound:-9 }, eig:['medienliebling'] },
+        { n:'Mit gebrauchter Ausrüstung spielen', d:'Der Schläger ist zu schwer, aber er hält.',
+          b:{ zweikampf:4, schuss:4, praezision:-9,
+              fanghand:4, rebound:4, beweglich:-9 }, eig:['strassenkoeter'] }
+      ] },
+
+    { id:'j_vorbild', frage:'Der Spieler, dem du alles nachmachst',
+      text:'Du hast jedes Spiel von ihm gesehen und seine Bewegungen im Hof '
+         + 'nachgestellt, bis sie saßen. Er spielt heute noch.',
+      antworten:[
+        { n:'Ein Techniker', d:'Hände vor Beinen.',
+          b:{ praezision:6, puck:4, zweikampf:-9,
+              fanghand:6, puckspiel:4, rebound:-9 }, eig:[] },
+        { n:'Ein Arbeiter', d:'Jeder Wechsel bis zum Ende.',
+          b:{ zweikampf:6, defensive:4, praezision:-9,
+              rebound:6, konstanz:4, fanghand:-9 }, eig:['arbeitstier'] },
+        { n:'Ein Denker', d:'Immer zwei Sekunden früher da.',
+          b:{ uebersicht:6, pass:4, schuss:-9,
+              lesen:6, stellung:4, reflexe:-9 }, eig:['spielmacher'] }
+      ] },
+
+    { id:'j_niederlage', frage:'Das Endspiel, das ihr verloren habt',
+      text:'Ein Tor Rückstand, achtzehn Sekunden, dein Bully. Du verlierst es. '
+         + 'Der Rest ist eine lange Busfahrt.',
+      antworten:[
+        { n:'Es nie wieder passieren lassen', d:'Ein Jahr Bullytraining.',
+          b:{ zweikampf:6, nerven:4, uebersicht:-9,
+              reflexe:6, konstanz:4, lesen:-9 }, eig:['kaltbluetig'] },
+        { n:'Es abhaken', d:'Es war ein Bully.',
+          b:{ nerven:5, antritt:4, defensive:-9,
+              konstanz:5, beweglich:4, stellung:-9 }, eig:['eisblock'] },
+        { n:'Es mit sich herumtragen', d:'Manche Dinge treiben an.',
+          b:{ schuss:5, antritt:4, nerven:-9,
+              fanghand:5, reflexe:4, konstanz:-9 }, eig:['einzelgaenger'] }
+      ] }
+  ];
+
+  /* Drei Momente aus neun, in fester Reihenfolge zum Seed. */
+  const JUGEND_RUNDEN = 3;
+  function jugendfragen(seed){
+    return mische(JUGEND, String(seed || 'rinkrise') + ':jugend', JUGEND_RUNDEN);
+  }
+
   const RUNDEN = 4;
 
-  return { EIGENSCHAFTEN, fragen, RUNDEN, HERKUNFT, CHARAKTER, WAFFE, PREIS };
+  return { EIGENSCHAFTEN, fragen, RUNDEN, HERKUNFT, CHARAKTER, WAFFE, PREIS,
+           JUGEND, JUGEND_RUNDEN, jugendfragen };
 })();
 
 if (typeof window !== 'undefined') window.DRAFT = DRAFT;
