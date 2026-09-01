@@ -678,6 +678,10 @@ const PUCKERO = (() => {
       entryDraft: null,       // Ergebnis des Entry Drafts
       draftRechte: null,      // wer deine Rechte haelt, und wie lange
       draftRechte2: null,     // der andere Draft - NHL und KHL ziehen getrennt
+      /* Wenn zwei Dinge nacheinander gezeigt werden muessen - zwei
+         Drafts am selben Abend zum Beispiel - reicht ein einzelner
+         Platz nicht. */
+      folgeWarteschlange: [],
       draftRuf: false,        // hat der Klub schon angerufen?
       bericht: null,          // Rueckblick direkt nach der Saison
       rolle: null,            // gewaehlte Rolle im aktuellen Vertrag
@@ -2754,6 +2758,14 @@ const PUCKERO = (() => {
            passierte nicht. gehaltFaktor ist die Groesse, die auch die
            Verhandlung bewegt. */
         if (w.gehalt) st.gehaltFaktor = clamp((st.gehaltFaktor || 1) + w.gehalt, 0.7, 1.9);
+        /* "Am Ende stehst du ohne Verein da" - und man blieb. Der
+           Vertrag endet jetzt wirklich, und der Klub bietet nichts
+           mehr an; im Sommer steht man auf dem Markt. */
+        if (w.vereinslos){
+          st.vertragJahre = 0;
+          st.klubIstRaus = true;
+          merke('Ohne Verein', false);
+        }
         /* ------------------------------------------------------------
            Beim Draftverein unterschreiben heisst dorthin gehen
 
@@ -3214,7 +3226,28 @@ const PUCKERO = (() => {
         }
       } else {
         const rw = (st.rolle && st.rolle.w) || {};
-        const gp = Math.max(8, fullGp - missed);
+        /* ------------------------------------------------------------
+           Wer nicht mithaelt, sitzt oben
+
+           Ein Feldspieler spielte immer jedes verfuegbare Spiel - es
+           gab kein Aussortieren. Gemessen wurden dadurch 12 Prozent
+           aller Saisons in einer Liga gespielt, deren Huerde man um
+           zwoelf oder mehr Punkte verfehlt: NHL mit Wertung 57 und
+           zweiundachtzig Spielen. Solche Vertraege gibt es, aber der
+           Mann sitzt dann auf der Tribuene, er spielt nicht durch.
+
+           Torhueter kennen das laengst (dort entscheidet der Zweikampf
+           ums Tor ueber den Einsatzanteil); fuer Feldspieler fehlte das
+           Gegenstueck.
+           ------------------------------------------------------------ */
+        const huerdeLiga = LG_MIN[lg.k] !== undefined ? LG_MIN[lg.k] : 58;
+        const ueberHuerde = ovr - huerdeLiga;
+        const einsatzAnteil = clamp(1 + Math.min(0, ueberHuerde + 4) * 0.055, 0.35, 1);
+        const gp = Math.max(8, Math.round((fullGp - missed) * einsatzAnteil));
+        if (einsatzAnteil < 0.9)
+          season.events.push({ t: 'Nicht immer im Kader – '
+            + Math.round((1 - einsatzAnteil) * 100) + ' % der Spiele von der Tribüne',
+            c: 'bad' });
         posFactor = P.k === 'D' ? 0.62 : (P.k === 'C' ? 1.15 : 1.0);
         /* Die Rolle wirkt multiplikativ - und zwar nur so weit, wie du
            drin sitzt. Auf Bewaehrung bekommst du die Minuten nicht, die
@@ -4328,7 +4361,11 @@ const PUCKERO = (() => {
              Draft ist keine Entscheidung, die glueckt oder misslingt,
              sondern ein Abend, an dem ein Name faellt. */
           draft: { runde, pick: pick2, gesamt, klub: klub ? klub.n : null,
-                   liga, gezogen: !!runde },
+                   liga, gezogen: !!runde,
+                   /* Ein Pick unter den ersten zehn ist der Abend, von
+                      dem man sein Leben lang erzaehlt - der darf
+                      leuchten wie ein Wert ueber neunzig. */
+                   glanz: !!runde && gesamt <= 10 },
           tag: liga === 'KHL' ? 'KHL-Draft' : 'Entry Draft',
           wahl: runde
             ? 'Nr. ' + gesamt + ' – ' + klub.n
@@ -4386,9 +4423,27 @@ const PUCKERO = (() => {
             if (klub2){
               st.draftRechte2 = { klub: klub2.n, liga: andere, runde: runde2,
                                   bis: st.year + 5 };
+              const gesamt2 = (runde2 - 1) * 32 + ri(r, 1, 32);
               season.events.push({ t: (andere === 'KHL' ? 'KHL-Draft' : 'Entry Draft')
                 + ': auch ' + klub2.n + ' sichert sich deine Rechte (Runde '
                 + runde2 + ')', c: 'good' });
+              /* Der zweite Draft ist ein zweiter Abend und bekommt sein
+                 eigenes Blatt - vorher stand er als eine Zeile im
+                 Bericht, waehrend der erste eine ganze Buehne bekam. */
+              st.folgeWarteschlange.push({
+                gelungen: true,
+                draft: { runde: runde2, pick: ((gesamt2 - 1) % 32) + 1, gesamt: gesamt2,
+                         klub: klub2.n, liga: andere, gezogen: true },
+                tag: andere === 'KHL' ? 'KHL-Draft' : 'Entry Draft',
+                wahl: 'Nr. ' + gesamt2 + ' – ' + klub2.n,
+                text: 'Am selben Abend, eine Zeitzone weiter: auch ' + klub2.n
+                    + ' ruft deinen Namen auf. Zwei Vereine halten jetzt deine '
+                    + 'Rechte, und irgendwann wirst du dich entscheiden müssen.',
+                wirkungen: [{ t: 'Runde ' + runde2 + ', Pick ' + (((gesamt2 - 1) % 32) + 1),
+                              gut: true },
+                            { t: klub2.n + ' hält deine Rechte bis ' + (st.year + 5),
+                              gut: true }]
+              });
             }
           }
         }
@@ -4887,9 +4942,24 @@ const PUCKERO = (() => {
            der Norm liegt. Der eigene Verein raeumt deshalb Spielraum
            ein, gestaffelt nach dem, was man ihm bedeutet.
            ------------------------------------------------------------ */
+        /* ------------------------------------------------------------
+           Wer besser wird, bekommt Zeit
+
+           Ein Klub, bei dem einer drei Jahre spielt und sich Saison fuer
+           Saison steigert, wirft ihn nicht raus, weil er gerade drei
+           Punkte unter der Norm steht - er sieht die Richtung. Vorher
+           zaehlte nur der Stand, und ein Dreiundzwanzigjaehriger mit 83
+           bekam die Begruendung, seine Wertung reiche nicht.
+           ------------------------------------------------------------ */
+        const letzteS2 = st.seasons[st.seasons.length - 1];
+        const steigt = letzteS2 && letzteS2.ovrGewinn > 0
+          ? clamp(letzteS2.ovrGewinn * 0.8, 0, 5) : 0;
+        const jung = st.age <= 24 ? 3 : 0;
         const traegt = l.k === aktuell.lg
           ? (st.kapitaenSeit === aktuell.n ? 6
-             : st.rollenStand === 'saeule' ? 4 : 0) + klubBindung() * 4
+             : st.rollenStand === 'saeule' ? 4 : 0)
+            + klubBindung() * 4 + steigt + jung
+            + (st.klubJahre >= 3 ? 2 : 0)
           : 0;
         /* ------------------------------------------------------------
            Wer gerade das C bekommen hat, bleibt
@@ -6168,6 +6238,9 @@ const PUCKERO = (() => {
       st,
       get fertig(){ return st.fertig; },
       get angebote(){ return st.angebote; },
+      /* Die naechste wartende Folge holen - und aus der Schlange nehmen. */
+      naechsteFolge(){ return st.folgeWarteschlange.length
+        ? st.folgeWarteschlange.shift() : null; },
       get beraterDraht(){ return st.beraterDraht; },
       get beraterFrei(){ return beraterKannNachfragen(); },
       beraterNachfragen,

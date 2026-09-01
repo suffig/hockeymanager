@@ -916,7 +916,8 @@ function CareerGame(root, cfg){
     if (folge.draft){
       const d = folge.draft;
       w.innerHTML = `
-        <div class="folge-blatt draftblatt ${d.gezogen ? 'gezogen' : 'ungezogen'}">
+        <div class="folge-blatt draftblatt ${d.gezogen ? 'gezogen' : 'ungezogen'}
+             ${d.glanz ? 'glanz' : ''}">
           <div class="db-marke">${UI.ikone('krone', 15)} ${esc(folge.tag)}</div>
           ${d.gezogen ? `
             ${/* Die Nummer zaehlt hoch, statt einfach dazustehen - im
@@ -1057,6 +1058,21 @@ function CareerGame(root, cfg){
   function weiterNachFolge(){
     folgeSchliessen();
     if (!S.lauf) return;
+    /* ------------------------------------------------------------------
+       Zwei Blaetter nacheinander
+
+       Wenn NHL und KHL denselben Spieler ziehen, sind das zwei Abende
+       und nicht einer - der zweite stand vorher als Zeile im Bericht,
+       waehrend der erste eine ganze Buehne bekam. Wartet noch eine
+       Folge, kommt sie jetzt, bevor es weitergeht.
+       ------------------------------------------------------------------ */
+    const naechste = S.lauf.naechsteFolge && S.lauf.naechsteFolge();
+    if (naechste){
+      S.lauf.st.letzteFolge = naechste;
+      zuletztGezeigt = naechste;
+      folgeZeigen(naechste);
+      return;
+    }
     S.lauf.st.letzteFolge = null;
     S.lauf.playSeason();
     renderKarriere();
@@ -1304,17 +1320,15 @@ function CareerGame(root, cfg){
           <div class="au-alter"><b>${v.alter}</b><span>Jahre</span></div>
         </div>
 
-        ${v.einschaetzung ? `<div class="anlage ${v.einschaetzung.sicher ? 'fest' : ''}">
-          <div class="an-kopf">
-            <span>${UI.ikone('auge', 13)} ${v.einschaetzung.sicher
-              ? 'So weit reicht es' : 'So weit könnte es reichen'}</span>
-            <b>${v.einschaetzung.ausgeschoepft}%</b>
-          </div>
-          <div class="an-text">${esc(v.einschaetzung.text)}</div>
-          <div class="an-leiste"><i style="--ziel:${v.einschaetzung.ausgeschoepft}%
-            ;width:${v.einschaetzung.ausgeschoepft}%"></i></div>
-          <div class="an-fuss">der eigenen Anlage ausgeschöpft</div>
-        </div>` : ''}
+        ${/* ----------------------------------------------------------------
+             Die Anlage steht erst am Ende
+
+             Hier stand waehrend der ganzen Laufbahn, wie weit es reichen
+             koennte und wie viel davon ausgeschoepft ist. Das nimmt der
+             Frage die Luft: wer seine Decke kennt, spielt gegen eine
+             Zahl statt gegen die Saison. Nach der Laufbahn ist sie
+             dagegen die letzte Frage, die bleibt - dort steht sie jetzt.
+             ---------------------------------------------------------------- */ ''}
 
         ${v.bonus ? `<div class="klauselband">
           <span class="kb-ik">${UI.ikone('ziel', 15)}</span>
@@ -1440,23 +1454,7 @@ function CareerGame(root, cfg){
           <span class="be-dazu">${esc(u.d)}</span>
         </div>
         ${blind() ? '' : UI.staerkeWandel(b.saison, ATTR_NAMEN)}
-        ${/* Was moeglich gewesen waere - die Bilanz zeigte, wie weit man
-             gekommen ist, aber nicht, wie weit man haette kommen
-             koennen. Genau das ist die Frage nach einer Saison. */ ''}
-        ${(!blind() && b.saison.anlage) ? `<div class="anlage">
-          <div class="an-kopf">${UI.ikone('ziel', 14)} Was in dir steckt</div>
-          <div class="an-leiste">
-            <i style="width:${Math.max(3, Math.min(100, b.saison.anlage.ausgeschoepft))}%"></i>
-            <span class="an-marke" style="left:${
-              Math.max(3, Math.min(100, b.saison.anlage.ausgeschoepft))}%"></span>
-          </div>
-          <div class="an-text">
-            <b>${b.saison.anlage.ausgeschoepft}%</b> deiner Anlage ausgeschöpft ·
-            ${b.saison.anlage.sicher
-              ? 'sie reicht bis etwa <b>' + b.saison.anlage.bis + '</b>'
-              : 'die Schätzung ist noch unscharf: <b>' + esc(b.saison.anlage.text) + '</b>'}
-          </div>
-        </div>` : ''}
+
         ${UI.seasonCard(b.saison, isG, blind(), true, mobil())}
         ${b.saison.nat ? UI.turnierKarte(b.saison.nat, natName(), isG, mobil()) : ''}
         <div class="row mt-l">
@@ -2249,6 +2247,31 @@ function CareerGame(root, cfg){
                 </div>
               </div>
               ${UI.ovrBadge(res.peak, gold)}
+              ${/* ----------------------------------------------------------------
+                   Was haette werden koennen
+
+                   Stand vorher nach jeder Saison - das nahm der Frage die
+                   Luft. Nach einer Laufbahn ist sie dagegen die letzte, die
+                   bleibt: war das alles, oder war da mehr drin?
+                   ---------------------------------------------------------------- */ ''}
+              ${res.potenzial ? `<div class="anlage ende">
+                <div class="an-kopf">${UI.ikone('ziel', 14)} Was möglich gewesen wäre</div>
+                <div class="an-leiste">
+                  <i style="width:${Math.max(3, Math.min(100, res.ausgeschoepft || 0))}%"></i>
+                  <span class="an-marke" style="left:${
+                    Math.max(3, Math.min(100, res.ausgeschoepft || 0))}%"></span>
+                </div>
+                <div class="an-text">
+                  Deine Anlage reichte bis <b>${Math.round(res.potenzial * 0.98)}</b>,
+                  erreicht hast du <b>${res.peak}</b> –
+                  <b>${res.ausgeschoepft}%</b> davon ausgeschöpft.
+                  ${(res.ausgeschoepft || 0) >= 92
+                    ? 'Mehr war aus diesem Körper nicht herauszuholen.'
+                    : (res.ausgeschoepft || 0) >= 80
+                    ? 'Ein gutes Stück davon ist auf dem Eis geblieben.'
+                    : 'Da lag deutlich mehr drin, als am Ende dastand.'}
+                </div>
+              </div>` : ''}
             </div>
             <div class="ak-raster">
               <div class="kk-zelle"><span>Höchster Marktwert</span><b>${(res.marktwertMax || 0).toFixed(1)} Mio</b></div>

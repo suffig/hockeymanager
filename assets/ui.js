@@ -237,7 +237,11 @@ const UI = (() => {
   const THEMA_KEY = 'eiszeit.thema';
   /* 'klassisch' ist der Grundzustand ohne Attribut, alle weiteren
      Themen setzen data-thema auf <html>. */
-  const THEMEN = ['klassisch', 'verspielt', 'retro'];
+  /* Die Liste ist der Filter in themaSetzen - fehlt ein Name hier,
+     faellt die Wahl stillschweigend auf "klassisch" zurueck. Genau
+     das passierte mit "flutlicht": der Knopf war da, das Thema war
+     da, nur diese Zeile nicht. */
+  const THEMEN = ['klassisch', 'verspielt', 'retro', 'flutlicht'];
 
   function themaLesen(){
     try {
@@ -1301,8 +1305,24 @@ const UI = (() => {
            data-von="${season.ovrVorher}">${season.ovrVorher}</b>
         ${d !== 0 ? `<span class="st-delta">${d > 0 ? '+' : ''}${d}</span>` : ''}
       </div>
-      <div class="st-text">${d > 0 ? 'stärker geworden'
-        : d < 0 ? 'schwächer geworden' : 'Wertung unverändert'}</div>
+      ${/* ----------------------------------------------------------------
+           "Schwaecher geworden", obwohl die Werte gestiegen sind
+
+           Die Wertung ist der Wert mal der Alterskurve. Wer mit
+           einundvierzig fuenfzehn Punkte auf seine Werte legt und
+           trotzdem sechs Punkte Wertung verliert, hat nicht
+           nachgelassen - er ist aelter geworden. Gemessen betraf das
+           17 Prozent aller Saisons, und dort stand jedes Mal
+           "schwaecher geworden".
+           ---------------------------------------------------------------- */ ''}
+      <div class="st-text">${(() => {
+        const netto = bew.reduce((a, x) => a + (x.d || 0), 0);
+        if (d > 0) return 'stärker geworden';
+        if (d === 0) return 'Wertung unverändert';
+        return netto > 0
+          ? 'Deine Werte sind gestiegen – das Alter zieht stärker'
+          : 'schwächer geworden';
+      })()}</div>
       ${bew.length ? `<div class="st-attrs">${bew.map(x => `
         <span class="st-attr ${x.d > 0 ? 'gut' : 'schlecht'}">
           ${esc((attrNamen && attrNamen[x.k]) || x.k)} ${x.d > 0 ? '+' : ''}${x.d}

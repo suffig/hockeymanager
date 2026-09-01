@@ -653,7 +653,9 @@ const EREIGNISSE = (() => {
       optionen:[
         { t:'Bleiben und auf Gehalt verzichten', chance:55, hinweis:'Loyalität mit Preisschild',
           gut:{ moral:14, ruf:11, text:'Der Klub übersteht es. Du bist ab heute unantastbar.' },
-          schlecht:{ moral:-10, leben:{ vermoegen:-2 },  /* ohne Verein und ohne Geld */ text:'Es reicht trotzdem nicht. Am Ende stehst du ohne Verein und ohne Geld da.' } },
+          schlecht:{ moral:-10, leben:{ vermoegen:-2 }, vereinslos:true,
+            /* Der Text sagte es, und man blieb trotzdem. */
+            text:'Es reicht trotzdem nicht. Am Ende stehst du ohne Verein und ohne Geld da.' } },
         { t:'Freigabe verlangen', chance:75, hinweis:'Vernünftig, aber unpopulär',
           gut:{ moral:6,  /* geordnet heraus statt im Streit - das beruhigt */ /* Der Text behauptete einen vollzogenen Wechsel; tatsaechlich
              bekommt man die Freigabe, und die Angebote kommen zur

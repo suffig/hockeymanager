@@ -4469,3 +4469,39 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
     var(--ice-900);
   color:var(--text);
 }
+
+/* ------------------------------------------------------------------
+   Ein Pick unter den ersten zehn
+
+   Der Abend, von dem man sein Leben lang erzaehlt. Er darf leuchten
+   wie ein Wert ueber neunzig - dieselbe prismatische Schrift, hier auf
+   der Nummer.
+   ------------------------------------------------------------------ */
+.draftblatt.glanz{
+  border-color:color-mix(in srgb,var(--gold) 70%,var(--line));
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--gold) 28%,transparent),
+             0 24px 60px -26px color-mix(in srgb,var(--gold) 55%,transparent);
+}
+.draftblatt.glanz .db-nummer b{
+  background:linear-gradient(100deg,#fff6d8,#ffd76a 22%,#a8e6ff 46%,
+                             #ffb0e6 68%,#ffe6a0 88%,#fff6d8);
+  background-size:280% 100%;
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  animation:nummerFaellt .3s ease-out both,
+            nummerSitzt .45s .95s cubic-bezier(.2,.8,.3,1) both,
+            prismaLauf 5.5s 1.4s linear infinite;
+}
+.draftblatt.glanz .db-marke{
+  color:transparent;
+  background:linear-gradient(100deg,#ffd76a,#a8e6ff 50%,#ffd76a);
+  background-size:220% 100%;
+  -webkit-background-clip:text; background-clip:text;
+  animation:prismaLauf 4.5s linear infinite;
+}
+@keyframes prismaLauf{ to{ background-position:280% 0 } }
+@media (prefers-reduced-motion:reduce){
+  .draftblatt.glanz .db-nummer b, .draftblatt.glanz .db-marke{ animation:none }
+}
+
+/* Am Karriereende sitzt die Anlage unter der Gesamtwertung. */
+.anlage.ende{ margin-top:14px; text-align:left }
