@@ -4686,3 +4686,82 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
   opacity:.72; margin-left:5px;
 }
 .choice.on .ch-wert{opacity:1}
+
+
+/* ==========================================================
+   Das Trainingsblatt
+   Sechs Karten in drei Familien: was du kannst, was dein
+   Koerper und Kopf sind, und die zwei mit einem Preis.
+   Die Farbe traegt die Familie, die Zahl den Gewinn.
+   ========================================================== */
+.tr-stufe{
+  display:flex;gap:7px;align-items:flex-start;margin-top:8px;
+  padding:8px 11px;border-radius:10px;line-height:1.45;
+  background:color-mix(in srgb,var(--muted) 9%,transparent);
+  border:1px solid var(--line-soft);
+}
+.tr-stufe svg{flex:0 0 auto;margin-top:2px;opacity:.75}
+.tr-karte{position:relative;overflow:hidden}
+.tr-karte .tr-zahl{
+  position:absolute;top:10px;right:11px;
+  font-family:var(--display);font-size:21px;line-height:1;
+  color:var(--akzent-karte,var(--accent));
+  opacity:0;transform:scale(.7);
+  animation:trZahl .42s cubic-bezier(.2,.9,.25,1) forwards;
+  animation-delay:.16s;
+}
+@keyframes trZahl{ to{opacity:1;transform:scale(1)} }
+/* Ein Streifen oben traegt die Familie - schneller zu erfassen als
+   das Etikett, weil er ueber die ganze Breite geht. */
+.tr-karte::before{
+  content:'';position:absolute;left:0;right:0;top:0;height:3px;
+  background:var(--akzent-karte,var(--accent));opacity:.8;
+}
+.tr-karte.ta-technik  { --akzent-karte:var(--accent) }
+.tr-karte.ta-koerper  { --akzent-karte:var(--green) }
+.tr-karte.ta-kopf     { --akzent-karte:var(--gold) }
+.tr-karte.ta-risiko   { --akzent-karte:var(--red) }
+.tr-karte.ta-erholung { --akzent-karte:var(--accent-2,var(--muted)) }
+.tr-karte.ta-erholung .tr-zahl{opacity:.55}
+
+/* ==========================================================
+   Der Feinschliff kommt herein
+   Die Karten der Reihe nach, die Werteliste danach - man soll
+   sehen, dass es zwei Entscheidungen sind und nicht eine.
+   ========================================================== */
+.fein-eig .fein-karte{
+  opacity:0; animation:feinRein .42s cubic-bezier(.2,.9,.25,1) forwards;
+}
+.fein-eig .fein-karte:nth-child(1){animation-delay:.04s}
+.fein-eig .fein-karte:nth-child(2){animation-delay:.12s}
+.fein-eig .fein-karte:nth-child(3){animation-delay:.20s}
+@keyframes feinRein{ from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+.fein-werte .fw-zeile{
+  opacity:0; animation:feinZeile .3s ease forwards;
+}
+.fein-werte .fw-zeile:nth-child(1){animation-delay:.26s}
+.fein-werte .fw-zeile:nth-child(2){animation-delay:.30s}
+.fein-werte .fw-zeile:nth-child(3){animation-delay:.34s}
+.fein-werte .fw-zeile:nth-child(4){animation-delay:.38s}
+.fein-werte .fw-zeile:nth-child(5){animation-delay:.42s}
+.fein-werte .fw-zeile:nth-child(n+6){animation-delay:.46s}
+@keyframes feinZeile{ from{opacity:0;transform:translateX(-10px)} to{opacity:1;transform:none} }
+/* Der blaue Anteil waechst, statt einfach dazustehen. */
+.fw-balken b{transition:width .28s cubic-bezier(.2,.9,.25,1)}
+
+/* Der Anlagebalken am Karriereende: die Marke faehrt an ihren Platz,
+   waehrend der Balken waechst. */
+.an-weg .an-leiste i{animation:barGrow .9s cubic-bezier(.2,.9,.25,1)}
+.an-weg .an-marke{
+  animation:markeRein .9s cubic-bezier(.2,.9,.25,1);
+}
+@keyframes markeRein{ from{left:0;opacity:0} }
+
+@media (prefers-reduced-motion: reduce){
+  .tr-karte .tr-zahl,
+  .fein-eig .fein-karte,
+  .fein-werte .fw-zeile{animation:none;opacity:1;transform:none}
+  .an-weg .an-leiste i,
+  .an-weg .an-marke{animation:none}
+  .fw-balken b{transition:none}
+}

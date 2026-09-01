@@ -2365,6 +2365,254 @@ const EREIGNISSE = (() => {
                    + 'weniger, als du gedacht hättest.' },
           schlecht:{ moral:-3,
                 text:'Es beschäftigt dich doch. Wochenlang.' } }
+      ] },
+
+    /* ==================================================================
+       Zu den neueren Mechaniken
+
+       Reihenpartner, Konkurrent um den Platz, Handschrift des Trainers,
+       Dauerschaeden, Zweiwege-Vertraege und Draftrechte wirken auf jede
+       Saison, hatten aber keine einzige Geschichte. Ein System, das nur
+       rechnet und nie erzaehlt, merkt niemand.
+       ================================================================== */
+
+    /* ---------- Die Reihe ---------- */
+    { id:'reihe1', kat:'kabine', szene:'eis', tag:'Neben dir',
+      titel:'Ihr findet einfach nicht zusammen',
+      text:'Er geht, wo du bleibst. Du spielst, wo er schon weg ist. Zweimal in einem '
+         + 'Drittel steht der Puck zwischen euch auf dem Eis und keiner holt ihn. '
+         + 'Nach dem Spiel sitzt ihr zwei Plätze auseinander und sagt nichts.',
+      bedingung: st => !!(st.reihe && st.reihe.chemie < -0.15 && st.reihe.jahre >= 1),
+      optionen:[
+        { t:'Es mit ihm ausreden', chance:55, hinweis:'Zwei Erwachsene, ein Kaffee',
+          folgt:'weggefaehrte',
+          gut:{ moral:7, form:0.07, attr:{ pass:3 },
+                text:'Es dauert eine halbe Stunde und war zehn Spiele überfällig. '
+                   + 'Ab dem nächsten Bully wisst ihr wieder, wo der andere steht.' },
+          schlecht:{ moral:-5,
+                text:'Er hört zu und nickt. Geändert hat sich danach nichts.' } },
+        { t:'Den Trainer um eine andere Reihe bitten', chance:45,
+          hinweis:'Schnell, aber es spricht sich herum',
+          gut:{ form:0.06, ruf:-2,
+                text:'Er stellt um. Es läuft sofort besser – und in der Kabine merkt '
+                   + 'sich jemand, dass du gefragt hast.' },
+          schlecht:{ moral:-7, ruf:-4,
+                text:'\u201eIhr spielt das jetzt zu Ende\u201c, sagt er. Damit ist es entschieden.' } },
+        { t:'Weiterspielen und es aussitzen', chance:70,
+          hinweis:'Manche Reihen brauchen einfach ein Jahr',
+          gut:{ attr:{ nerven:3 }, moral:2,
+                text:'Irgendwann im Januar klappt ein Doppelpass, über den ihr beide lacht. '
+                   + 'Von da an geht es.' },
+          schlecht:{ form:-0.05,
+                text:'Die ganze Saison bleibt es zäh. Ihr seid zwei gute Spieler nebeneinander, '
+                   + 'mehr nicht.' } }
+      ] },
+
+    { id:'reihe2', kat:'kabine', szene:'stadt', tag:'Der Draht',
+      titel:'Ihr versteht euch inzwischen blind',
+      text:'Beim Essen redet ihr über alles außer Eishockey, und auf dem Eis müsst ihr '
+         + 'euch nicht mehr ansehen. Ein Scout hat neulich gesagt, ihr spielt wie Brüder. '
+         + 'Sein Berater hat das auch gehört.',
+      bedingung: st => !!(st.reihe && st.reihe.chemie > 0.35 && st.reihe.jahre >= 2),
+      optionen:[
+        { t:'Dem Klub sagen, dass ihr zusammengehört', chance:58,
+          hinweis:'Zwei Unterschriften statt einer',
+          gut:{ moral:9, form:0.06, ruf:3,
+                text:'Der Sportchef hört zu und handelt danach. Ihr bleibt zusammen, '
+                   + 'und das Jahr wird euer bestes.' },
+          schlecht:{ moral:-6,
+                text:'\u201eWir planen keine Paare\u201c, sagt er. Es klingt endgültig.' } },
+        { t:'Nichts sagen und es genießen', chance:75,
+          hinweis:'Solange es dauert',
+          gut:{ moral:5, attr:{ uebersicht:3 },
+                text:'Ihr spielt ein Jahr, über das ihr beide noch mit vierzig reden werdet.' },
+          schlecht:{ moral:-4,
+                text:'Im Sommer wird er verkauft. Du erfährst es aus dem Radio.' } }
+      ] },
+
+    /* ---------- Der Konkurrent ---------- */
+    { id:'platz1', kat:'kabine', szene:'training', tag:'Der Junge hinter dir',
+      titel:'Er trainiert, als hätte er deine Nummer schon bestellt',
+      text:'Er ist jünger, er ist billiger, und er bleibt jeden Tag eine halbe Stunde '
+         + 'länger auf dem Eis. Der Trainer sieht das. Alle sehen das.',
+      bedingung: st => !!(st.platzrivale && st.platzrivale.abstand < -0.15),
+      optionen:[
+        { t:'Ihm zeigen, wie es geht', chance:52,
+          hinweis:'Der ältere Bruder statt der Rivale',
+          gut:{ moral:8, ruf:5, attr:{ uebersicht:2 },
+                text:'Du nimmst ihn mit statt gegen dich. Er wird besser – und sagt in '
+                   + 'jedem Interview, von wem er das hat.' },
+          schlecht:{ moral:-6,
+                text:'Er nimmt alles mit, was du ihm zeigst, und deinen Platz gleich dazu.' } },
+        { t:'Härter trainieren als er', chance:58,
+          hinweis:'Der direkte Weg, und der teuerste',
+          gut:{ form:0.09, attr:{ antritt:3 }, risiko:4,
+                text:'Du bist im Januar in der besten Form deines Lebens. Der Preis steht '
+                   + 'auf einem anderen Zettel.' },
+          schlecht:{ risiko:9, form:-0.05,
+                text:'Der Körper macht die Rechnung nicht mit. Zwei Wochen Pause im Februar.' } },
+        { t:'Nichts tun – der Platz ist deiner', chance:64,
+          hinweis:'Wenn du recht behältst',
+          gut:{ moral:4,
+                text:'Du spielst dein Spiel, und die Frage stellt sich am Ende gar nicht.' },
+          schlecht:{ moral:-8, ruf:-3,
+                text:'Im November steht sein Name über deinem auf dem Aufstellungsbogen.' } }
+      ] },
+
+    /* ---------- Die Handschrift des Trainers ---------- */
+    { id:'stil1', kat:'trainer', szene:'buero', tag:'Zwei Auffassungen',
+      titel:'Er will die eigene Zone sehen, du willst nach vorne',
+      text:'Auf dem Video hält er sechsmal an derselben Stelle an: du, zwei Meter zu '
+         + 'weit oben. Dass aus vier dieser Szenen ein Tor wurde, kommt im Video nicht vor.',
+      bedingung: st => st.trainerStil === 'defensiv' && st.age >= 20,
+      nurPos:['C','LW','RW','D'],
+      optionen:[
+        { t:'Es so spielen, wie er es will', chance:66,
+          hinweis:'Weniger Punkte, mehr Vertrauen', folgt:'trainerpakt',
+          gut:{ attr:{ defensive:4, uebersicht:2 }, moral:3,
+                text:'Du wirst ein vollständigerer Spieler. Die Statistik sagt das nicht, '
+                   + 'aber er stellt dich in jeder engen Minute aufs Eis.' },
+          schlecht:{ form:-0.06, moral:-4,
+                text:'Du denkst nur noch nach. Vorne fällt dir nichts mehr ein.' } },
+        { t:'Dein Spiel spielen und die Punkte liefern', chance:48,
+          hinweis:'Zahlen gegen Überzeugung',
+          gut:{ ruf:6, form:0.08,
+                text:'Vierzig Punkte beenden die Diskussion. Er sagt es nicht laut, '
+                   + 'aber er stellt das Video ab.' },
+          schlecht:{ moral:-9, ruf:-4,
+                text:'Es wird nicht besprochen. Es wird nur die Eiszeit kürzer.' } }
+      ] },
+
+    { id:'stil2', kat:'trainer', szene:'kabine', tag:'Der Ton macht alles',
+      titel:'Er zerlegt einen Mitspieler vor der ganzen Mannschaft',
+      text:'Es ist der zweite Fehler des Abends, und es ist das dritte Mal in dieser '
+         + 'Woche, dass jemand vor allen dran ist. Zwanzig Männer sehen auf ihre Schuhe.',
+      bedingung: st => st.trainerStil === 'streng' && st.klubJahre >= 1,
+      optionen:[
+        { t:'Danach zu ihm gehen', chance:50,
+          hinweis:'Unter vier Augen, aber deutlich',
+          gut:{ ruf:6, moral:6,
+                text:'Er hört es sich an. Beim nächsten Mal geht er mit dem Betreffenden '
+                   + 'in den Gang statt vor die Mannschaft.' },
+          schlecht:{ moral:-7, ruf:-3,
+                text:'\u201eDu bist nicht der Trainer\u201c, sagt er, und danach ist es kühl.' } },
+        { t:'Den Mitspieler abends anrufen', chance:78,
+          hinweis:'Nicht die Ursache, aber die Wirkung', folgt:'weggefaehrte',
+          gut:{ moral:6, attr:{ nerven:2 },
+                text:'Ihr redet zwei Stunden. Er spielt am Samstag sein bestes Spiel '
+                   + 'der Saison.' },
+          schlecht:{ moral:-3,
+                text:'Er geht nicht ran. Im Winter wechselt er.' } },
+        { t:'Froh sein, dass es nicht dich getroffen hat', chance:70,
+          hinweis:'Ehrlich, aber es bleibt hängen',
+          gut:{ form:0.04,
+                text:'Du machst deine Arbeit und fällst nicht auf. Das ist bei ihm '
+                   + 'schon die halbe Miete.' },
+          schlecht:{ moral:-6,
+                text:'In der Woche darauf bist du dran, und niemand steht auf.' } }
+      ] },
+
+    /* ---------- Was geblieben ist ---------- */
+    /* Vorrang, weil es sonst untergeht: die Bedingung wird erst spaet
+       zulaessig, jedes Ereignis kommt nur einmal je Laufbahn, und der
+       halbe Vorrat traegt Aufschlaege fuer Straenge oder Positionen.
+       Ohne Gewicht kam es gemessen 2-mal in 6849 Ziehungen. */
+    { id:'bleibt1', kat:'koerper', szene:'arzt', tag:'Die alte Stelle', gewicht:5,
+      titel:'Was kaputt war, wird nicht wieder ganz',
+      text:'Er zeigt dir das Bild vom letzten Jahr und das von heute und sagt, es sei '
+         + 'stabil. Stabil heißt nicht heil. Du weißt seit Monaten, dass etwas fehlt, '
+         + 'und jetzt steht es auf einem Ausdruck.',
+      /* Ohne Altersschranke: ein Dauerschaden setzt Verletzungen ohnehin
+         voraus, und jedes Ereignis kommt nur einmal je Laufbahn - wer
+         spaet zulaessig wird, kommt gemessen fast nie dran (1 von 6847). */
+      bedingung: st => (st.dauerschaden || []).length >= 1,
+      optionen:[
+        { t:'Das Spiel umbauen, statt dagegen anzurennen', chance:62,
+          hinweis:'Mit dem Kopf holen, was die Beine nicht mehr geben',
+          gut:{ attr:{ uebersicht:5 }, moral:5,
+                text:'Du stehst früher richtig, weil du später los musst. Manche nennen '
+                   + 'das Alterung. Andere nennen es endlich verstanden.' },
+          schlecht:{ moral:-6,
+                text:'Du triffst die Balance nicht. Weder schnell noch schlau.' } },
+        { t:'Dagegen antrainieren', chance:42,
+          hinweis:'Manchmal geht es. Meistens nicht.',
+          gut:{ attr:{ antritt:4 }, form:0.06,
+                text:'Der ganze Sommer geht dafür drauf, und im Herbst ist etwas davon '
+                   + 'zurück. Nicht alles. Genug.' },
+          schlecht:{ risiko:10, verschleiss:1,
+                text:'Die Stelle meldet sich im Oktober zurück, lauter als vorher.' } }
+      ] },
+
+    /* ---------- Der Zweiwege-Vertrag ---------- */
+    { id:'zwei1', kat:'karriere', szene:'buero', tag:'Zwei Verträge in einem',
+      titel:'Sie können dich jederzeit runterschicken',
+      text:'Es steht auf Seite drei, in demselben Absatz wie die Reisekostenregelung. '
+         + 'Solange du oben spielst, ist es Papier. In dem Moment, in dem du es nicht '
+         + 'tust, ist es ein Bus nach Norden.',
+      bedingung: st => !!st.zweiwege && st.klubJahre >= 1,
+      optionen:[
+        { t:'Es als das nehmen, was es ist: eine Chance', chance:60,
+          hinweis:'Sie haben dich geholt, nicht abgeschrieben',
+          gut:{ moral:6, form:0.07,
+                text:'Du spielst frei, weil du nichts zu verlieren hast. Nach zwanzig '
+                   + 'Spielen redet niemand mehr über Seite drei.' },
+          schlecht:{ moral:-7,
+                text:'Der Gedanke sitzt bei jedem Wechsel mit auf der Bank.' } },
+        { t:'Auf eine Streichung der Klausel drängen', chance:38,
+          hinweis:'Früh, und aus einer schwachen Position',
+          gut:{ gehalt:0.06, moral:8,
+                text:'Sie streichen sie. Es ist das erste Mal, dass jemand hier so '
+                   + 'etwas verhandelt hat.' },
+          schlecht:{ ruf:-4, moral:-5,
+                text:'\u201eDann verdien es dir\u201c, sagt der Sportchef, und legt auf.' } }
+      ] },
+
+    /* ---------- Die Rechte ---------- */
+    { id:'rechte1', kat:'karriere', szene:'presse', tag:'Der Klub, der dich hat',
+      titel:'Ein Verein besitzt deine Rechte und meldet sich nie',
+      text:'Sie haben dich vor Jahren gezogen und seitdem zweimal angerufen. Trotzdem '
+         + 'steht in jedem Bericht über dich ihr Name in Klammern hinter deinem.',
+      bedingung: st => !!(st.draftRechte && st.club && st.draftRechte.klub !== st.club.n
+                          && st.age >= 21),
+      optionen:[
+        { t:'Dort anrufen und nach einem Plan fragen', chance:55,
+          hinweis:'Klarheit, egal in welche Richtung',
+          gut:{ ruf:5, moral:6,
+                text:'Sie haben einen Plan, und du kommst darin vor. Es ist kein '
+                   + 'Versprechen, aber es ist ein Datum.' },
+          schlecht:{ moral:-6,
+                text:'Der Assistent sagt, man beobachte die Situation. Das war der Plan.' } },
+        { t:'Sie ignorieren und hier gut spielen', chance:70,
+          hinweis:'Wer Punkte macht, wird geholt oder getauscht',
+          gut:{ form:0.06, ruf:4,
+                text:'Zwei starke Jahre später rufen sie von selbst an – und diesmal '
+                   + 'sitzt du am längeren Hebel.' },
+          schlecht:{ moral:-4,
+                text:'Die Rechte laufen irgendwann aus. Angerufen hat nie jemand.' } }
+      ] },
+
+    /* ---------- Der Zenit ---------- */
+    { id:'zenit1', kat:'privat', szene:'stadt', tag:'Die beste Zeit',
+      titel:'Mit dreißig weißt du, dass es jetzt zählt',
+      text:'Der Körper macht noch alles mit, und der Kopf weiß inzwischen, wofür. '
+         + 'Beides zusammen gab es vorher nicht, und es wird nicht ewig dauern.',
+      bedingung: st => st.age >= 29 && st.age <= 32,
+      optionen:[
+        { t:'Alles auf diese Jahre setzen', chance:56,
+          hinweis:'Mehr Aufwand, weniger Reserve',
+          gut:{ form:0.10, moral:8, risiko:4,
+                text:'Du lebst zwei Jahre lang für nichts anderes, und es sind die zwei '
+                   + 'Jahre, an die man sich erinnert.' },
+          schlecht:{ risiko:9, moral:-5,
+                text:'Der Aufwand kommt nicht an. Nur die Müdigkeit.' } },
+        { t:'Haushalten, damit hinten noch etwas kommt', chance:68,
+          hinweis:'Weniger Gipfel, längere Kurve',
+          gut:{ trait:{ langlebig:5 }, moral:4,
+                text:'Du spielst klüger als hart. Mit fünfunddreißig stehst du noch da, '
+                   + 'wo andere längst aufgehört haben.' },
+          schlecht:{ form:-0.05,
+                text:'Du hältst dich zurück, und die Jahre gehen vorbei, ohne dass '
+                   + 'etwas Besonderes passiert.' } }
       ] }
   );
 

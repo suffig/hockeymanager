@@ -2136,20 +2136,54 @@ function CareerGame(root, cfg){
       </div>`;
   }
 
+  /* ----------------------------------------------------------------
+     Sechs Karten wollen sortiert sein
+
+     Mit drei Karten reichten zwei Etiketten. Seit es sechs sind - drei
+     Werte, eine Eigenschaft, die Doppelschicht und der Sommer ohne Eis -
+     stand die Haelfte unter dem falschen Wort. Jede Art hat jetzt ihr
+     eigenes Etikett und ihre eigene Farbe, und was eine Karte bringt,
+     steht als Zahl darauf statt nur im Fliesstext.
+     ---------------------------------------------------------------- */
+  const TRAININGSART = {
+    attr:      { n:'Technik',    k:'ta-technik' },
+    robust:    { n:'Körper',     k:'ta-koerper' },
+    langlebig: { n:'Körper',     k:'ta-koerper' },
+    playoff:   { n:'Kopf',       k:'ta-kopf' },
+    doppel:    { n:'Risiko',     k:'ta-risiko' },
+    erholung:  { n:'Erholung',   k:'ta-erholung' }
+  };
+
   function trainingHtml(optionen, alter){
+    const stufe = PUCKERO.TRAINERSTUFEN[(S.player && S.player.trainerstufe) || 'einfach']
+               || PUCKERO.TRAINERSTUFEN.einfach;
     return `
       <div class="anim">
         <h2 style="margin-bottom:6px">Sommerpause</h2>
         <p class="lead" style="font-size:15px">Mit ${alter} Jahren bringt jede Einheit
           ${optionen[0].wert > 2 ? 'noch spürbaren Fortschritt' : 'kaum noch Fortschritt'}.
           Angeboten wird, wo bei dir am meisten Luft nach oben ist.</p>
-        <div class="grid g3 mt-l stagger">
-          ${optionen.map((o, i) => `
-            <button class="legend-card" data-training="${i}" style="text-align:left">
-              <span class="lc-tag">${o.art === 'attr' ? 'Technik' : 'Körper &amp; Kopf'}</span>
+        ${/* Der Hinweis gehoert genau hierher: hier faellt die
+             Entscheidung, die die Stufe misst. */ ''}
+        <p class="small tr-stufe">${UI.ikone('pfeife', 14)}
+          <span>Du wählst selbst – das sind <b>100 %</b> der Karte.
+          Der Trainerstab käme auf <b>${Math.round(stufe.f * 100)} %</b>
+          (Stufe ${esc(stufe.n)}).</span></p>
+        <div class="grid g3 mt-l stagger tr-karten">
+          ${optionen.map((o, i) => {
+            const a = TRAININGSART[o.art] || { n:'Training', k:'' };
+            const zahl = o.art === 'erholung' ? '±0'
+                       : (o.art === 'attr' || o.art === 'doppel') ? '+' + o.wert
+                       : '+' + o.wert;
+            return `
+            <button class="legend-card tr-karte ${a.k}" data-training="${i}"
+                    style="text-align:left">
+              <span class="lc-tag">${a.n}</span>
+              <span class="tr-zahl">${zahl}</span>
               <div class="lc-name" style="font-size:20px">${esc(o.titel)}</div>
               <p class="small" style="margin:8px 0 0;color:var(--muted)">${esc(o.text)}</p>
-            </button>`).join('')}
+            </button>`;
+          }).join('')}
         </div>
       </div>`;
   }
