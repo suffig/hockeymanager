@@ -5110,12 +5110,52 @@ const PUCKERO = (() => {
       return true;
     }
 
+    /* ------------------------------------------------------------------
+       Der Trainerstab waehlt fast ideal
+
+       Gemessen ueber 220 Laufbahnen je Strategie: die Automatik kam auf
+       einen Gipfel von 86,2, das theoretische Beste (immer die staerkste
+       Attributkarte) auf 86,4. Wer dagegen jeden Sommer die
+       Eigenschaftskarte nahm, landete bei 71,4 - fuenfzehn Punkte
+       weniger. Der Abstand nach oben ist also zwei Zehntel, der nach
+       unten fuenfzehn Punkte.
+
+       Damit die Eigenschaftskarten nicht blosse Fallen sind, waehlt der
+       Stab sie jetzt dann, wenn sie wirklich das Richtige sind: wer
+       staendig verletzt ist, braucht Athletik mehr als zwei Punkte
+       Schusskraft; wer kurz vor der Altersgrenze steht und noch traegt,
+       gewinnt mit Regeneration ganze Saisons statt Zehntel; und wer bei
+       einem Anwaerter auf den Titel spielt, holt mit Mentaltraining
+       Spiele, auf die es ankommt.
+       ------------------------------------------------------------------ */
     function autoTraining(){
       if (!st.training) return false;
       const w = pos(player.pos).w;
-      const bewertet = st.training.map((o, i) => ({
-        i, s: o.art === 'attr' ? o.wert * (w[o.k] || 1) * 2.2 : o.wert * 1.2 + r() * 3
-      })).sort((a, b) => b.s - a.s);
+
+      /* Wie dringend ist der Koerper? Zwei Verletzungsjahre sind normal,
+         alles darueber ist ein Muster. */
+      const anfaellig = clamp((st.verletzungsjahre - 2) * 0.45
+                              + (st.risikoBonus || 0) * 12, 0, 3.2);
+      /* Wie nah ist das Ende? Dieselbe Grenze wie in ruecktrittsChance. */
+      const grenze = 32 + (player.traits.langlebig || 0) * 0.14
+                   - (st.verletzungsjahre || 0) * 0.5;
+      const jetzigerOvr = overall(player, devAttrs(player.attrs,
+        formFactor(st.age, player.traits, (player.wirkung || {}).lernkurve, st.scheitel)));
+      /* Nur wenn der Spieler noch traegt - eine verlaengerte Laufbahn
+         auf niedrigem Niveau ist kein Gewinn. */
+      const nahAmEnde = st.age >= grenze - 4 && jetzigerOvr >= 74
+                        ? clamp(4 - (grenze - st.age), 0, 3.4) : 0;
+      /* Spielt der Klub um etwas? */
+      const anwaerter = st.club
+        ? clamp((klubStaerke(st.club) - ligaSchnittJetzt(st.club.lg)) * 0.22, 0, 2.4) : 0;
+
+      const bewertet = st.training.map((o, i) => {
+        if (o.art === 'attr') return { i, s: o.wert * (w[o.k] || 1) * 2.2 };
+        const dringend = o.art === 'robust'    ? anfaellig
+                       : o.art === 'langlebig' ? nahAmEnde
+                       : anwaerter;
+        return { i, s: o.wert * 1.2 + dringend * 5.5 + r() * 2 };
+      }).sort((a, b) => b.s - a.s);
       return chooseTraining(bewertet[0].i);
     }
 

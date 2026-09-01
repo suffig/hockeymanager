@@ -4560,3 +4560,46 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
   margin:0 0 clamp(10px,2.4vw,18px);
   filter:drop-shadow(0 8px 34px rgba(56,209,255,.28));
 }
+
+
+/* Ein Hinweis, der zurueckhaelt statt zu schimpfen: der Spieler darf
+   selbst waehlen, er soll nur wissen, worauf er sich einlaesst. */
+.warnung[hidden]{display:none}
+.warnung{
+  display:flex; gap:7px; align-items:flex-start;
+  padding:9px 11px; border-radius:10px; line-height:1.45;
+  color:var(--text);
+  background:color-mix(in srgb,var(--accent) 9%,transparent);
+  border:1px solid color-mix(in srgb,var(--accent) 26%,transparent);
+}
+.warnung svg{flex:0 0 auto;margin-top:2px;opacity:.85}
+
+
+/* ------------------------------------------------------------------
+   Der Weg von der ersten Wertung bis zur Anlage
+
+   Drei Angaben in einer Zeile: wo es losging, wie weit es reichte, und
+   wo man stehengeblieben ist. Die Marke traegt ihre Zahl mit, damit man
+   den Balken nicht gegen eine Legende lesen muss.
+   ------------------------------------------------------------------ */
+.an-weg{position:relative;padding:20px 0 2px;margin-top:2px}
+.an-weg .an-leiste{height:7px}
+.an-weg .an-marke{
+  position:absolute;top:0;transform:translateX(-50%);
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  font-size:11px;color:var(--text);pointer-events:none;
+}
+.an-weg .an-marke b{
+  font-family:var(--display);font-size:15px;line-height:1;
+  padding:1px 7px;border-radius:99px;
+  background:var(--gold);color:#1b1405;
+}
+.an-weg .an-marke::after{
+  content:'';width:2px;height:7px;background:var(--gold);border-radius:1px;
+}
+.an-enden{
+  display:flex;justify-content:space-between;margin-top:5px;
+  font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);
+}
+.an-enden b{font-family:var(--display);font-size:13px;letter-spacing:0;
+  text-transform:none;color:var(--muted);margin-left:3px}

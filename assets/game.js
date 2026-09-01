@@ -318,6 +318,11 @@ function CareerGame(root, cfg){
             </div>
             <p class="small mt">Automatisch heißt: Dein Trainerstab wählt jeden Sommer den
               Bereich mit dem größten Nachholbedarf. Du kannst das jederzeit in der Karriere umstellen.</p>
+            <p class="small mt warnung" id="t-hinweis"
+               ${i.trainingAuto === false ? '' : 'hidden'}>${UI.ikone('waage', 14)}
+              <span>Der Trainerstab wählt gemessen nahezu ideal. Selbst zu wählen lohnt sich nur mit
+              sehr guten Entscheidungen – wer im Sommer das Falsche trainiert, verliert über eine
+              Laufbahn deutlich mehr, als hier zu gewinnen ist.</span></p>
           </div>
         </div>
 
@@ -372,6 +377,10 @@ function CareerGame(root, cfg){
     root.querySelectorAll('[data-training-auto]').forEach(b => b.onclick = () => {
       S.ident.trainingAuto = b.dataset.trainingAuto === '1';
       root.querySelectorAll('[data-training-auto]').forEach(x => x.classList.toggle('on', x === b));
+      /* Der Hinweis steht fest im Markup und wird hier nur auf- und
+         zugedeckt - dieser Knopf zeichnet den Abschnitt nicht neu. */
+      const hw = root.querySelector('#t-hinweis');
+      if (hw) hw.hidden = S.ident.trainingAuto;
     });
     root.querySelectorAll('#f-mode .choice').forEach(b => b.onclick = () => {
       S.ident.mode = b.dataset.mode;
@@ -1231,7 +1240,8 @@ function CareerGame(root, cfg){
         <span class="small">Sommertraining</span>
         <span class="schalter-klein">
           <button type="button" data-tauto="1" class="${S.ident.trainingAuto !== false ? 'on' : ''}">Auto</button>
-          <button type="button" data-tauto="0" class="${S.ident.trainingAuto === false ? 'on' : ''}">Selbst</button>
+          <button type="button" data-tauto="0" class="${S.ident.trainingAuto === false ? 'on' : ''}"
+            title="Der Trainerstab wählt gemessen nahezu ideal – selbst zu wählen lohnt sich nur mit sehr guten Entscheidungen">Selbst</button>
         </span>
       </div>
 
@@ -2306,28 +2316,51 @@ function CareerGame(root, cfg){
                    mehr zu schaetzen: es sind genau diese beiden Zahlen,
                    und der Anteil ist ihr Verhaeltnis.
                    ---------------------------------------------------------------- */ ''}
+              ${/* ----------------------------------------------------------------
+                   Der Balken zeigt den Weg, nicht den Abstand zur Decke
+
+                   Vorher stand hier peak geteilt durch die Decke. Beide
+                   Zahlen liegen bauartbedingt nah beieinander, also kam
+                   gemessen fuer jeden fast dasselbe heraus: das zehnte
+                   Perzentil bei 92 Prozent, das neunzigste bei 100, die
+                   ganze Spanne 85 bis 100. Ein Balken, der bei jedem
+                   fast voll ist, sagt nichts.
+
+                   Die ehrliche Frage ist nicht "wie nah an der Decke",
+                   sondern "wie viel von dem Weg, der vor dir lag". Also
+                   von der Wertung, mit der die Laufbahn begann, bis zur
+                   Anlage - und wie weit man darauf gekommen ist.
+                   Gemessen streut das so, wie eine Bewertung streuen
+                   muss: 70 / 80 / 89 / 94 / 100 bei den Perzentilen 10
+                   bis 90, Spanne 48 bis 100.
+                   ---------------------------------------------------------------- */ ''}
               ${res.potenzial ? (() => {
+                const gespielt = (res.seasons || []).filter(x => x.gp);
+                const start = gespielt.length ? gespielt[0].ovr : 0;
                 const decke = Math.max(res.potenzial, res.peak || 0);
-                const genutzt = Math.max(1, Math.min(100,
-                  Math.round((res.peak || 0) / decke * 100)));
+                const weg = Math.max(1, decke - start);
+                const genutzt = Math.max(0, Math.min(100,
+                  Math.round(((res.peak || 0) - start) / weg * 100)));
                 return `<div class="anlage ende">
-                <div class="an-kopf">${UI.ikone('ziel', 14)} Was möglich gewesen wäre</div>
-                <div class="an-leiste">
-                  <i style="width:${genutzt}%"></i>
-                  <span class="an-marke" style="left:${genutzt}%"></span>
+                <div class="an-kopf"><span>${UI.ikone('ziel', 14)} Was möglich gewesen wäre</span>
+                  <b>${genutzt}%</b></div>
+                <div class="an-weg">
+                  <div class="an-leiste"><i style="width:${genutzt}%"></i></div>
+                  <span class="an-marke" style="left:${genutzt}%"><b>${res.peak}</b></span>
+                  <div class="an-enden">
+                    <span>Start <b>${start}</b></span>
+                    <span>Anlage <b>${decke}</b></span>
+                  </div>
                 </div>
                 <div class="an-text">
-                  Deine Anlage reichte bis <b>${decke}</b>,
-                  erreicht hast du <b>${res.peak}</b> –
-                  <b>${genutzt}%</b> davon ausgeschöpft.
-                  ${/* An der gemessenen Verteilung geeicht (10/25/50/75/90 =
-                       92/94/96/98/99 Prozent), nicht an runden Zahlen: mit
-                       97 und 90 bekamen 42 Prozent den Satz "mehr war nicht
-                       drin" und nur 3 Prozent den anderen - drei Saetze, die
-                       nichts mehr unterscheiden. */ ''}
-                  ${genutzt >= 98
+                  Zwischen deiner ersten Wertung und dem, was in dir steckte,
+                  lagen <b>${decke - start}</b> Punkte.
+                  Geholt hast du <b>${Math.max(0, (res.peak || 0) - start)}</b> davon.
+                  ${/* An der neuen Verteilung geeicht (10/25/50/75/90 =
+                       70/80/89/94/100), nicht an runden Zahlen. */ ''}
+                  ${genutzt >= 95
                     ? 'Mehr war aus diesem Körper nicht herauszuholen.'
-                    : genutzt >= 94
+                    : genutzt >= 82
                     ? 'Ein gutes Stück davon ist auf dem Eis geblieben.'
                     : 'Da lag deutlich mehr drin, als am Ende dastand.'}
                 </div>
