@@ -847,6 +847,14 @@ const PUCKERO = (() => {
          ---------------------------------------------------------------- */
       grenzeVerschoben: 0,    // wie weit die Anlage sich bewegt hat
       verletzungsjahre: 0,    // aufgelaufener Verschleiss
+      /* Was nicht mehr weggeht. Verschleiss baut sich ab, ein
+         Dauerschaden nicht - er steht am Ende der Laufbahn noch da. */
+      dauerschaden: [],
+      /* Der Mann neben dir und der Mann hinter dir. Nicht zu
+         verwechseln mit st.rivale - das ist der aus dem eigenen
+         Draftjahrgang, eine ganze zweite Laufbahn. */
+      reihe: null,
+      platzrivale: null,
       altlasten: {},          // Verletzung -> wie oft sie schon da war
       /* ----------------------------------------------------------------
          Der Jahrgang als Massstab
@@ -2151,7 +2159,8 @@ const PUCKERO = (() => {
         moral:  Math.round(moral * 1000) / 10,
         stand:  Math.round(stand * 1000) / 10,
         form:   Math.round(st.formzustand * 0.055 * 1000) / 10,
-        umfeld: Math.round((eingewoehnung + mitspieler + bindung) * 1000) / 10
+        umfeld: Math.round((eingewoehnung + mitspieler + reihenWirkungJetzt() + bindung)
+                           * 1000) / 10
       };
     }
 
@@ -3091,6 +3100,33 @@ const PUCKERO = (() => {
         st.altlasten[V.n] = wieOft + 1;
         season.verletzung = { n: V.n, spiele: durchVerletzung, schwere: V.schwere,
                               rueckfall, malNr: wieOft + 1 };
+
+        /* ------------------------------------------------------------
+           Was bleibt
+
+           Verschleiss baute sich bisher wieder ab, und Rueckfaelle
+           wurden nur laenger - am Ende war jede Verletzung heilbar.
+           Manche sind es nicht. Ein Kreuzband, eine dritte
+           Gehirnerschuetterung, eine Schulter, die zum vierten Mal
+           heraus war: danach ist ein Wert dauerhaft kleiner, und zwar
+           der, an dem diese Verletzung haengt. Hoechstens drei solcher
+           Marken je Laufbahn - sonst ist mit dreissig niemand mehr da.
+           ------------------------------------------------------------ */
+        const schwelle = V.schwere >= 3 ? 0.50
+                       : V.schwere === 2 ? 0.28
+                       : wieOft >= 2 ? 0.22 : 0;
+        const attrK = isG ? V.bleibtG : V.bleibt;
+        if (schwelle && attrK && st.dauerschaden.length < 3 && r() < schwelle){
+          const verlust = V.schwere >= 3 ? ri(r, 3, 5) : ri(r, 2, 4);
+          attrHeben(player, attrK, -verlust);
+          st.dauerschaden.push({ n: V.n, attr: attrK, wert: verlust, jahr: st.year });
+          /* Eine kaputte Stelle bleibt die anfaelligste Stelle. */
+          st.risikoBonus = (st.risikoBonus || 0) + 0.03;
+          const attrName = (D.ATTRS[isG ? 'goalie' : 'skater']
+                             .find(a => a.k === attrK) || {}).n || attrK;
+          season.events.push({ t: V.n + ' – etwas davon bleibt: ' + attrName
+            + ' dauerhaft ' + verlust + ' schwächer', c: 'bad' });
+        }
         season.events.push({
           t: (rueckfall ? V.n + ' – schon wieder' : V.n)
              + ' – ' + durchVerletzung + ' Spiele verpasst', c: 'bad' });
@@ -3128,6 +3164,8 @@ const PUCKERO = (() => {
       /* ---- Mitspieler ----
          In einer starken Mannschaft faellt es leichter zu punkten. */
       const mitspieler = clamp((klubStaerke(club) - ligaSchnittJetzt(club.lg)) * 0.006, -0.06, 0.07);
+
+      const reihenWirkung = reihenWirkungJetzt();
 
       /* ---- Kopf und Umfeld ----
          Gemessen ueber 3700 Saisons hatte die Moral auf die Ausbeute
@@ -3167,14 +3205,15 @@ const PUCKERO = (() => {
       /* Klassenunterschied zur Liga */
       const tagesform = 0.97 + r() * 0.04
                       + st.formzustand * 0.055
-                      + eingewoehnung + mitspieler
+                      + eingewoehnung + mitspieler + reihenWirkung
                       + moralWirkung + standWirkung + bindungsWirkung
                       + (season.sternstunde ? 0.10 : 0) + st.formBonus;
       season.einfluesse = {
         moral: Math.round(moralWirkung * 1000) / 10,
         stand: Math.round(standWirkung * 1000) / 10,
         form:  Math.round(st.formzustand * 0.055 * 1000) / 10,
-        umfeld: Math.round((eingewoehnung + mitspieler + bindungsWirkung) * 1000) / 10
+        umfeld: Math.round((eingewoehnung + mitspieler + reihenWirkung + bindungsWirkung)
+                           * 1000) / 10
       };
       const kante = clamp((ovr * tagesform - lg.level * 0.58) / 32, -0.35, 1.7);
       season.kante = Math.round(kante * 100) / 100;
@@ -3294,7 +3333,19 @@ const PUCKERO = (() => {
            ------------------------------------------------------------ */
         const huerdeLiga = LG_MIN[lg.k] !== undefined ? LG_MIN[lg.k] : 58;
         const ueberHuerde = ovr - huerdeLiga;
-        const einsatzAnteil = clamp(1 + Math.min(0, ueberHuerde + 4) * 0.055, 0.35, 1);
+        /* Der Herausforderer um denselben Platz. Steht er besser da,
+           kostet er Spiele - genau so, wie der zweite Torhueter dem
+           ersten Spiele kostet. Sein Vorsprung faellt mit dem Alter:
+           ein Dreiunddreissigjaehriger verdraengt niemanden mehr. */
+        const rivalDruck = st.platzrivale
+          ? clamp(-st.platzrivale.abstand, -0.85, 0.85)
+              * (st.platzrivale.alter >= 32 ? 0.4 : st.platzrivale.alter <= 23 ? 1.15 : 1)
+          : 0;
+        const einsatzAnteil = clamp(1 + Math.min(0, ueberHuerde + 4) * 0.055
+                                      - Math.max(0, rivalDruck) * 0.16, 0.35, 1);
+        if (st.platzrivale && rivalDruck > 0.35)
+          season.events.push({ t: st.platzrivale.name + ' drängt auf denselben Platz – '
+            + 'du musst um deine Minuten spielen', c: 'bad' });
         const gp = Math.max(8, Math.round((fullGp - missed) * einsatzAnteil));
         if (einsatzAnteil < 0.9)
           season.events.push({ t: 'Nicht immer im Kader – '
@@ -3521,7 +3572,15 @@ const PUCKERO = (() => {
             if (season.sv > 0.925 && kante > 1.00) season.awards.push('bestG');
             if (season.sv > 0.933 && kante > 1.25 && r() < 0.4) season.awards.push('mvp');
           }
-          if (season.gaa < 2.20 && kante > 0.95 && r() < 0.5) season.awards.push('torwartDuo');
+          /* Das Torwartduo darf unter der Mindestzahl bleiben - aber
+             nicht unter einem Spiel. Wer die Saison nicht im Tor
+             stand, hat einen Gegentorschnitt von null, und null ist
+             kleiner als 2,20: so bekam ein Torhueter ohne einen
+             einzigen Einsatz die Auszeichnung fuer zwei, die sich die
+             Saison teilen. Gemessen zwanzigmal in 7847 Saisons. */
+          if (season.gp >= Math.max(6, fullGp * 0.15)
+              && season.gaa < 2.20 && kante > 0.95 && r() < 0.5)
+            season.awards.push('torwartDuo');
         } else {
           const ppg = season.p / season.gp;
           /* ------------------------------------------------------------
@@ -3924,6 +3983,31 @@ const PUCKERO = (() => {
       else if (kante < 0.3 && r() < 0.55)       season.story = pick(r, D.STORY.schlecht);
       else if (r() < 0.35)                      season.story = pick(r, D.STORY.neutral);
       st.klubJahre++;
+      /* ----------------------------------------------------------------
+         Die Reihe haelt oder sie wird auseinandergenommen
+
+         Eine eingespielte Reihe wird mit den Jahren besser. Aber kein
+         Trainer laesst drei Jahre lang dieselben drei zusammen, wenn
+         es nicht laeuft - und manchmal auch dann. Wird sie getrennt,
+         faengt alles von vorne an: neuer Name, neue Chemie, null Jahre.
+         ---------------------------------------------------------------- */
+      if (st.reihe){
+        st.reihe.jahre = (st.reihe.jahre || 0) + 1;
+        /* Bei schlechter Chemie greift der Trainer eher ein. */
+        const trennung = st.reihe.chemie < -0.3 ? 0.42
+                       : st.reihe.chemie > 0.4 ? 0.12 : 0.24;
+        if (r() < trennung){
+          const rr3 = rng(player.seed + ":reihe:" + st.year);
+          let pn = pick(rr3, D.FIRST) + " " + pick(rr3, D.LAST);
+          if (pn === player.name) pn = pick(rr3, D.FIRST) + " " + pick(rr3, D.LAST);
+          const alteChemie = st.reihe.chemie;
+          st.reihe = { partner: pn, chemie: round1(clamp((rr3() - 0.5) * 2, -1, 1)), jahre: 0 };
+          season.events.push({ t: alteChemie > 0.4
+            ? "Die Reihe wird auseinandergenommen – ab jetzt neben " + pn
+            : "Neue Reihe: du spielst jetzt neben " + pn,
+            c: alteChemie > 0.4 ? "bad" : "info" });
+        }
+      }
 
       season.salary = round1((gehaltBasis(ovr, lg) + 0.05)
                              * (st.gehaltFaktor || 1));
@@ -5584,6 +5668,30 @@ const PUCKERO = (() => {
       return angebote;
     }
 
+    /* ------------------------------------------------------------------
+       Was die Reihe ausmacht
+
+       Wer neben einem spielt, entscheidet mehr als die Tabelle des
+       Vereins - und es wird mit den Jahren besser, weil man sich
+       irgendwann blind findet. Bewusst kleiner gehalten als die Rolle:
+       die Reihe faerbt eine Saison, sie macht sie nicht.
+
+       Steht an einer Stelle, weil zwei sie brauchen: die Vorschau vor
+       der Saison und die Abrechnung danach. Zeigten die beiden
+       verschiedene Zahlen, waere die Vorschau eine Luege.
+       ------------------------------------------------------------------ */
+    function reihenWirkungJetzt(){
+      if (!st.reihe) return 0;
+      const chemie = st.reihe.chemie || 0;
+      const eingespielt = Math.min(3, st.reihe.jahre || 0) * 0.012;
+      /* 0,055 waren zu viel: gemessen trennten sie gute von schlechter
+         Chemie um fuenfundzwanzig Prozent der Ausbeute, weil die Wirkung
+         ueber die Rolle nachwaechst - wer mehr punktet, bekommt mehr
+         Vertrauen und punktet dadurch noch mehr. Damit haette der Mann
+         neben einem mehr entschieden als das eigene Koennen. */
+      return chemie * 0.026 + (chemie > 0 ? eingespielt : 0);
+    }
+
     /* Trainer und engster Mitspieler beim aktuellen Klub */
     function umfeldBenennen(){
       const rr = rng(player.seed + ':umfeld:' + (st.club ? st.club.n : '') + ':' + st.year);
@@ -5615,6 +5723,52 @@ const PUCKERO = (() => {
         };
       } else if (!isG) {
         st.torwartrivale = null;
+      }
+
+      /* ----------------------------------------------------------------
+         Der Mann neben dir und der Mann hinter dir
+
+         Fuer Torhueter gab es den Zweikampf ums Tor seit langem; fuer
+         Feldspieler gab es nichts Vergleichbares. Dabei sind es genau
+         die beiden Verhaeltnisse, die eine Saison im Verein ausmachen:
+         mit wem man die Reihe bildet, und wer den eigenen Platz will.
+
+         Beides wird - wie beim Torhueter - relativ zu einem selbst
+         gewuerfelt, nicht unabhaengig: ein absolut gewuerfelter Rivale
+         waere fuer einen Guten nie eine Gefahr und fuer einen Schwachen
+         immer das Ende. Und beides gilt fuer diesen Klub; wer wechselt,
+         faengt neu an.
+         ---------------------------------------------------------------- */
+      if (!isG && st.club){
+        let pn = pick(rr, D.FIRST) + ' ' + pick(rr, D.LAST);
+        let v3 = 0;
+        while ((pn === player.name || pn === m) && v3++ < 5)
+          pn = pick(rr, D.FIRST) + ' ' + pick(rr, D.LAST);
+        /* Chemie ist nicht Qualitaet: ein guter Spieler, mit dem es
+           nicht laeuft, bringt weniger als ein mittlerer, der jeden
+           Weg mitgeht. Sie haelt, solange die Reihe haelt. */
+        st.reihe = {
+          partner: pn,
+          chemie: round1(clamp((rr() - 0.5) * 2, -1, 1)),
+          jahre: 0
+        };
+        let rn = pick(rr, D.FIRST) + ' ' + pick(rr, D.LAST);
+        let v4 = 0;
+        while ((rn === player.name || rn === m || rn === pn) && v4++ < 5)
+          rn = pick(rr, D.FIRST) + ' ' + pick(rr, D.LAST);
+        const schnittS = lgAvgStr(st.club.lg);
+        /* Nicht jeder Klub haelt sich fuer jede Position einen
+           Herausforderer - bei den starken ist es die Regel. */
+        const gibtRivalen = rr() < clamp(0.30 + (st.club.str - schnittS) * 0.02, 0.15, 0.62);
+        st.platzrivale = gibtRivalen ? {
+          name: rn,
+          abstand: round1(clamp((rr() - 0.46) * 1.5
+                                - (st.club.str - schnittS) * 0.035, -0.85, 0.85)),
+          alter: ri(rr, 19, 33)
+        } : null;
+      } else if (isG){
+        st.reihe = null;
+        st.platzrivale = null;
       }
     }
 

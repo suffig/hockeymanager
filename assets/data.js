@@ -581,19 +581,23 @@ const PUCKERO_DATA = (() => {
 
   /* ---------- Verletzungsarten ----------
      dauer = ungefaehre Ausfallzeit in Spielen, schwere = Verschleisswirkung */
+  /* bleibt / bleibtG: was eine schwere oder immer wiederkehrende
+     Verletzung dauerhaft kostet - beim Feldspieler und beim Torhueter
+     nicht dasselbe. Eine Schulter, die dreimal heraus war, ist keine
+     Schulter mehr, mit der man an der Bande gewinnt. */
   const VERLETZUNGEN = [
-    { n:'Muskelfaserriss im Oberschenkel', min:4,  max:10, schwere:0 },
-    { n:'Handgelenksprellung',             min:3,  max:8,  schwere:0 },
-    { n:'Bänderriss im Sprunggelenk',      min:10, max:20, schwere:1 },
-    { n:'Schulterluxation',                min:12, max:24, schwere:1 },
-    { n:'Gehirnerschütterung',             min:8,  max:22, schwere:2 },
-    { n:'Handbruch nach Schussblock',      min:9,  max:18, schwere:1 },
-    { n:'Rückenprobleme',                  min:6,  max:16, schwere:1 },
-    { n:'Kreuzbandriss',                   min:26, max:48, schwere:3 },
-    { n:'Kufenschnitt am Unterarm',        min:5,  max:12, schwere:0 },
-    { n:'Leistenverletzung',               min:7,  max:15, schwere:1 },
-    { n:'Jochbeinbruch',                   min:6,  max:14, schwere:1 },
-    { n:'Innenbandriss im Knie',           min:14, max:30, schwere:2 }
+    { n:'Muskelfaserriss im Oberschenkel', min:4,  max:10, schwere:0, bleibt:'antritt',   bleibtG:'beweglich' },
+    { n:'Handgelenksprellung',             min:3,  max:8,  schwere:0, bleibt:'praezision', bleibtG:'stockhand' },
+    { n:'Bänderriss im Sprunggelenk',      min:10, max:20, schwere:1, bleibt:'skating',    bleibtG:'beweglich' },
+    { n:'Schulterluxation',                min:12, max:24, schwere:1, bleibt:'zweikampf',  bleibtG:'fanghand' },
+    { n:'Gehirnerschütterung',             min:8,  max:22, schwere:2, bleibt:'uebersicht', bleibtG:'lesen' },
+    { n:'Handbruch nach Schussblock',      min:9,  max:18, schwere:1, bleibt:'schuss',     bleibtG:'fanghand' },
+    { n:'Rückenprobleme',                  min:6,  max:16, schwere:1, bleibt:'skating',    bleibtG:'stellung' },
+    { n:'Kreuzbandriss',                   min:26, max:48, schwere:3, bleibt:'antritt',    bleibtG:'beweglich' },
+    { n:'Kufenschnitt am Unterarm',        min:5,  max:12, schwere:0, bleibt:'puck',       bleibtG:'puckspiel' },
+    { n:'Leistenverletzung',               min:7,  max:15, schwere:1, bleibt:'skating',    bleibtG:'beweglich' },
+    { n:'Jochbeinbruch',                   min:6,  max:14, schwere:1, bleibt:'nerven',     bleibtG:'nerven' },
+    { n:'Innenbandriss im Knie',           min:14, max:30, schwere:2, bleibt:'antritt',    bleibtG:'beweglich' }
   ];
 
   /* ---------- Rollen im Team ----------
