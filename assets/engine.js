@@ -795,6 +795,7 @@ const PUCKERO = (() => {
       rollenLauf: [],         // jede Aenderung, mit Grund
       verhandlung: null,      // offene Vertragsverhandlung
       klausel: false,         // Ausstiegsklausel im laufenden Vertrag
+      zweiwege: false,        // Zweiwege-Vertrag: jederzeit versetzbar
       sperre: false,          // Wechselsperre - der Klub laesst dich nicht gehen
       bonus: null,            // laufende Bonusklausel im aktuellen Vertrag
       bonusBilanz: { erfuellt: 0, verfehlt: 0 },
@@ -1493,6 +1494,70 @@ const PUCKERO = (() => {
           ]
         };
       }
+      /* ==================================================================
+         Abgegeben
+
+         Jede Bewegung an der Frist ging bisher von einem selbst aus:
+         man wurde gefragt, man entschied, man blieb oder ging. Der
+         haeufigste Fall im echten Betrieb kam nicht vor - der, in dem
+         zwei Klubs etwas ausmachen und man es aus dem Radio erfaehrt.
+
+         Deshalb hat dieses Blatt keine Option, die zum Bleiben fuehrt.
+         Man waehlt nicht, OB man geht, sondern wie man geht - und was
+         davon haengen bleibt. Genau dafuer ist die Wechselsperre da,
+         die man sich im Vertragsgespraech erkaempfen kann: sie war
+         bisher nur ein Verzicht gegen Aufschlag, jetzt ist sie ein
+         Schutz.
+         ================================================================== */
+      const abgebend = clubsOf(st.club.lg)
+        .filter(c => c.n !== st.club.n && klubStaerke(c) > schnitt - 2);
+      if (!st.sperre && st.age >= 22 && abgebend.length
+          && (klubTrend(st.club) === 'ab' || diff < -2)
+          /* 0,38 liess ueber die Laufbahn 54 Prozent mindestens einmal
+             abgeben - fuer sich genommen glaubhaft, aber es verdraengte
+             die anderen Geschichten der Frist, weil dieses Blatt zuerst
+             geprueft wird. */
+          && r() < 0.26){
+        const neuerKlub = pick(r, abgebend);
+        const weitWeg = league(st.club.lg).land !== league(neuerKlub.lg).land;
+        return {
+          art: 'abgegeben', ikone: 'transfer', tag: 'Wechselfrist',
+          titel: 'Du erfährst es aus dem Radio',
+          text: 'Um Viertel nach vier nennt ein Reporter deinen Namen, und du sitzt noch im '
+              + 'Auto. ' + st.club.n + ' hat dich an ' + neuerKlub.n + ' abgegeben – '
+              + 'unterschrieben, gemeldet, erledigt. Niemand hat dich gefragt, und niemand '
+              + 'musste. Um sechs erwartet dich dort das Mannschaftsfoto.',
+          stand: { klub: st.club.n, diff: Math.round(diff), ziel: neuerKlub.n },
+          optionen: [
+            { t: 'Es sportlich nehmen', ikone: 'schild', chance: 72,
+              hinweis: 'Nichts sagen, ankommen, spielen',
+              zielKlub: neuerKlub, folgt: 'wechsler',
+              gut: { moral: 4, ruf: 6,
+                     text: 'Du bedankst dich öffentlich bei allen und stehst am Abend auf dem Eis. '
+                         + 'In der neuen Kabine spricht sich das herum.' },
+              schlecht: { moral: -7,
+                     text: 'Du sagst die richtigen Sätze, und keiner glaubt sie dir – du dir am wenigsten.' } },
+            { t: 'Öffentlich sagen, was du davon hältst', ikone: 'presse', chance: 40,
+              hinweis: 'Ehrlich. Und es steht morgen überall',
+              zielKlub: neuerKlub, folgt: 'wechsler',
+              gut: { moral: 8, ruf: 5, attr: { nerven: 3 },
+                     text: '„Ich hätte gern davon gewusst." Mehr sagst du nicht, und genau das '
+                         + 'ist die Zeile, die alle bringen. Der alte Klub schweigt.' },
+              schlecht: { moral: -10, ruf: -9,
+                     text: 'Aus drei Sätzen werden zwei Wochen. Du kommst als der an, der Ärger macht.' } },
+            { t: 'Den Trainer anrufen, der dich abgegeben hat', ikone: 'telefon', chance: 55,
+              hinweis: 'Du willst es von ihm hören',
+              zielKlub: neuerKlub, folgt: 'wechsler',
+              gut: { moral: 9, attr: { nerven: 2 },
+                     text: 'Er geht ran. Es dauert vierzig Minuten, und am Ende weißt du, dass es '
+                         + 'nicht gegen dich ging. Das hilft mehr, als du gedacht hättest.' },
+              schlecht: { moral: -8,
+                     text: 'Die Mailbox. Zweimal. Beim dritten Mal legst du nicht mehr auf – '
+                         + 'du wählst gar nicht erst.' } }
+          ]
+        };
+      }
+
       if (!stark.length) return null;
       const ziel = pick(r, stark);
       const ctx = ereignisKontext();
@@ -3341,8 +3406,18 @@ const PUCKERO = (() => {
           ? clamp(-st.platzrivale.abstand, -0.85, 0.85)
               * (st.platzrivale.alter >= 32 ? 0.4 : st.platzrivale.alter <= 23 ? 1.15 : 1)
           : 0;
+        /* Wer auf einem Zweiwege-Vertrag steht und die Norm nicht
+           erreicht, verbringt einen Teil der Saison eine Etage
+           tiefer. Genau dafuer ist diese Vertragsform da - sie
+           verschafft die Tuer und behaelt den Schluessel. */
+        const runter = st.zweiwege && ueberHuerde < 0
+          ? clamp(-ueberHuerde * 0.045, 0, 0.34) : 0;
         const einsatzAnteil = clamp(1 + Math.min(0, ueberHuerde + 4) * 0.055
-                                      - Math.max(0, rivalDruck) * 0.16, 0.35, 1);
+                                      - Math.max(0, rivalDruck) * 0.16
+                                      - runter, 0.35, 1);
+        if (runter > 0.08)
+          season.events.push({ t: 'Zweiwege-Vertrag: '
+            + Math.round(runter * 100) + ' % der Saison eine Liga tiefer', c: 'bad' });
         if (st.platzrivale && rivalDruck > 0.35)
           season.events.push({ t: st.platzrivale.name + ' drängt auf denselben Platz – '
             + 'du musst um deine Minuten spielen', c: 'bad' });
@@ -5267,6 +5342,8 @@ const PUCKERO = (() => {
        angezeigt - und sie zu verwechseln war genau der Fehler. */
     function macheAngebote(bewertung, eigenWert){
       const aktuell = st.club;
+      /* Welche Ligen nur ueber einen Zweiwege-Vertrag zu haben sind. */
+      const zweiwegeLigen = new Set();
       let moeglicheLigen = D.LEAGUES.filter(l => {
                 /* Nur die eigene Juniorenliga - ein Deutscher bekommt kein
            Angebot aus der kanadischen CHL. */
@@ -5320,7 +5397,30 @@ const PUCKERO = (() => {
            bleibt fuer den Kapitaen deshalb immer erreichbar.
            ------------------------------------------------------------ */
         if (l.k === aktuell.lg && st.kapitaenSeit === aktuell.n) return true;
-        return bewertung >= LG_MIN[l.k] - bonus - traegt;
+        const grenze = LG_MIN[l.k] - bonus - traegt;
+        if (bewertung >= grenze) return true;
+        /* ------------------------------------------------------------
+           Der Zweiwege-Vertrag
+
+           Bisher war eine Liga entweder erreichbar oder nicht, und
+           dazwischen lag nichts. In Wirklichkeit liegt dort die
+           haeufigste Vertragsform ueberhaupt: du stehst im Kader, du
+           verdienst einen Bruchteil, und sie koennen dich jederzeit
+           runterschicken. Wer knapp unter der Norm liegt, bekommt so
+           eine Tuer - und zahlt dafuer mit Spielen und mit Geld.
+
+           Nur in echten Ligen, nicht in Jugendligen, und nicht als
+           Ersatz fuer den regulaeren Weg: fuenf Punkte, mehr nicht.
+           ------------------------------------------------------------ */
+        /* Nur in den Ligen, in denen es die Form wirklich gibt - wo
+           unter der Mannschaft noch eine zweite haengt. In der DEL2
+           schickt einen niemand runter, dort ist schon unten. */
+        if (!istJugend(l.k) && l.prestige >= 40 && st.age <= 30
+            && bewertung >= grenze - 4){
+          zweiwegeLigen.add(l.k);
+          return true;
+        }
+        return false;
       });
       if (!moeglicheLigen.length) moeglicheLigen = [league(st.age <= 20 ? heimJugend : 'AHL')];
 
@@ -5344,8 +5444,14 @@ const PUCKERO = (() => {
         else                   jahre = ri(r, 2, 4);
         /* Einer Legende bietet der Verein laenger an - auch spaet. */
         if (bleibt && klubBindung() >= 0.6) jahre = Math.min(5, jahre + 1);
+        /* Ein Zweiwege-Vertrag nur dort, wo die Wertung sonst nicht
+           reicht - beim eigenen Klub, der einen ohnehin haelt, waere
+           er eine Herabstufung ohne Anlass. */
+        const zweiwege = zweiwegeLigen.has(club.lg)
+                      && bewertung < (LG_MIN[club.lg] !== undefined
+                                      ? LG_MIN[club.lg] : 58);
         angebote.push({
-          club, lgKey: club.lg, lgName: lg.n, bleibt: !!bleibt, rolle,
+          club, lgKey: club.lg, lgName: lg.n, bleibt: !!bleibt, rolle, zweiwege,
           /* Das Land gehoert dazu: "Extraliga" sagt einem Deutschen
              nichts, "Tschechien" schon. */
           land: lg.land, daheim: istHeimatLiga(club.lg, player.nation),
@@ -5381,8 +5487,11 @@ const PUCKERO = (() => {
           passung: LG_MIN[club.lg] === undefined ? null
                  : Math.round(bewertung - LG_MIN[club.lg]),
           trend: klubTrend(club), jahre,
+          /* Ein Zweiwege-Vertrag zahlt einen Bruchteil - das ist der
+             Preis der Tuer. */
           gehalt: round1(gehaltBasis(bewertung, lg)
-                         * (bleibt ? 1.05 + klubBindung() * 0.16 : 1) + 0.05),
+                         * (bleibt ? 1.05 + klubBindung() * 0.16 : 1)
+                         * (zweiwege ? 0.42 : 1) + 0.05),
           bindung: bleibt ? klubBindung() : 0,
           klubRang: bleibt && st.klubKonto[club.n] ? st.klubKonto[club.n].rang : null,
           prestige: lg.prestige
@@ -5871,6 +5980,7 @@ const PUCKERO = (() => {
       }
       st.klausel = false;              // neuer Vertrag, neue Bedingungen
       st.sperre = false;
+      st.zweiwege = !!a.zweiwege;
       st.bonus = null;
       st.gehaltFaktor = 1;
       st.verhandlung = macheVerhandlung(a);
