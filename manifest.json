@@ -1,7 +1,7 @@
 {
-  "name": "Eiszeit – Eishockey-Karriere",
-  "short_name": "Eiszeit",
-  "description": "Eine ganze Eishockeykarriere in fünfzehn Minuten. Entscheide Jahr für Jahr selbst: Vertrag, Rolle, Wechselfrist, Nationalmannschaft, Sommer.",
+  "name": "RINKRISE – Eishockey-Karriere",
+  "short_name": "RINKRISE",
+  "description": "Build your career. Own the rink. Eine ganze Eishockeykarriere in fünfzehn Minuten – entscheide Jahr für Jahr selbst: Vertrag, Rolle, Wechselfrist, Nationalmannschaft, Sommer.",
   "lang": "de",
   "dir": "ltr",
   "start_url": "./index.html#spielen",
@@ -10,7 +10,10 @@
   "orientation": "portrait",
   "background_color": "#05080f",
   "theme_color": "#0b1220",
-  "categories": ["games", "sports"],
+  "categories": [
+    "games",
+    "sports"
+  ],
   "icons": [
     {
       "src": "assets/app/symbol-192.png",
@@ -36,13 +39,23 @@
       "name": "Neue Karriere",
       "short_name": "Karriere",
       "url": "./index.html#spielen",
-      "icons": [{ "src": "assets/app/symbol-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "assets/app/symbol-192.png",
+          "sizes": "192x192"
+        }
+      ]
     },
     {
       "name": "Pokalraum",
       "short_name": "Pokale",
       "url": "./pokalraum.html",
-      "icons": [{ "src": "assets/app/symbol-192.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "assets/app/symbol-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }

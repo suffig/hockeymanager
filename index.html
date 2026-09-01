@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Eiszeit – Eishockey-Karriere-Simulator kostenlos online spielen</title>
-<meta name="description" content="Eiszeit ist ein kostenloser Eishockey-Karriere-Simulator im Browser: Spieler formen, Saison für Saison entscheiden und eine ganze Laufbahn mit Transfers, Toren, Pokalen und Rücktritt erleben. Ohne Anmeldung.">
+<title>RINKRISE – Eishockey-Karriere-Simulator kostenlos online spielen</title>
+<meta name="description" content="RINKRISE ist ein kostenloser Eishockey-Karriere-Simulator im Browser: Spieler formen, Saison für Saison entscheiden und eine ganze Laufbahn mit Transfers, Toren, Pokalen und Rücktritt erleben. Ohne Anmeldung.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=6cf3c93b">
+<link rel="stylesheet" href="assets/style.css?v=18b9e06f">
 
 <!-- Als App auf dem Startbildschirm -->
 <link rel="manifest" href="manifest.json">
@@ -16,16 +16,17 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Eiszeit">
+<meta name="apple-mobile-web-app-title" content="RINKRISE">
 <link rel="apple-touch-icon" href="assets/app/apple-touch-icon.png">
 <script>
 /* Gespeichertes Thema sofort anwenden, damit nichts aufblitzt */
-try{var t=localStorage.getItem('eiszeit.thema')||localStorage.getItem('puckero.thema');
+try{var t=localStorage.getItem('rinkrise.thema')||localStorage.getItem('eiszeit.thema')
+        ||localStorage.getItem('puckero.thema');
     /* Liste hier und THEMEN in ui.js muessen dieselben Namen kennen. */
     if(t==='verspielt'||t==='retro'||t==='flutlicht')document.documentElement.setAttribute('data-thema',t);}catch(e){}
 </script>
 
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><circle cx='16' cy='16' r='12' fill='%230b1220' stroke='%2338d1ff' stroke-width='3'/></svg>">
+<link rel="icon" href="assets/app/marke-96.png?v=1" type="image/png">
 </head>
 <body data-nav="Spielen">
 <div id="hdr"></div>
@@ -34,8 +35,11 @@ try{var t=localStorage.getItem('eiszeit.thema')||localStorage.getItem('puckero.t
 <section class="hero">
   <div class="rink-lines"></div>
   <div class="wrap">
+    <img class="hero-logo" src="assets/rinkrise-640.webp" alt="RINKRISE"
+         width="640" height="585" fetchpriority="high" decoding="async">
     <span class="eyebrow">Kostenlos · ohne Anmeldung · im Browser</span>
     <h1>Eine ganze Eishockey&shy;karriere<br>in fünfzehn Minuten</h1>
+    <p class="claim">Build your career. Own the rink.</p>
     <p class="lead">Erstelle deinen Spieler, beantworte vier Charakterfragen und entscheide
       dann Jahr für Jahr selbst: Vertrag, Rolle, Wechselfrist, Nationalmannschaft, Sommer.
       Aus einem Juniorentalent wird ein Kapitän, ein Wandersöldner oder eine Legende –
@@ -117,7 +121,7 @@ try{var t=localStorage.getItem('eiszeit.thema')||localStorage.getItem('puckero.t
       <div class="card pad-lg">
         <span class="eyebrow">Bewertung</span>
         <h3 style="font-family:var(--display);font-size:30px;font-weight:400;letter-spacing:.5px">
-          Wie Eiszeit deine Karriere bewertet</h3>
+          Wie RINKRISE deine Karriere bewertet</h3>
         <p style="color:var(--muted)">Am Ende steht eine Zahl: die Legendenpunkte. Sie setzen sich zusammen aus</p>
         <ul style="color:var(--muted);padding-left:20px;margin:0 0 18px">
           <li><b style="color:var(--text)">Titeln</b> – Meisterschaften wiegen nach Liga unterschiedlich schwer</li>
@@ -200,7 +204,7 @@ try{var t=localStorage.getItem('eiszeit.thema')||localStorage.getItem('puckero.t
   <div class="wrap narrow">
     <h2>Häufige Fragen</h2>
 
-    <details class="faq" open><summary>Kostet Eiszeit etwas?</summary>
+    <details class="faq" open><summary>Kostet RINKRISE etwas?</summary>
       <p>Nein. Es gibt keine Bezahlschranke, keine Abos und keine Vorteile für Geld.
         Die Seite läuft vollständig in deinem Browser.</p></details>
 
@@ -254,7 +258,7 @@ try{var t=localStorage.getItem('eiszeit.thema')||localStorage.getItem('puckero.t
       <p>Die Namen ja – NHL, DEL, SHL, Liiga, National League, KHL und Extraliga mit ihren echten
         Vereinen, dazu Stanley Cup, Gagarin Cup, Hart Trophy und Vezina Trophy.
         Die Stärkewerte der Klubs sind dagegen unsere eigene Einschätzung für die Simulation
-        und keine Aussage über die reale Leistungsfähigkeit. Eiszeit ist ein nicht lizenziertes
+        und keine Aussage über die reale Leistungsfähigkeit. RINKRISE ist ein nicht lizenziertes
         Fanprojekt ohne Verbindung zu Ligen, Verbänden oder Vereinen.</p></details>
 
     <details class="faq"><summary>Bekomme ich in der DEL eine Hart Trophy?</summary>
@@ -266,19 +270,19 @@ try{var t=localStorage.getItem('eiszeit.thema')||localStorage.getItem('puckero.t
 
 <div id="ftr"></div>
 
-<script src="assets/data.js?v=6cf3c93b"></script>
-<script src="assets/draft.js?v=6cf3c93b"></script>
+<script src="assets/data.js?v=18b9e06f"></script>
+<script src="assets/draft.js?v=18b9e06f"></script>
 <!-- Der Kontozugang: ohne ihn kann die Spielseite weder eine
      abgeschlossene Laufbahn in die Datenbank schreiben noch den
      Eintrag in die Bestenliste anbieten. Er war hier nie geladen,
      und damit lief der Speicheraufruf der Engine ins Leere. -->
-<script src="assets/konto-config.js?v=6cf3c93b"></script>
-<script src="assets/konto.js?v=6cf3c93b"></script>
-<script src="assets/engine.js?v=6cf3c93b"></script>
-<script src="assets/ereignisse.js?v=6cf3c93b"></script>
-<script src="assets/wappen.js?v=6cf3c93b"></script>
-<script src="assets/ui.js?v=6cf3c93b"></script>
-<script src="assets/game.js?v=6cf3c93b"></script>
+<script src="assets/konto-config.js?v=18b9e06f"></script>
+<script src="assets/konto.js?v=18b9e06f"></script>
+<script src="assets/engine.js?v=18b9e06f"></script>
+<script src="assets/ereignisse.js?v=18b9e06f"></script>
+<script src="assets/wappen.js?v=18b9e06f"></script>
+<script src="assets/ui.js?v=18b9e06f"></script>
+<script src="assets/game.js?v=18b9e06f"></script>
 <script>
   const urlSeed = new URLSearchParams(location.search).get('seed');
   CareerGame(document.getElementById('game'), { startSeed: urlSeed || null });

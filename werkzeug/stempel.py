@@ -87,8 +87,12 @@ def main():
     alt = io.open(swPfad, encoding='utf-8').read()
     neu = re.sub(r"'(\./assets/[A-Za-z0-9_.-]+\.(?:js|css))(?:\?v=[0-9a-f]+)?'",
                  lambda m: "'" + m.group(1) + '?v=' + marke + "'", alt)
-    neu = re.sub(r"const VERSION = 'eiszeit-[^']*';",
-                 "const VERSION = 'eiszeit-" + marke + "';", neu)
+    # Der Name davor ist bewusst offen: er hiess schon puckero-,
+    # dann eiszeit-, jetzt rinkrise-. Stuende er hier fest, wuerde die
+    # Regel bei der naechsten Umbenennung still nicht mehr greifen und
+    # der Offlinespeicher friere auf dem alten Stand ein.
+    neu = re.sub(r"const VERSION = '([a-z]+)-[0-9a-f]*';",
+                 lambda m: "const VERSION = '" + m.group(1) + "-" + marke + "';", neu)
     if neu != alt:
         io.open(swPfad, 'w', encoding='utf-8', newline='').write(neu)
         geaendert.append('sw.js')

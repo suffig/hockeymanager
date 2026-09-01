@@ -1,5 +1,5 @@
 /* ==========================================================
-   Eiszeit – Zugang zur Datenbank
+   RINKRISE – Zugang zur Datenbank
 
    Hier deine beiden Supabase-Werte eintragen. Du findest sie im
    Dashboard unter Project Settings → API:
@@ -15,7 +15,7 @@
    niemals in eine Datei, die im Browser landet, und niemals ins
    Repository.
 
-   Solange hier Platzhalter stehen, läuft Eiszeit ohne Konten:
+   Solange hier Platzhalter stehen, läuft RINKRISE ohne Konten:
    gespielt wird wie bisher, gespeichert wird lokal im Browser.
    ========================================================== */
 

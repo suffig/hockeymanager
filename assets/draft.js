@@ -1,5 +1,5 @@
 /* ==========================================================
-   Eiszeit – Charakterdraft
+   RINKRISE – Charakterdraft
 
    Fünf Fragen statt acht Kartenrunden. Jede Antwort verschiebt
    Attribute und verleiht eine benannte Eigenschaft, die sich

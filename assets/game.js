@@ -1,5 +1,5 @@
 /* ==========================================================
-   Eiszeit – Spielablauf: Identität → Draft → Karriere → Bilanz
+   RINKRISE – Spielablauf: Identität → Draft → Karriere → Bilanz
    Genutzt von index.html, schnellkarriere.html und taeglich.html
    ========================================================== */
 
@@ -76,7 +76,7 @@ function CareerGame(root, cfg){
      Seed und gleichen Entscheidungen immer denselben Verlauf nimmt,
      ergibt ihr Nachspielen exakt dieselbe Laufbahn.
      ================================================================ */
-  const STAND_KEY = 'eiszeit.laufendeKarriere';
+  const STAND_KEY = 'rinkrise.laufendeKarriere';
 
   /* Alles, was den Verlauf veraendert. runToEnd fehlt mit Absicht: es
      beendet die Laufbahn, und danach wird der Stand ohnehin geloescht. */

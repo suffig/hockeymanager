@@ -1,5 +1,5 @@
 /* ==========================================================
-   Eiszeit – Weltweite Bestenliste
+   RINKRISE – Weltweite Bestenliste
 
    Zwei Ansichten in einer Seite: die Rangliste und eine einzelne
    Laufbahn. Der Wechsel dazwischen laeuft ueber die Adresszeile

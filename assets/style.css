@@ -81,16 +81,23 @@ header.site{
 }
 .nav{display:flex;align-items:center;gap:clamp(12px,3vw,26px);
      height:clamp(48px,13.5vw,64px)}
-.brand{display:flex;align-items:center;gap:clamp(6px,2vw,10px);
+/* ------------------------------------------------------------------
+   Die Marke
+
+   Vorher ein gezeichneter Puck plus der Schriftzug als Text. Das Logo
+   bringt beides schon mit, also steht hier nur noch ein Bild - mit
+   festen Massen im Markup, damit beim Laden nichts springt.
+   ------------------------------------------------------------------ */
+.brand{display:flex;align-items:center;gap:clamp(5px,1.6vw,9px);
        font-family:var(--display);font-size:clamp(19px,5.8vw,26px);
-       letter-spacing:1px;color:var(--text)}
+       letter-spacing:1.5px;color:var(--text)}
 .brand:hover{text-decoration:none}
-.brand .puck{
-  width:clamp(19px,5.6vw,26px);height:clamp(19px,5.6vw,26px);
-  flex:0 0 auto;border-radius:50%;
-  background:linear-gradient(160deg,#2b3550,#0a0f1c);
-  border:2px solid var(--accent);
-  box-shadow:0 0 18px rgba(56,209,255,.45);
+/* Nur das Zeichen, nicht das ganze Logo: der gestapelte Schriftzug
+   waere bei 34 Pixel Hoehe nicht mehr zu lesen. Den Namen setzt
+   daneben die Schrift, in der auch alle Ueberschriften stehen. */
+.brand .marke{
+  width:auto;height:clamp(26px,6.4vw,36px);flex:0 0 auto;display:block;
+  filter:drop-shadow(0 2px 9px rgba(56,209,255,.30));
 }
 .nav nav{display:flex;gap:22px;margin-left:auto;flex-wrap:wrap}
 .nav nav a{color:var(--muted);font-size:14.5px;font-weight:550}
@@ -1258,9 +1265,10 @@ footer.site a:hover{color:var(--text)}
 }
 
 /* Verspielter Puck im Kopf */
-:root[data-thema="verspielt"] .brand .puck{
-  border-color:var(--accent-2);
-  box-shadow:0 0 20px rgba(255,122,200,.6);
+/* Frueher wippte der gezeichnete Puck. Das Logo bringt seinen
+   eigenen Schein mit, deshalb wippt jetzt es. */
+:root[data-thema="verspielt"] .brand .marke{
+  filter:drop-shadow(0 2px 14px rgba(255,122,200,.55));
   animation:puckWippe 3.4s ease-in-out infinite;
 }
 @keyframes puckWippe{ 0%,100%{transform:translateY(0) rotate(0)} 50%{transform:translateY(-3px) rotate(12deg)} }
@@ -4529,3 +4537,26 @@ header.site .brand .puck{animation:puckRein .9s cubic-bezier(.2,.9,.3,1) both}
 
 /* Am Karriereende sitzt die Anlage unter der Gesamtwertung. */
 .anlage.ende{ margin-top:14px; text-align:left }
+
+
+/* ------------------------------------------------------------------
+   Der Claim
+
+   Steht unter der Ueberschrift des Startbilds, in der Schrift des
+   Logos und bewusst leiser als die Zeile darueber - er ordnet ein,
+   er ruft nicht.
+   ------------------------------------------------------------------ */
+.hero .claim{
+  font-family:var(--display); letter-spacing:2.4px;
+  font-size:clamp(13px,3.3vw,17px); color:var(--accent);
+  margin:2px 0 14px; text-transform:uppercase;
+}
+
+
+/* Das volle Logo auf dem Startbild - hier hat der gestapelte
+   Schriftzug Platz und darf wirken. */
+.hero .hero-logo{
+  display:block; width:min(320px,58vw); height:auto;
+  margin:0 0 clamp(10px,2.4vw,18px);
+  filter:drop-shadow(0 8px 34px rgba(56,209,255,.28));
+}

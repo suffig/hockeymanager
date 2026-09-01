@@ -1,5 +1,5 @@
 /* ==========================================================
-   Eiszeit – Karriere-Engine
+   RINKRISE – Karriere-Engine
    Deterministisch: gleicher Seed + gleiche Entscheidungen = gleiche Karriere
    ========================================================== */
 
@@ -7034,7 +7034,7 @@ const PUCKERO = (() => {
   ];
 
   /* ---------------- Herausforderungen ---------------- */
-  const HKEY = 'eiszeit.herausforderungen';
+  const HKEY = 'rinkrise.herausforderungen';
   function ladeHerausforderungen(){
     try { return JSON.parse(localStorage.getItem(HKEY) || '{}'); }
     catch(e){ return {}; }
@@ -7060,7 +7060,7 @@ const PUCKERO = (() => {
   function clearHerausforderungen(){ try { localStorage.removeItem(HKEY); } catch(e){} }
 
   /* ---------------- Speicher ---------------- */
-  const KEY = 'eiszeit.karrieren';
+  const KEY = 'rinkrise.karrieren';
   function saveCareer(result){
     try{
       const list = loadCareers();

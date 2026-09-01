@@ -1,5 +1,5 @@
 /* ==========================================================
-   Eiszeit – Konten
+   RINKRISE – Konten
 
    Kapselt alles, was mit Anmeldung und Freigabe zu tun hat.
    Zwei Grundsätze:
@@ -240,7 +240,7 @@ const KONTO = (() => {
      stehen in der Datenbank (db/06_gast_eintrag.sql), nicht hier, denn
      alles im Browser laesst sich umgehen.
      ------------------------------------------------------------------ */
-  const GAST_NAME_KEY = 'eiszeit.gastname';
+  const GAST_NAME_KEY = 'rinkrise.gastname';
 
   function gastnamePruefen(n){
     const name = String(n || '').trim();

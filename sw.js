@@ -1,5 +1,5 @@
 /* ==========================================================
-   Eiszeit – Offlinespeicher
+   RINKRISE – Offlinespeicher
 
    Die Seite wirbt seit jeher damit, offline zu funktionieren.
    Bisher stimmte das nur, solange der Browser die Dateien noch im
@@ -16,7 +16,7 @@
      Speicher; sie aendern sich mit ihrem Dateinamen.
    ========================================================== */
 
-const VERSION = 'eiszeit-6cf3c93b';
+const VERSION = 'rinkrise-18b9e06f';
 const SCHALE = [
   './',
   './index.html',
@@ -27,20 +27,24 @@ const SCHALE = [
   './schnellkarriere.html',
   './taeglich.html',
   './konto.html',
-  './assets/style.css?v=6cf3c93b',
-  './assets/data.js?v=6cf3c93b',
-  './assets/draft.js?v=6cf3c93b',
-  './assets/engine.js?v=6cf3c93b',
-  './assets/ereignisse.js?v=6cf3c93b',
-  './assets/wappen.js?v=6cf3c93b',
-  './assets/ui.js?v=6cf3c93b',
-  './assets/game.js?v=6cf3c93b',
-  './assets/konto-config.js?v=6cf3c93b',
-  './assets/konto.js?v=6cf3c93b',
-  './assets/bestenliste.js?v=6cf3c93b',
+  './assets/style.css?v=18b9e06f',
+  './assets/data.js?v=18b9e06f',
+  './assets/draft.js?v=18b9e06f',
+  './assets/engine.js?v=18b9e06f',
+  './assets/ereignisse.js?v=18b9e06f',
+  './assets/wappen.js?v=18b9e06f',
+  './assets/ui.js?v=18b9e06f',
+  './assets/game.js?v=18b9e06f',
+  './assets/konto-config.js?v=18b9e06f',
+  './assets/konto.js?v=18b9e06f',
+  './assets/bestenliste.js?v=18b9e06f',
   './manifest.json',
   './assets/app/symbol-192.png',
-  './assets/app/symbol-512.png'
+  './assets/app/symbol-512.png',
+  /* Das Logo gehoert in die Schale: ohne es zeigt die Seite offline
+     eine leere Kopfzeile. */
+  './assets/rinkrise-240.webp',
+  './assets/app/marke-96.png'
 ];
 
 self.addEventListener('install', e => {

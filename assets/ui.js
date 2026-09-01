@@ -1,20 +1,29 @@
 /* ==========================================================
-   Eiszeit – gemeinsame Oberflächen-Bausteine
+   RINKRISE – gemeinsame Oberflächen-Bausteine
    ========================================================== */
 
-/* Der Speicher hiess frueher anders. Einmalig uebernehmen, damit
-   gespeicherte Karrieren und Fortschritte nicht verloren gehen. */
+/* ------------------------------------------------------------------
+   Der Speicher hiess frueher anders
+
+   Zweimal inzwischen: puckero.* wurde zu eiszeit.*, und mit dem Namen
+   RINKRISE wird eiszeit.* zu rinkrise.*. Wer eine Karriere gespeichert
+   hat, soll sie behalten, egal wie das Spiel gerade heisst - deshalb
+   wird die Kette in einem Durchgang abgearbeitet: erst der alte
+   Sprung, dann der neue. Ein Eintrag, der schon am Ziel liegt, wird
+   nie ueberschrieben.
+   ------------------------------------------------------------------ */
 (function umzug(){
+  const NAMEN = ['karrieren', 'herausforderungen', 'thema', 'tagesbestwert',
+                 'laufendeKarriere', 'gastname'];
   try {
-    [['puckero.karrieren',         'eiszeit.karrieren'],
-     ['puckero.herausforderungen', 'eiszeit.herausforderungen'],
-     ['puckero.thema',             'eiszeit.thema'],
-     ['puckero.tagesbestwert',     'eiszeit.tagesbestwert']].forEach(([alt, neu]) => {
-      const wert = localStorage.getItem(alt);
-      if (wert !== null && localStorage.getItem(neu) === null){
-        localStorage.setItem(neu, wert);
-        localStorage.removeItem(alt);
-      }
+    [['puckero.', 'eiszeit.'], ['eiszeit.', 'rinkrise.']].forEach(([von, nach]) => {
+      NAMEN.forEach(n => {
+        const wert = localStorage.getItem(von + n);
+        if (wert !== null && localStorage.getItem(nach + n) === null){
+          localStorage.setItem(nach + n, wert);
+          localStorage.removeItem(von + n);
+        }
+      });
     });
   } catch(e){}
 })();
@@ -94,7 +103,9 @@ const UI = (() => {
 <header class="site">
   <div class="wrap">
     <div class="nav" id="mainnav">
-      <a class="brand" href="index.html"><span class="puck"></span>EISZEIT</a>
+      <a class="brand" href="index.html" aria-label="RINKRISE – Startseite">
+        <img src="assets/zeichen-140.webp" alt="" width="160" height="83"
+             class="marke" decoding="async"><span>RINKRISE</span></a>
       <button class="menu-btn" aria-label="Menü" onclick="document.getElementById('mainnav').classList.toggle('open')">☰</button>
       <nav>${links}
         <span class="thema-schalter" role="group" aria-label="Design umschalten">
@@ -146,7 +157,7 @@ const UI = (() => {
       </div>
     </div>
     <div class="foot-bottom">
-      <span>© ${new Date().getFullYear()} Eiszeit – ein nicht lizenziertes Fanprojekt.</span>
+      <span>© ${new Date().getFullYear()} RINKRISE – ein nicht lizenziertes Fanprojekt.</span>
       <span>Klub-, Liga- und Trophäennamen gehören ihren jeweiligen Inhabern.
         Es besteht keine Verbindung zu Ligen, Verbänden oder Vereinen.</span>
     </div>
@@ -234,7 +245,7 @@ const UI = (() => {
   if (typeof window !== 'undefined')
     window.addEventListener('resize', () => kopfhoeheSetzen());
 
-  const THEMA_KEY = 'eiszeit.thema';
+  const THEMA_KEY = 'rinkrise.thema';
   /* 'klassisch' ist der Grundzustand ohne Attribut, alle weiteren
      Themen setzen data-thema auf <html>. */
   /* Die Liste ist der Filter in themaSetzen - fehlt ein Name hier,

@@ -1,5 +1,5 @@
 /* ==========================================================
-   Eiszeit – Karriereereignisse
+   RINKRISE – Karriereereignisse
 
    Momente, die eine Laufbahn erzählen: Kabine, Presse, Trainer,
    Privatleben, Spielsituationen. Jede Option hat eine Erfolgs-
