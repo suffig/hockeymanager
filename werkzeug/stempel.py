@@ -43,6 +43,12 @@ VERWEIS = re.compile(
     r'(?:\?v=[0-9a-f]+)?(?P<rest>")'
 )
 
+# Das Manifest traegt den Namen der App. Ohne Stempel haelt der Browser
+# es fest, und auf dem Startbildschirm steht weiter der alte Name.
+MANIFEST = re.compile(
+    r'(?P<attr>href=")(?P<pfad>manifest\.json)(?:\?v=[0-9a-f]+)?(?P<rest>")'
+)
+
 
 def dateien():
     ordner = os.path.join(WURZEL, 'assets')
@@ -77,6 +83,9 @@ def main():
         neu = VERWEIS.sub(
             lambda m: m.group('attr') + m.group('pfad') + '?v=' + marke + m.group('rest'),
             alt)
+        neu = MANIFEST.sub(
+            lambda m: m.group('attr') + m.group('pfad') + '?v=' + marke + m.group('rest'),
+            neu)
         if neu != alt:
             io.open(pfad, 'w', encoding='utf-8', newline='').write(neu)
             geaendert.append(name)
@@ -91,6 +100,10 @@ def main():
     # dann eiszeit-, jetzt rinkrise-. Stuende er hier fest, wuerde die
     # Regel bei der naechsten Umbenennung still nicht mehr greifen und
     # der Offlinespeicher friere auf dem alten Stand ein.
+    # Auch das Manifest bekommt den Stempel: der Browser haelt es sonst
+    # hartnaeckig fest, und darin steht der Name der App.
+    neu = re.sub(r"'(\./manifest\.json)(?:\?v=[0-9a-f]+)?'",
+                 lambda m: "'" + m.group(1) + '?v=' + marke + "'", neu)
     neu = re.sub(r"const VERSION = '([a-z]+)-[0-9a-f]*';",
                  lambda m: "const VERSION = '" + m.group(1) + "-" + marke + "';", neu)
     if neu != alt:

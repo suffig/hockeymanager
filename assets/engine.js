@@ -382,7 +382,12 @@ const PUCKERO = (() => {
          Gipfel dadurch von 85,5 auf 86,7 und "Hall of Fame" von 3,0 auf
          8,5 Prozent. Zwei Punkte weniger Grenze gleichen das aus - die
          Wahl bleibt eine Wahl, sie ist nur kein Geschenk mehr. */
-      potenzial: zieheGrenze(r) - 2,
+      /* Zwei Punkte fuer den Feinschliff, einer dafuer, dass der
+         Charakterdraft seit der Korrektur an schonDa keine
+         Eigenschaften mehr verschluckt (6,82 statt 5,61 je Spieler).
+         Beides zusammen hielte den Gipfel sonst ueber dem Stand, auf
+         den die Rangschwellen geeicht sind. */
+      potenzial: zieheGrenze(r) - 3,
       /* ----------------------------------------------------------------
          Der Scheitelpunkt des Koerpers gehoert zum Spieler
 

@@ -16,7 +16,7 @@
      Speicher; sie aendern sich mit ihrem Dateinamen.
    ========================================================== */
 
-const VERSION = 'rinkrise-1f172ba9';
+const VERSION = 'rinkrise-fc3d9e97';
 const SCHALE = [
   './',
   './index.html',
@@ -27,18 +27,18 @@ const SCHALE = [
   './schnellkarriere.html',
   './taeglich.html',
   './konto.html',
-  './assets/style.css?v=1f172ba9',
-  './assets/data.js?v=1f172ba9',
-  './assets/draft.js?v=1f172ba9',
-  './assets/engine.js?v=1f172ba9',
-  './assets/ereignisse.js?v=1f172ba9',
-  './assets/wappen.js?v=1f172ba9',
-  './assets/ui.js?v=1f172ba9',
-  './assets/game.js?v=1f172ba9',
-  './assets/konto-config.js?v=1f172ba9',
-  './assets/konto.js?v=1f172ba9',
-  './assets/bestenliste.js?v=1f172ba9',
-  './manifest.json',
+  './assets/style.css?v=fc3d9e97',
+  './assets/data.js?v=fc3d9e97',
+  './assets/draft.js?v=fc3d9e97',
+  './assets/engine.js?v=fc3d9e97',
+  './assets/ereignisse.js?v=fc3d9e97',
+  './assets/wappen.js?v=fc3d9e97',
+  './assets/ui.js?v=fc3d9e97',
+  './assets/game.js?v=fc3d9e97',
+  './assets/konto-config.js?v=fc3d9e97',
+  './assets/konto.js?v=fc3d9e97',
+  './assets/bestenliste.js?v=fc3d9e97',
+  './manifest.json?v=fc3d9e97',
   './assets/app/symbol-192.png',
   './assets/app/symbol-512.png',
   /* Das Logo gehoert in die Schale: ohne es zeigt die Seite offline
@@ -79,8 +79,19 @@ self.addEventListener('fetch', e => {
   /* Programmdateien gehoeren zur Seite: sie muessen zum gerade
      geladenen HTML passen, sonst ruft neuer Code alte Bausteine auf. */
   const istCode = /\.(js|css)$/i.test(url.pathname);
+  /* ------------------------------------------------------------------
+     Das Manifest ist der Name der App, nicht ein Bild
 
-  if (istSeite || istCode){
+     Es fiel bisher in den Zweig "erst der Speicher, im Hintergrund
+     auffrischen" - richtig fuer Symbole, falsch fuer die Datei, in der
+     steht, wie die App heisst. Nach der Umbenennung stand auf dem
+     Startbildschirm weiter der alte Name, weil die installierte App das
+     Manifest aus dem Speicher las und die Auffrischung erst beim
+     naechsten Besuch ankam.
+     ------------------------------------------------------------------ */
+  const istManifest = /\.(json|webmanifest)$/i.test(url.pathname);
+
+  if (istSeite || istCode || istManifest){
     // Erst das Netz, damit Aenderungen sofort ankommen
     e.respondWith((async () => {
       try {
