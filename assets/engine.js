@@ -42,6 +42,42 @@ const PUCKERO = (() => {
   const pos    = k => D.POSITIONS.find(p => p.k === k);
   const nation = k => D.NATIONS.find(n => n.k === k);
   const league = k => D.LEAGUES.find(l => l.k === k);
+
+  /* ------------------------------------------------------------------
+     Punkte lassen sich zwischen Ligen nicht vergleichen
+
+     Sechzig Punkte in einer Juniorenliga sind nicht sechzig Punkte in
+     der NHL. Solange beide Seiten die Rohzahl nahmen, war die
+     Draftliste vom Vorjahr systematisch zu gut: der Siebzehnjaehrige
+     bekam sechs Wertpunkte fuer seine Juniorensaison, im Draftjahr
+     eine Liga hoeher nur noch zweieinhalb - gemessen fielen dadurch
+     Prognosen der ersten Runde im Median fuenfundzwanzig Plaetze.
+     Ueber das Niveau umgerechnet stehen beide auf derselben Skala.
+     ------------------------------------------------------------------ */
+  /* ------------------------------------------------------------------
+     Von der Jahrgangsbewertung zur Position im Draft
+
+     Diese Kurve steht an genau einer Stelle, weil zwei Dinge sie
+     brauchen: die Rangliste, die ein Jahr vorher erscheint, und der
+     Abend selbst. Standen sie doppelt im Code, lief die eine
+     unweigerlich von der anderen weg - und dann ist die Liste nicht
+     ungenau, sondern falsch.
+
+     Der Teiler bestimmt, wie breit die erste Runde ist. Gemessen an
+     der Rundenverteilung: mit 18 bekommen rund vierzehn Prozent
+     der Gezogenen einen Erstrundenpick.
+     ------------------------------------------------------------------ */
+  function draftRang(wert){
+    if (wert <= 79) return 0;
+    const sp = clamp((wert - 79) / 17, 0, 1);
+    return clamp(Math.round(224 - Math.pow(sp, 0.75) * 220), 1, 224);
+  }
+
+  function punkteWert(s){
+    if (!s) return 0;
+    const L = league(s.lg);
+    return (s.p || s.wins || 0) * ((L ? L.level : 70) / 100) * 0.10;
+  }
   const clubsOf = k => D.CLUBS.filter(c => c.lg === k);
 
   const _lgAvg = {};
@@ -4079,6 +4115,11 @@ const PUCKERO = (() => {
         if (st.rollenStand === 'bewaehrung') schritt -= 0.26;
         if ((season.awards || []).length) schritt += 0.22;
         if ((st.verletzungsjahre || 0) >= 3) schritt -= 0.22;
+        /* Wer im Draft gefallen ist, hat etwas zu beweisen und
+           arbeitet die Jahre danach anders. Es laeuft mit der Jugend
+           aus - irgendwann ist der Draftabend nur noch eine Zahl. */
+        if ((st.trotz || 0) > 0 && st.age <= 24)
+          schritt += 0.18 * Math.min(2, st.trotz);
         /* Wer viel verpasst hat, kann in dieser Saison nichts belegen. */
         if (season.gp && season.gp < (season.vollGp || 52) * 0.5) schritt *= 0.4;
         /* Lernwillige verschieben mehr - das ist genau das, wofuer die
@@ -4277,8 +4318,14 @@ const PUCKERO = (() => {
            er faellt in der Achtung, gewinnt aber durch das, was er
            inzwischen gespielt hat. */
         const nachrueckAbzug = (st.age - 18) * 2.2;
-        const wert = potenzial + (season.p || season.wins || 0) * 0.10
-                   - nachrueckAbzug + (r() - 0.5) * 12;
+        /* Das Rauschen auf dem Wert war plusminus sechs Punkte. Weil
+           die Kurve oben steil ist, sind das dort rund fuenfzig
+           Raenge - die halbe erste Runde aus einem Wurf. Ein Talent
+           mit Anlage 99 und Prognose 4 landete so auf Nr. 98, und die
+           Rangliste davor war Makulatur. Der Abend loest jetzt ein,
+           was der Spieler wert ist; unsicher ist die Liste. */
+        const wert = potenzial + punkteWert(season)
+                   - nachrueckAbzug + (r() - 0.5) * 5;
 
         let runde = 0, pick2 = 0, gesamt = 0, klub = null, liga = 'NHL';
         if (wert > 79){
@@ -4300,9 +4347,13 @@ const PUCKERO = (() => {
              bekommt, ist keiner mehr. Mit 22 braucht die erste Runde
              wieder das oberste Achtel der Jahrgangsbewertung.
              ------------------------------------------------------------ */
-          const spanne = clamp((wert - 79) / 22, 0, 1);
-          const mitte = 224 - Math.pow(spanne, 0.75) * 220;
-          gesamt = clamp(Math.round(mitte + (r() - 0.5) * 46), 1, 224);
+          const mitte = draftRang(wert);
+          /* Das Rauschen sass frueher hier - der Draftabend wuerfelte
+             um plusminus dreiundzwanzig Plaetze. Damit war das Ergebnis
+             beliebig und die Rangliste davor wertlos. Die Unsicherheit
+             gehoert zu den Sichtern, nicht zum Abend: die Liste schaetzt,
+             der Draft loest ein. */
+          gesamt = clamp(Math.round(mitte + (r() - 0.5) * 22), 1, 224);
 
           /* ---- Die Lotterie ----
              Um die ersten Plaetze wird gelost; wer knapp dahinter
@@ -4345,6 +4396,61 @@ const PUCKERO = (() => {
         st.entryDraft = { runde, pick: pick2, gesamt, klub: klub ? klub.n : null,
                           liga, ungezogen: !runde, alter: st.age,
                           endgueltig: !runde && st.age >= 20 };
+
+        /* ==============================================================
+           Gefallen oder gestiegen
+
+           Ein Draftabend ist nicht die Nummer, sondern der Abstand
+           zwischen der Nummer und dem, was alle erwartet haben.
+           Dieselbe 24 ist ein Triumph, wenn die Listen einen auf 60
+           hatten, und ein langer Abend, wenn sie einen auf 5 hatten.
+           Die Liste steht seit einem Jahr im Bericht - hier wird sie
+           eingeloest.
+           ============================================================== */
+        const prog = st.draftPrognose && st.draftPrognose.rang
+                   ? st.draftPrognose.rang : 0;
+        let abwText = null, abwGrund = null, abw = 0;
+        if (prog && runde){
+          abw = gesamt - prog;
+          const ra = rng(player.seed + ':abend' + st.year);
+          /* Was zaehlt, ist nicht die Zahl der Plaetze, sondern ihr
+             Gewicht: dreissig Plaetze auf Rang 170 merkt niemand,
+             dreissig Plaetze auf Rang 8 sind der ganze Abend. */
+          const schwelle = Math.max(9, Math.round(prog * 0.32));
+          if (abw >= schwelle){
+            /* Warum es passiert ist - am Abend selbst erfaehrt man
+               selten die Wahrheit, aber irgendetwas wird erzaehlt. */
+            const gruende = [
+              'Ein Jahrgang voller Leute auf deiner Position schiebt dich nach hinten.',
+              'Die aerztliche Untersuchung hat eine Frage aufgeworfen, die niemand laut stellt.',
+              'Zwei Klubs tauschen ihre Picks, und ploetzlich stehst du falsch in der Reihe.',
+              'Ein Gespraech ist schlecht gelaufen, und so etwas spricht sich herum.',
+              'Ein Sichter hat etwas geschrieben, das die anderen abgeschrieben haben.'
+            ];
+            abwGrund = gruende[Math.floor(ra() * gruende.length)];
+            abwText = 'Die Listen hatten dich auf Platz ' + prog
+                    + '. Es wird ein langer Abend.';
+            st.moral = clamp(st.moral - Math.min(14, 4 + Math.round(abw / 12)), 0, 100);
+            /* Wer faellt, hat ab jetzt etwas zu beweisen. */
+            st.trotz = (st.trotz || 0) + (abw >= 45 ? 2 : 1);
+          } else if (abw <= -schwelle){
+            const gruende = [
+              'Ein Klub greift frueher zu, als irgendjemand gerechnet hat.',
+              'Ein anderer sagt kurzfristig ab, und die Reihe verschiebt sich zu deinen Gunsten.',
+              'Jemand hat dich im Winter gesehen und seither nicht mehr vergessen.'
+            ];
+            abwGrund = gruende[Math.floor(ra() * gruende.length)];
+            abwText = 'Die Listen hatten dich auf Platz ' + prog
+                    + '. Dein Name faellt deutlich frueher.';
+            st.moral = clamp(st.moral + 6, 0, 100);
+            st.ruf = clamp(st.ruf + 3, 20, 99);
+          }
+          if (abwText)
+            season.events.push({ t: abw > 0
+              ? 'Im Draft gefallen: erwartet um Platz ' + prog + ', gezogen als Nr. ' + gesamt
+              : 'Im Draft gestiegen: erwartet um Platz ' + prog + ', gezogen als Nr. ' + gesamt,
+              c: abw > 0 ? 'bad' : 'good' });
+        }
 
         /* ------------------------------------------------------------
            Der Draft als Moment
@@ -4393,6 +4499,16 @@ const PUCKERO = (() => {
                     + ' Ansehen', gut: true }]
             : [{ t: st.age >= 20 ? 'Free Agent' : 'Naechstes Jahr wieder', gut: false }]
         };
+        if (abwText){
+          st.letzteFolge.draft.prognose = prog;
+          st.letzteFolge.draft.abweichung = abw;
+          st.letzteFolge.text += ' ' + abwText + ' ' + abwGrund;
+          st.letzteFolge.wirkungen.unshift({
+            t: abw > 0 ? 'Erwartet um Platz ' + prog + ' - ' + abw + ' Plaetze gefallen'
+                       : 'Erwartet um Platz ' + prog + ' - ' + (-abw) + ' Plaetze gestiegen',
+            gut: abw < 0 });
+          if (abw > 0) st.letzteFolge.wirkungen.push({ t: 'Etwas zu beweisen', gut: true });
+        }
         if (klub){
           /* Fuenf Jahre statt vier: in Nordamerika behaelt ein Klub die
              Rechte an einem Spieler, der in Europa oder am College
@@ -4462,6 +4578,66 @@ const PUCKERO = (() => {
           try { erzeugeJahrgang(season); }
           finally { rivaleWirdErzeugt = false; }
         }
+      }
+
+      /* ==================================================================
+         Die Rangliste vor dem Draft
+
+         Der Draftabend kam bisher aus dem Nichts - eine Nummer, die
+         niemand erwartet hatte, weil es keine Erwartung gab. In
+         Wirklichkeit steht ein Jahrgang jahrelang auf Listen, und die
+         halbe Geschichte eines Draftabends ist, ob einer haelt, was
+         die Liste verspricht. Also gibt es die Liste jetzt: jede
+         Saison neu, im Bericht zu lesen, und am Abend wird an ihr
+         gemessen.
+
+         Die Sichter sehen dabei nicht die Wahrheit, sondern ihre
+         Schaetzung davon - deshalb liegt die Liste jedes Jahr etwas
+         anders neben der Anlage.
+         ================================================================== */
+      if (st.age <= 19 && (!st.entryDraft || st.entryDraft.ungezogen)){
+        const rp = rng(player.seed + ':liste' + st.year);
+        const anlage = (player.potenzial || 80) * 0.7
+          + overall(player, devAttrs(player.attrs,
+              formFactor(st.scheitel, player.traits,
+                         (player.wirkung || {}).lernkurve, st.scheitel))) * 0.3;
+        /* VORLAUF: zwischen dieser Liste und dem Draftabend liegt noch
+           ein Sommer und eine Saison. Die Sichter rechnen das ein -
+           sonst waere jede Liste systematisch zu pessimistisch, und
+           jeder Spieler wuerde am Abend steigen. Gemessen und
+           angepasst, bis der Median der Abweichung bei null liegt. */
+        /* Zwischen dieser Liste und dem Draftabend liegen noch ein
+           Sommer und eine Saison. Gemessen wuchs die Anlage in dieser
+           Zeit um 0,6 Punkte - genau so viel rechnen die Sichter ein. */
+        const vorlauf = st.age < 18 ? 0.6 : 0;
+        /* Wie genau die Sichter sehen, haengt davon ab, wen sie sehen.
+           Ein Junge, um den sich seit drei Jahren alle draengen, ist
+           vermessen; einer aus der zweiten Reihe wird geschaetzt.
+           Ohne diese Staffelung war die Liste oben unbrauchbar: wer
+           unter die ersten zweiunddreissig gesetzt wurde, fiel am
+           Abend im Median zweiunddreissig Plaetze - die Aufmerksamkeit
+           selbst hatte ihn dort hinaufgetragen. */
+        const beobachtet = clamp((anlage - 79) / 22, 0, 1);
+        const gesehen = anlage + (rp() - 0.5) * (11 - 6.5 * beobachtet) + vorlauf
+                      + punkteWert(season)
+                      - Math.max(0, st.age - 17) * 2.2;
+        const vorher = (st.draftPrognose || {}).rang || 0;
+        const rang = draftRang(gesehen);
+        st.draftPrognose = { rang, jahr: st.year + 1 };
+        season.draftPrognose = rang;
+        /* Bewegung auf der Liste ist eine eigene Nachricht - wer
+           zwanzig Plaetze gutmacht, hat den Winter gespuert. */
+        const sprung = vorher && rang ? vorher - rang : 0;
+        season.events.push(!rang
+          ? { t: 'Auf keiner Draftliste zu finden', c: 'bad' }
+          : { t: (rang <= 10 ? 'Die Ranglisten führen dich unter den ersten zehn des Jahrgangs – Platz '
+                : rang <= 32 ? 'Erste Runde erwartet – die Ranglisten sehen dich um Platz '
+                : rang <= 100 ? 'Die Ranglisten führen dich um Platz '
+                : 'Die Ranglisten führen dich weit hinten – Platz ') + rang
+              + (Math.abs(sprung) >= 20
+                 ? (sprung > 0 ? ' (' + sprung + ' Plätze gutgemacht)'
+                              : ' (' + (-sprung) + ' Plätze verloren)') : ''),
+              c: rang <= 32 ? 'good' : sprung < -20 ? 'bad' : 'info' });
       }
 
       /* Stand im eigenen Jahrgang – erst ab dem Draft vergleichbar */
