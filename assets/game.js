@@ -52,16 +52,30 @@ function CareerGame(root, cfg){
                  || S.phase === 'draft' || S.phase === 'jugend' || S.phase === 'fein'
                  || S.phase === 'karriere' || S.phase === 'ergebnis';
     document.documentElement.toggleAttribute('data-spiel', imSpiel);
+    /* ------------------------------------------------------------------
+       Ein Puck zwischen den Phasen
+
+       Der Wechsel von einer Phase zur naechsten war ein Sprung: Inhalt
+       weg, Inhalt da. Jetzt schiesst ein Puck quer durchs Bild, und der
+       neue Inhalt kommt hinter ihm her. Es dauert eine halbe Sekunde und
+       kostet nichts - aber es macht aus vier Bildschirmen einen Weg.
+       ------------------------------------------------------------------ */
+    if (S.phase !== letztePhase){
+      puckStreifen();
+      letztePhase = S.phase;
+    }
     /* Wird beim Zeichnen der App-Huelle gesetzt - hier nur geloescht,
        damit keine andere Ansicht mit gesperrtem Scrollen zurueckbleibt. */
     document.documentElement.removeAttribute('data-vollbild');
-    if (S.phase === 'ident')    return renderIdent();
-    if (S.phase === 'draft')    return renderDraft();
-    if (S.phase === 'jugend')   return renderJugend();
-    if (S.phase === 'fein')     return renderFein();
-    if (S.phase === 'start')    return renderStart();
-    if (S.phase === 'karriere') return renderKarriere();
-    return renderResult();
+    /* Erst zeichnen, dann die Druckpunkte anhaengen. */
+    const fertig = (fn) => { const r = fn(); druckpunkteBinden(); return r; };
+    if (S.phase === 'ident')    return fertig(renderIdent);
+    if (S.phase === 'draft')    return fertig(renderDraft);
+    if (S.phase === 'jugend')   return fertig(renderJugend);
+    if (S.phase === 'fein')     return fertig(renderFein);
+    if (S.phase === 'start')    return fertig(renderStart);
+    if (S.phase === 'karriere') return fertig(renderKarriere);
+    return fertig(renderResult);
   }
 
   /* ================================================================
@@ -106,6 +120,51 @@ function CareerGame(root, cfg){
       };
     });
     return huelle;
+  }
+
+  let letztePhase = null;
+
+  /* Der Puck. Ein Element, das sich selbst wieder aufraeumt - so kann
+     nichts liegenbleiben, wenn zweimal schnell hintereinander
+     gewechselt wird. */
+  function puckStreifen(){
+    if (!letztePhase) return;                 // nicht beim allerersten Bild
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const alt = document.querySelector('.puck-streifen');
+    if (alt) alt.remove();
+    const el = document.createElement('div');
+    el.className = 'puck-streifen';
+    el.innerHTML = '<span class="ps-puck"></span><span class="ps-spur"></span>';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 760);
+  }
+
+  /* Ein kurzer Druckpunkt unter dem Finger - dort, wo geklickt wurde. */
+  function druckpunkt(e){
+    const ziel = e.currentTarget;
+    if (!ziel || (window.matchMedia
+        && window.matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+    const r = ziel.getBoundingClientRect();
+    const w = document.createElement('span');
+    w.className = 'welle';
+    const gross = Math.max(r.width, r.height) * 2.1;
+    w.style.width = w.style.height = gross + 'px';
+    w.style.left = ((e.clientX || (r.left + r.width / 2)) - r.left - gross / 2) + 'px';
+    w.style.top  = ((e.clientY || (r.top + r.height / 2)) - r.top - gross / 2) + 'px';
+    ziel.appendChild(w);
+    setTimeout(() => w.remove(), 620);
+  }
+
+  /* Nach jedem Zeichnen anhaengen. Bewusst hier und nicht in jedem
+     einzelnen Bildschirm - sonst vergisst man die Haelfte. */
+  function druckpunkteBinden(){
+    root.querySelectorAll('.btn, .legend-card, .fein-karte, .jg-karte, .charakterkarte')
+      .forEach(b => {
+        if (b.__welle) return;
+        b.__welle = true;
+        if (getComputedStyle(b).position === 'static') b.style.position = 'relative';
+        b.addEventListener('pointerdown', druckpunkt);
+      });
   }
 
   function standSichern(){
