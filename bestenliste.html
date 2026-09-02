@@ -79,7 +79,11 @@ try{var t=localStorage.getItem('rinkrise.thema')||localStorage.getItem('eiszeit.
 <script src="assets/ui.js?v=7d005ee4"></script>
 <script src="assets/konto-config.js?v=7d005ee4"></script>
 <script src="assets/konto.js?v=7d005ee4"></script>
-<script src="assets/bestenliste.js?v=7d005ee4">
+<script src="assets/bestenliste.js?v=7d005ee4"></script>
+
+<!-- Eigener Block: ein script-Tag mit src ignoriert seinen Inhalt,
+     der Code lief deshalb nie. -->
+<script>
 /* ------------------------------------------------------------------
    Die Vereinschronik
 
