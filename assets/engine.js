@@ -7628,6 +7628,77 @@ const PUCKERO = (() => {
   function clearHerausforderungen(){ try { localStorage.removeItem(HKEY); } catch(e){} }
 
   /* ---------------- Speicher ---------------- */
+  /* ==================================================================
+     Die Vereinschronik
+
+     Ein Verein war bisher ein Name, der in einer Laufbahn vorkam und
+     danach vergessen wurde. Dabei liegt alles schon da: das Archiv
+     speichert zu jeder abgeschlossenen Karriere die Saisonwerte samt
+     Klub, Spielen, Punkten und Titeln. Daraus laesst sich ueber alle
+     Durchlaeufe hinweg zusammenzaehlen, was deine Spieler bei einem
+     Verein geleistet haben - ohne eine Zeile neuen Speicher.
+
+     Damit wird aus "Krefeld" ein Ort mit Geschichte: wie viele deiner
+     Spieler dort waren, wie lange, was sie geholt haben und wer von
+     ihnen der beste war.
+     ================================================================== */
+  function klubChronik(){
+    const konten = {};
+    loadCareers().forEach(k => {
+      (k.saisonwerte || []).forEach(s => {
+        if (!s.k) return;
+        const c = konten[s.k] || (konten[s.k] = {
+          klub: s.k, liga: s.l, saisons: 0, spiele: 0, punkte: 0, tore: 0,
+          siege: 0, titel: 0, vonJahr: null, bisJahr: null,
+          spieler: {}, bester: null
+        });
+        c.saisons++;
+        c.spiele += s.sp || 0;
+        c.punkte += s.p || 0;
+        c.tore   += s.t || 0;
+        c.siege  += s.si || 0;
+        if (s.ti) c.titel++;
+        if (c.vonJahr === null || s.j < c.vonJahr) c.vonJahr = s.j;
+        if (c.bisJahr === null || s.j > c.bisJahr) c.bisJahr = s.j;
+        /* Die Liga des juengsten Eintrags - Vereine koennen aufsteigen. */
+        if (s.l) c.liga = s.l;
+
+        const sp = c.spieler[k.name] || (c.spieler[k.name] = {
+          name: k.name, pos: k.pos, isG: !!k.isG, saisons: 0,
+          spiele: 0, punkte: 0, siege: 0, titel: 0, seed: k.seed,
+          bestOvr: 0, vonJahr: s.j, bisJahr: s.j
+        });
+        sp.saisons++;
+        sp.spiele += s.sp || 0;
+        sp.punkte += s.p || 0;
+        sp.siege  += s.si || 0;
+        if (s.ti) sp.titel++;
+        if ((s.o || 0) > sp.bestOvr) sp.bestOvr = s.o || 0;
+        if (s.j < sp.vonJahr) sp.vonJahr = s.j;
+        if (s.j > sp.bisJahr) sp.bisJahr = s.j;
+      });
+    });
+    /* Aus den Spielern je Verein eine Rangfolge machen: Titel zaehlen
+       am schwersten, danach die Ausbeute, danach die Treue. */
+    return Object.values(konten).map(c => {
+      const liste = Object.values(c.spieler).sort((a, b) =>
+        (b.titel - a.titel) * 1000
+        + ((b.punkte + b.siege * 2) - (a.punkte + a.siege * 2))
+        + (b.saisons - a.saisons) * 0.5);
+      c.spielerListe = liste;
+      c.spielerZahl = liste.length;
+      c.bester = liste[0] || null;
+      delete c.spieler;
+      return c;
+    }).sort((a, b) => b.saisons - a.saisons || b.titel - a.titel);
+  }
+
+  /* Was bei EINEM Verein steht - fuer die Kachel waehrend der Laufbahn. */
+  function klubChronikFuer(name){
+    if (!name) return null;
+    return klubChronik().find(c => c.klub === name) || null;
+  }
+
   const KEY = 'rinkrise.karrieren';
   function saveCareer(result){
     try{
@@ -7688,7 +7759,13 @@ const PUCKERO = (() => {
         wahlen: (result.verlauf || []).length,
         gelungen: (result.verlauf || []).filter(v => v.gelungen).length,
         wendepunkt: (() => {
-          const gut = (result.verlauf || []).filter(v => v.gelungen);
+          /* Nur Eintraege mit einer echten Wahrscheinlichkeit. Ohne die
+             Pruefung zaehlte ein fehlendes chance-Feld als null, null
+             sortiert sich vor jede Zahl, und im Pokalraum stand dann
+             "null% Chance" - ausgerechnet beim unwahrscheinlichsten
+             Moment einer Laufbahn. */
+          const gut = (result.verlauf || []).filter(v =>
+            v.gelungen && typeof v.chance === 'number' && isFinite(v.chance));
           if (!gut.length) return null;
           const b = gut.slice().sort((x, y) => x.chance - y.chance)[0];
           return { wahl: b.wahl, chance: b.chance, alter: b.alter };
@@ -7729,7 +7806,7 @@ const PUCKERO = (() => {
     draftFrage, applyKarte, karteWert, wirkungNeu,
     overall, formFactor, devAttrs,
     createCareer, simulate, legacyRank, RANG_SCHWELLEN, marktwert,
-    saveCareer, loadCareers, clearCareers, randomIdentity,
+    saveCareer, loadCareers, klubChronik, klubChronikFuer, clearCareers, randomIdentity,
     ladeHerausforderungen, pruefeHerausforderungen, werteHerausforderungen, clearHerausforderungen,
     trainingsOptionen, trainingAnwenden, TRAINERSTUFEN,
     DRAFT_ROUNDS, LG_MIN, HOME_LG, D

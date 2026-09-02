@@ -8,10 +8,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=2d12888d">
+<link rel="stylesheet" href="assets/style.css?v=2ebebb9e">
 
 <!-- Als App auf dem Startbildschirm -->
-<link rel="manifest" href="manifest.json?v=2d12888d">
+<link rel="manifest" href="manifest.json?v=2ebebb9e">
 <meta name="theme-color" content="#0b1220">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -57,18 +57,43 @@ try{var t=localStorage.getItem('rinkrise.thema')||localStorage.getItem('eiszeit.
 
     <div id="quellen" class="mt-l"></div>
 <div id="liste" class="mt"></div>
+
+    <!-- ============================================================
+         Die Vereinschronik
+
+         Ein Verein war bisher ein Name, der in einer Laufbahn vorkam
+         und danach vergessen wurde. Hier steht, was deine Spieler ueber
+         alle Durchlaeufe hinweg bei ihm geleistet haben.
+         ============================================================ -->
+    <div id="chronik-block" class="mt-l" hidden>
+      <div class="row between">
+        <div>
+          <span class="eyebrow">Über alle Laufbahnen</span>
+          <h2 style="margin:2px 0 0">Deine Vereine</h2>
+        </div>
+        <select id="chronik-sort" style="width:auto">
+          <option value="saisons">Nach Saisons</option>
+          <option value="titel">Nach Titeln</option>
+          <option value="punkte">Nach Ausbeute</option>
+          <option value="spieler">Nach Spielern</option>
+        </select>
+      </div>
+      <p class="small">Jede abgeschlossene Karriere zählt mit. Ein Klick auf einen
+        Verein zeigt, wer dort gespielt hat.</p>
+      <div id="chronik" class="mt"></div>
+    </div>
   </div>
 </section>
 
 <div id="ftr"></div>
 
-<script src="assets/data.js?v=2d12888d"></script>
-<script src="assets/draft.js?v=2d12888d"></script>
-<script src="assets/engine.js?v=2d12888d"></script>
-<script src="assets/wappen.js?v=2d12888d"></script>
-<script src="assets/ui.js?v=2d12888d"></script>
-<script src="assets/konto-config.js?v=2d12888d"></script>
-<script src="assets/konto.js?v=2d12888d"></script>
+<script src="assets/data.js?v=2ebebb9e"></script>
+<script src="assets/draft.js?v=2ebebb9e"></script>
+<script src="assets/engine.js?v=2ebebb9e"></script>
+<script src="assets/wappen.js?v=2ebebb9e"></script>
+<script src="assets/ui.js?v=2ebebb9e"></script>
+<script src="assets/konto-config.js?v=2ebebb9e"></script>
+<script src="assets/konto.js?v=2ebebb9e"></script>
 <script>
 /* Karrieren koennen aus zwei Quellen kommen: dem Browserspeicher und
    der Datenbank. Doppelte werden an Seed und Name erkannt - dieselbe
@@ -134,6 +159,80 @@ async function quellenHinweis(){
     zeichne();
     quellenHinweis();
   };
+}
+
+/* ------------------------------------------------------------------
+   Die Vereinschronik zeichnen
+
+   Gerechnet wird in PUCKERO.klubChronik() aus dem Archiv - hier steht
+   nur die Darstellung. Aufgeklappt wird immer nur ein Verein; sonst
+   steht man vor einer Wand aus Namen.
+   ------------------------------------------------------------------ */
+let chronikOffen = null;
+
+function chronikZeichnen(){
+  const block = document.getElementById('chronik-block');
+  if (!block || typeof PUCKERO === 'undefined' || !PUCKERO.klubChronik) return;
+  const alle = PUCKERO.klubChronik();
+  if (!alle.length){ block.hidden = true; return; }
+  block.hidden = false;
+
+  const wie = (document.getElementById('chronik-sort') || {}).value || 'saisons';
+  const sortiert = alle.slice().sort((a, b) =>
+      wie === 'titel'   ? b.titel - a.titel || b.saisons - a.saisons
+    : wie === 'punkte'  ? (b.punkte + b.siege * 2) - (a.punkte + a.siege * 2)
+    : wie === 'spieler' ? b.spielerZahl - a.spielerZahl || b.saisons - a.saisons
+    :                     b.saisons - a.saisons || b.titel - a.titel);
+
+  const esc = t => String(t == null ? '' : t)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  document.getElementById('chronik').innerHTML = sortiert.map(c => {
+    const offen = chronikOffen === c.klub;
+    const ausbeute = c.siege > c.punkte
+      ? c.siege + ' Siege'
+      : c.punkte + ' Punkte';
+    return `
+      <div class="kr-verein ${offen ? 'offen' : ''}" data-klub="${esc(c.klub)}">
+        <button type="button" class="kr-kopf">
+          ${UI.wappenBild(c.klub, 34)}
+          <span class="kr-name">${esc(c.klub)}
+            <em>${esc(c.liga || '')} · ${c.vonJahr}–${c.bisJahr}</em></span>
+          <span class="kr-zahlen">
+            <b>${c.saisons}</b><i>${c.saisons === 1 ? 'Saison' : 'Saisons'}</i>
+          </span>
+          <span class="kr-zahlen">
+            <b>${ausbeute.split(' ')[0]}</b><i>${ausbeute.split(' ')[1]}</i>
+          </span>
+          <span class="kr-zahlen ${c.titel ? 'gold' : ''}">
+            <b>${c.titel}</b><i>${c.titel === 1 ? 'Titel' : 'Titel'}</i>
+          </span>
+          <span class="kr-zahlen">
+            <b>${c.spielerZahl}</b><i>${c.spielerZahl === 1 ? 'Spieler' : 'Spieler'}</i>
+          </span>
+        </button>
+        ${offen ? `<div class="kr-spieler">
+          ${c.spielerListe.map((sp, i) => `
+            <div class="kr-zeile ${i === 0 ? 'bester' : ''}">
+              <span class="kr-platz">${i + 1}</span>
+              <span class="kr-sp-name">${esc(sp.name)}
+                <em>${esc(sp.pos)} · ${sp.vonJahr}–${sp.bisJahr}</em></span>
+              <span class="kr-sp-wert">${sp.saisons}<i>Sais.</i></span>
+              <span class="kr-sp-wert">${sp.isG ? sp.siege : sp.punkte}<i>${
+                sp.isG ? 'Siege' : 'Pkt'}</i></span>
+              <span class="kr-sp-wert">${sp.bestOvr}<i>OVR</i></span>
+              ${sp.titel ? `<span class="kr-sp-titel">${sp.titel}×🏆</span>` : ''}
+            </div>`).join('')}
+        </div>` : ''}
+      </div>`;
+  }).join('');
+
+  document.getElementById('chronik').querySelectorAll('.kr-kopf').forEach(b =>
+    b.onclick = () => {
+      const k = b.closest('[data-klub]').dataset.klub;
+      chronikOffen = chronikOffen === k ? null : k;
+      chronikZeichnen();
+    });
 }
 
 function zeichne(){
@@ -244,6 +343,9 @@ function zeichne(){
     </div>`;
   }).join('');
 
+  chronikZeichnen();
+  const cs = document.getElementById('chronik-sort');
+  if (cs && !cs.__gebunden){ cs.__gebunden = true; cs.onchange = chronikZeichnen; }
   document.getElementById('liste').querySelectorAll('[data-seed]').forEach(b => {
     b.onclick = () => UI.copy(decodeURIComponent(b.dataset.seed), 'Seed kopiert');
   });

@@ -55,6 +55,12 @@ laufen über zwei Funktionen, die das Adminrecht selbst prüfen.
   Tabelle, weil Ziele über alle Karrieren hinweg gelten.
 - **bestenliste** – Ansicht über Karrieren freigegebener Profile,
   beschränkt auf die Spalten, die angezeigt werden sollen.
+- **vereins_saison / vereins_chronik / vereins_spieler** – die
+  Vereinschronik über alle freigegebenen Laufbahnen (`07_vereine.sql`).
+  Sie brauchen keine neuen Spalten: `karriere.saisonwerte` trägt zu
+  jeder Saison bereits Klub, Liga, Zahlen und Titel. Der Pokalraum
+  rechnet dasselbe lokal aus dem Browserarchiv – diese Sichten sind die
+  weltweite Entsprechung.
 
 ## Was ohne Konto passiert
 

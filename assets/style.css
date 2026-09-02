@@ -5017,3 +5017,58 @@ hr, .trenner{
   .draftblatt .db-runde, .draftblatt .db-text, .draftblatt .db-grund,
   .draftblatt .db-wirkungen, .draftblatt > .btn{visibility:visible;opacity:1}
 }
+
+
+/* ==================================================================
+   Die Vereinschronik im Pokalraum
+   Eine Zeile je Verein, aufklappbar zu den Spielern, die dort waren.
+   ================================================================== */
+.kr-verein{
+  border:1px solid var(--line); border-radius:12px;
+  background:var(--karte); margin-bottom:8px; overflow:hidden;
+  transition:border-color .2s ease;
+}
+.kr-verein.offen{border-color:color-mix(in srgb,var(--accent) 45%,var(--line))}
+.kr-verein .kr-kopf{
+  display:flex; align-items:center; gap:12px; width:100%;
+  padding:11px 14px; background:none; border:0; cursor:pointer;
+  color:var(--text); text-align:left; font:inherit;
+}
+.kr-verein .kr-kopf:hover{background:color-mix(in srgb,var(--accent) 6%,transparent)}
+.kr-name{flex:1; min-width:0; font-weight:700; font-size:14.5px;
+  display:flex; flex-direction:column; gap:1px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.kr-name em{font-style:normal; font-size:11px; color:var(--muted); font-weight:500}
+.kr-zahlen{display:flex; flex-direction:column; align-items:center; min-width:52px}
+.kr-zahlen b{font-family:var(--display); font-size:17px; line-height:1}
+.kr-zahlen i{font-style:normal; font-size:9.5px; color:var(--muted);
+  text-transform:uppercase; letter-spacing:.05em; margin-top:2px}
+.kr-zahlen.gold b{color:var(--gold)}
+
+.kr-spieler{
+  border-top:1px solid var(--line-soft); padding:6px 14px 10px;
+  animation:krAuf .28s cubic-bezier(.2,.9,.25,1);
+}
+@keyframes krAuf{ from{opacity:0; transform:translateY(-6px)} }
+.kr-zeile{
+  display:flex; align-items:center; gap:10px; padding:6px 0;
+  border-bottom:1px solid color-mix(in srgb,var(--line-soft) 60%,transparent);
+}
+.kr-zeile:last-child{border-bottom:0}
+.kr-zeile.bester .kr-sp-name{color:var(--accent)}
+.kr-platz{width:20px; font-family:var(--display); color:var(--muted); font-size:13px}
+.kr-sp-name{flex:1; min-width:0; font-size:13px; font-weight:650;
+  display:flex; flex-direction:column; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap}
+.kr-sp-name em{font-style:normal; font-size:10.5px; color:var(--muted); font-weight:500}
+.kr-sp-wert{min-width:42px; text-align:center; font-size:13px; font-weight:700;
+  display:flex; flex-direction:column}
+.kr-sp-wert i{font-style:normal; font-size:9px; color:var(--muted); font-weight:500}
+.kr-sp-titel{font-size:12px; color:var(--gold); font-weight:700}
+
+@media (max-width:560px){
+  .kr-verein .kr-kopf{gap:8px; padding:10px}
+  .kr-zahlen{min-width:40px}
+  .kr-zahlen b{font-size:15px}
+}
+@media (prefers-reduced-motion: reduce){ .kr-spieler{animation:none} }
