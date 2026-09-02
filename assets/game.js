@@ -1345,9 +1345,22 @@ function CareerGame(root, cfg){
     if (folge.draft){
       const d = folge.draft;
       w.innerHTML = `
-        <div class="folge-blatt draftblatt ${d.gezogen ? 'gezogen' : 'ungezogen'}
+        ${/* ------------------------------------------------------------
+             Der Abend laeuft ab, statt dazustehen
+
+             Bisher stand alles gleichzeitig da: Nummer, Verein, Runde,
+             Text. Im echten Draft wartet man - erst faellt die Nummer,
+             dann der Name, und erst danach begreift man, was das
+             bedeutet. Das Blatt zeigt es jetzt in fuenf Stufen. Wer
+             nicht warten will, klickt einmal: dann steht sofort alles
+             da (und erst der zweite Klick geht weiter).
+             ------------------------------------------------------------ */ ''}
+        <div class="folge-blatt draftblatt stufe-0 ${d.gezogen ? 'gezogen' : 'ungezogen'}
              ${d.glanz ? 'glanz' : ''}">
           <div class="db-marke">${UI.ikone('krone', 15)} ${esc(folge.tag)}</div>
+          <div class="db-warten">${d.gezogen
+            ? 'Die Halle wartet auf den nächsten Namen'
+            : 'Die letzten Namen fallen'}</div>
           ${d.gezogen ? `
             ${/* Die Nummer zaehlt hoch, statt einfach dazustehen - im
                  Draft wartet man darauf, dass der eigene Name faellt,
@@ -1360,6 +1373,8 @@ function CareerGame(root, cfg){
           : `<div class="db-nummer leer"><b>—</b></div>
              <div class="db-klub"><span>${esc(folge.wahl || 'Nicht gezogen')}</span></div>`}
           <p class="db-text">${esc(folge.text || '')}</p>
+          ${(folge.begruendung || []).length ? `<div class="db-grund">
+            ${folge.begruendung.map(t => `<p>${esc(t)}</p>`).join('')}</div>` : ''}
           ${(folge.wirkungen || []).length ? `<div class="db-wirkungen">
             ${folge.wirkungen.map(x => `<span class="beleg ${x.gut ? 'gut' : 'schlecht'}">
               ${esc(x.t)}</span>`).join('')}</div>` : ''}
@@ -1370,11 +1385,39 @@ function CareerGame(root, cfg){
       /* Dieselbe Mechanik wie beim gewoehnlichen Folgeblatt - sonst
          bleibt die Schicht offen, weil folgeSchliessen folgeOffen
          auswertet. */
-      w.addEventListener('click', () => weiterNachFolge());
+      const blatt = w.querySelector('.draftblatt');
+      let stufe = 0;
+      const uhren = [];
+      /* Alles stehen lassen - fuer den Klick, der die Wartezeit
+         ueberspringt, und fuer prefers-reduced-motion. */
+      const sofortAlles = () => {
+        uhren.forEach(clearTimeout); uhren.length = 0;
+        stufe = 5;
+        blatt.className = blatt.className.replace(/stufe-\d/, 'stufe-5');
+        UI.alleZahlenHoch(w);
+      };
+      const weiterZu = n => {
+        stufe = n;
+        blatt.className = blatt.className.replace(/stufe-\d/, 'stufe-' + n);
+      };
+      w.addEventListener('click', () => {
+        if (stufe < 5){ sofortAlles(); return; }   // erster Klick: alles zeigen
+        weiterNachFolge();
+      });
       requestAnimationFrame(() => {
         w.classList.add('an');
+        const schnell = window.matchMedia
+          && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (schnell){ sofortAlles(); return; }
+        /* Fuenf Stufen: die Halle wartet, die Nummer, der Verein, was es
+           bedeutet, und zuletzt die Folgen. */
+        uhren.push(setTimeout(() => weiterZu(1), 520));
+        uhren.push(setTimeout(() => { weiterZu(2); UI.alleZahlenHoch(w); }, 900));
+        uhren.push(setTimeout(() => weiterZu(3), 2300));
+        uhren.push(setTimeout(() => weiterZu(4), 3200));
+        uhren.push(setTimeout(() => weiterZu(5), 4100));
         /* Erst wenn das Blatt steht, laeuft die Nummer hoch. */
-        setTimeout(() => UI.alleZahlenHoch(w), 240);
+        setTimeout(() => {}, 240);
         /* Eine Wahl in der ersten Runde ist der Abend, von dem ein
            Achtzehnjaehriger sein Leben lang erzaehlt. */
         if (d.gezogen && d.runde === 1 && typeof UI.konfetti === 'function')

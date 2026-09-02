@@ -5183,6 +5183,80 @@ const PUCKERO = (() => {
                       leuchten wie ein Wert ueber neunzig. */
                    glanz: !!runde && gesamt <= 10 },
           tag: liga === 'KHL' ? 'KHL-Draft' : 'Entry Draft',
+          /* ------------------------------------------------------------
+             Warum es dieser Platz wurde und dieser Verein
+
+             Der Abend nannte eine Nummer und einen Namen und liess
+             beides unerklaert. Dabei steckt die ganze Begruendung schon
+             im Zustand: was die Sichter an Anlage gesehen haben, wie
+             stark der Jahrgang war, in welcher Lage der Klub steckt, der
+             zugreift, und was ein Nachruecker mitbringt. Drei Saetze,
+             die aus einer Zahl eine Entscheidung machen.
+             ------------------------------------------------------------ */
+          begruendung: runde ? (() => {
+            const teile = [];
+            const anlage = player.potenzial || 80;
+            teile.push(anlage >= 90
+              ? 'Die Sichter sind sich über deine Anlage einig: In den Berichten '
+                + 'steht das Wort, das sie selten schreiben.'
+              : anlage >= 84
+              ? 'Deine Anlage steht in den Berichten weit oben – nicht unbestritten, '
+                + 'aber weit oben.'
+              : anlage >= 76
+              ? 'Die Berichte sehen einen Spieler, der die Liga erreichen kann, '
+                + 'wenn zwei, drei Dinge zusammenkommen.'
+              : 'In den Berichten steht mehr über deinen Willen als über dein Talent. '
+                + 'Manchmal reicht das.');
+            if (st.age > 18)
+              teile.push('Du bist ' + st.age + ', also kein frischer Jahrgang mehr. Das '
+                + 'kostet Plätze – dafür haben sie zwei Jahre echtes Eishockey von dir '
+                + 'gesehen statt einer Prognose.');
+            /* Wenn Anlage und Platz auseinanderliegen, ist genau das die
+               Geschichte des Abends - sonst steht da ein Lob neben einer
+               Nummer, die es nicht bestaetigt. */
+            /* Gemessen ueber 400 Laufbahnen: Anlage 90+ landet im Median
+               auf Platz 75 (Viertel 44 bis 100), 84-89 auf 149 (120 bis
+               177), 76-83 auf 192. Geraten hatte ich 12/40/100 - damit
+               galten 85 Prozent aller Picks als Abweichung, und ein Satz,
+               der fast immer kommt, sagt nichts. Die Grenzen sind jetzt
+               die gemessenen Viertel: nur wer unter das erste oder ueber
+               das dritte faellt, bekommt den Satz. Auf den Vierteln
+               kam er noch bei 53 Prozent - das ist rechnerisch richtig
+               und erzaehlerisch zu oft; jetzt stehen die Grenzen weiter
+               aussen, damit der Satz ein Ausnahmeabend bleibt. */
+            const spanne = anlage >= 90 ? [25, 140]
+                         : anlage >= 84 ? [95, 205]
+                         : [150, 220];
+            if (gesamt > spanne[1])
+              teile.push('Und trotzdem dauert es. Die Namen vor dir sind '
+                + 'nicht besser – sie sind bekannter, oder sie passen jemandem '
+                + 'ins Konzept. Du sitzt da und zählst mit.');
+            else if (gesamt < spanne[0])
+              teile.push('Dass es so früh geht, hat niemand geschrieben. '
+                + 'Irgendwo in einem Büro hat jemand etwas gesehen, das in '
+                + 'keinem Bericht steht.');
+            const staerke = klubStaerke(klub);
+            const schnitt = ligaSchnittJetzt(liga);
+            teile.push(staerke < schnitt - 4
+              ? klub.n + ' hat eine schwere Saison hinter sich und darum früh gewählt. '
+                + 'Wo wenig steht, ist Platz – du kommst in eine Mannschaft, die '
+                + 'jemanden wie dich braucht.'
+              : staerke > schnitt + 4
+              ? klub.n + ' steht oben und hätte diesen Platz nicht haben müssen. '
+                + 'Dass sie dich trotzdem nehmen, heißt: sie planen weit voraus, '
+                + 'und du musst dich hinten anstellen.'
+              : klub.n + ' steht im Mittelfeld – ein Verein, bei dem sich '
+                + 'entscheidet, wohin es geht, und der dafür Leute wie dich holt.');
+            return teile;
+          })() : [
+            st.age >= 20
+              ? 'Sieben Runden, zweihundertvierundzwanzig Namen, und keiner davon '
+                + 'deiner. Ab jetzt gehören deine Rechte niemandem – das ist kein '
+                + 'Nichts, sondern die Freiheit, dir den Weg selbst zu suchen.'
+              : 'Die Listen sahen dich noch nicht. Ein Jahr ist eine lange Zeit für '
+                + 'einen Körper, der noch nicht fertig ist, und nächsten Sommer '
+                + 'stehst du wieder auf der Liste.'
+          ],
           wahl: runde
             ? 'Nr. ' + gesamt + ' – ' + klub.n
             : (st.age >= 20 ? 'Nicht gezogen' : 'Diesmal nicht gezogen'),

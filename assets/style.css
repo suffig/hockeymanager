@@ -4944,3 +4944,76 @@ hr, .trenner{
   100%{transform:none;opacity:1}
 }
 @media (prefers-reduced-motion: reduce){ .fein-karte.frisch{animation:none} }
+
+
+/* ==================================================================
+   Der Draftabend laeuft ab
+
+   Fuenf Stufen: die Halle wartet, die Nummer faellt, der Verein steht
+   da, dann was es bedeutet, zuletzt die Folgen.
+
+   Geschaltet wird ueber visibility, nicht ueber opacity. Der Grund
+   steht weiter oben in dieser Datei: .db-nummer b und .db-klub tragen
+   eigene Eintrittsanimationen mit animation-fill-mode "both", und eine
+   Animation schlaegt in der Kaskade jede einfache opacity-Angabe - mit
+   opacity:0 war das Blatt gemessen auf jeder Stufe vollstaendig
+   sichtbar. Ueber visibility bleibt die vorhandene Animation erhalten
+   und laeuft genau dann, wenn die Stufe dran ist.
+   ================================================================== */
+.draftblatt .db-warten,
+.draftblatt .db-nummer,
+.draftblatt .db-klub,
+.draftblatt .db-runde,
+.draftblatt .db-text,
+.draftblatt .db-grund,
+.draftblatt .db-wirkungen,
+.draftblatt > .btn{
+  visibility:hidden;
+}
+.draftblatt .db-warten{
+  font-size:12.5px; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--muted); margin:2px 0 6px;
+  transition:opacity .4s ease;
+}
+.draftblatt.stufe-1 .db-warten,
+.draftblatt.stufe-2 .db-warten,
+.draftblatt.stufe-3 .db-warten,
+.draftblatt.stufe-4 .db-warten,
+.draftblatt.stufe-5 .db-warten{visibility:visible}
+/* Ab Stufe 2 tritt der Hinweis zurueck - die Nummer ist jetzt da. */
+.draftblatt.stufe-2 .db-warten,
+.draftblatt.stufe-3 .db-warten,
+.draftblatt.stufe-4 .db-warten,
+.draftblatt.stufe-5 .db-warten{opacity:.35}
+
+.draftblatt.stufe-2 .db-nummer,
+.draftblatt.stufe-3 .db-nummer,
+.draftblatt.stufe-4 .db-nummer,
+.draftblatt.stufe-5 .db-nummer{visibility:visible}
+
+.draftblatt.stufe-3 .db-klub, .draftblatt.stufe-3 .db-runde,
+.draftblatt.stufe-4 .db-klub, .draftblatt.stufe-4 .db-runde,
+.draftblatt.stufe-5 .db-klub, .draftblatt.stufe-5 .db-runde{visibility:visible}
+
+.draftblatt.stufe-4 .db-text, .draftblatt.stufe-4 .db-grund,
+.draftblatt.stufe-5 .db-text, .draftblatt.stufe-5 .db-grund{visibility:visible}
+
+.draftblatt.stufe-5 .db-wirkungen,
+.draftblatt.stufe-5 > .btn{visibility:visible}
+
+/* Die Begruendung: kurze Absaetze, ruhiger gesetzt als der Hauptsatz -
+   sie erklaert, sie verkuendet nicht. */
+.draftblatt .db-grund{
+  margin:10px 0 2px; padding-top:10px; text-align:left;
+  border-top:1px solid var(--line-soft);
+}
+.draftblatt .db-grund p{
+  margin:0 0 7px; font-size:13.5px; line-height:1.5; color:var(--muted);
+}
+.draftblatt .db-grund p:last-child{margin-bottom:0}
+
+@media (prefers-reduced-motion: reduce){
+  .draftblatt .db-warten, .draftblatt .db-nummer, .draftblatt .db-klub,
+  .draftblatt .db-runde, .draftblatt .db-text, .draftblatt .db-grund,
+  .draftblatt .db-wirkungen, .draftblatt > .btn{visibility:visible;opacity:1}
+}

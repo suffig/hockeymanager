@@ -16,7 +16,7 @@
      Speicher; sie aendern sich mit ihrem Dateinamen.
    ========================================================== */
 
-const VERSION = 'rinkrise-a4ca99bf';
+const VERSION = 'rinkrise-2d12888d';
 const SCHALE = [
   './',
   './index.html',
@@ -27,18 +27,18 @@ const SCHALE = [
   './schnellkarriere.html',
   './taeglich.html',
   './konto.html',
-  './assets/style.css?v=a4ca99bf',
-  './assets/data.js?v=a4ca99bf',
-  './assets/draft.js?v=a4ca99bf',
-  './assets/engine.js?v=a4ca99bf',
-  './assets/ereignisse.js?v=a4ca99bf',
-  './assets/wappen.js?v=a4ca99bf',
-  './assets/ui.js?v=a4ca99bf',
-  './assets/game.js?v=a4ca99bf',
-  './assets/konto-config.js?v=a4ca99bf',
-  './assets/konto.js?v=a4ca99bf',
-  './assets/bestenliste.js?v=a4ca99bf',
-  './manifest.json?v=a4ca99bf',
+  './assets/style.css?v=2d12888d',
+  './assets/data.js?v=2d12888d',
+  './assets/draft.js?v=2d12888d',
+  './assets/engine.js?v=2d12888d',
+  './assets/ereignisse.js?v=2d12888d',
+  './assets/wappen.js?v=2d12888d',
+  './assets/ui.js?v=2d12888d',
+  './assets/game.js?v=2d12888d',
+  './assets/konto-config.js?v=2d12888d',
+  './assets/konto.js?v=2d12888d',
+  './assets/bestenliste.js?v=2d12888d',
+  './manifest.json?v=2d12888d',
   './assets/app/symbol-192.png',
   './assets/app/symbol-512.png',
   /* Das Logo gehoert in die Schale: ohne es zeigt die Seite offline
