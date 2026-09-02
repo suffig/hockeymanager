@@ -2206,9 +2206,21 @@ const PUCKERO = (() => {
        Wirkung erst ein Jahr spaeter. */
     function rollenGutschrift(n){
       if (!st.rolle || !n) return;
+      const vorher = st.rollenStand;
       st.rollenPunkte = clamp(st.rollenPunkte + n, -4, 4);
       st.rollenStand = st.rollenPunkte >= 3 ? 'saeule'
                      : st.rollenPunkte <= -1 ? 'bewaehrung' : 'gesetzt';
+      /* Der Hauptweg vom "der Trainer baut die Mannschaft um dich" zum
+         "deine Rolle steht zur Debatte" in einem Zug: ein Ereignis mit
+         rolle:-2 auf einen Stand von zwei Punkten. Auch hier gilt der
+         Zwischenschritt - wer sich so festgelegt hat, gibt einem erst
+         ein normales Jahr. Eine ausdrueckliche Umstellung durch den
+         Trainer und eine abgelehnte Rollenwahl bleiben davon
+         unberuehrt: die sind erzaehlt und nachvollziehbar. */
+      if (vorher === 'saeule' && st.rollenStand === 'bewaehrung'){
+        st.rollenStand = 'gesetzt';
+        st.rollenPunkte = 0;
+      }
     }
 
     /* Ohne die Notbremse steht hier ein harter Absturz, sobald ein
@@ -2426,6 +2438,26 @@ const PUCKERO = (() => {
       else if (st.rollenPunkte <= -1) st.rollenStand = 'bewaehrung';
       else                            st.rollenStand = 'gesetzt';
 
+      /* ------------------------------------------------------------------
+         Wer die Mannschaft um dich baut, stellt dich nicht im Jahr darauf
+         infrage
+
+         Gemessen folgte auf 14 Prozent aller Befoerderungen zur Saeule
+         direkt die Bewaehrung - vom "der Trainer baut die Mannschaft um
+         dich" zum "deine Rolle steht zur Debatte" in einer einzigen
+         Saison. Rechnerisch geht das, weil ein Ereignis mit rolle:-2 und
+         eine schwache Saison zusammen vier Punkte kosten koennen; erzaehlt
+         ergibt es keinen Sinn. Ein Trainer, der sich so festgelegt hat,
+         gibt einem erst ein normales Jahr.
+
+         Der Zwischenschritt kostet nichts: wer zwei schwache Saisons
+         hintereinander spielt, steht danach trotzdem auf Bewaehrung.
+         ------------------------------------------------------------------ */
+      if (vorher === 'saeule' && st.rollenStand === 'bewaehrung'){
+        st.rollenStand = 'gesetzt';
+        st.rollenPunkte = 0;
+      }
+
       if (st.rollenStand !== vorher){
         season.events.push({
           t: st.rollenStand === 'saeule'
@@ -2591,8 +2623,8 @@ const PUCKERO = (() => {
            sie gerade auch zeigte.
            ------------------------------------------------------------ */
         form:   Math.round(st.formzustand * traegheitJetzt() * 0.055 * 1000) / 10,
-        umfeld: Math.round((eingewoehnung + mitspieler + reihenWirkungJetzt() + bindung)
-                           * 1000) / 10,
+        umfeld: Math.round((eingewoehnung + mitspieler + reihenWirkungJetzt()
+                            + heimwehWirkungJetzt() + bindung) * 1000) / 10,
         /* Muss dasselbe zeigen wie season.einfluesse - sonst sagt die
            Vorschau etwas anderes, als danach passiert. */
         trainer: Math.round(((TRAINERSTILE[st.trainerStil] || {}).kante || 0) * 1000) / 10
@@ -3218,6 +3250,17 @@ const PUCKERO = (() => {
         if (w.berater) merke(w.berater > 0
           ? 'Besserer Draht zu deinem Berater' : 'Dein Berater ist verstimmt',
           w.berater > 0);
+        if (w.leben){
+          const l = w.leben;
+          if (l.vermoegen) merke((l.vermoegen > 0 ? '+' : '') + l.vermoegen
+            + ' Mio Vermögen', l.vermoegen > 0);
+          if (l.heimweh) merke((l.heimweh > 0 ? '+' : '') + l.heimweh
+            + ' Heimweh', l.heimweh < 0);
+          if (l.wurzeln) merke((l.wurzeln > 0 ? '+' : '') + l.wurzeln
+            + ' Verwurzelung', l.wurzeln > 0);
+        }
+        if (w.verschleiss) merke('+' + w.verschleiss
+          + (w.verschleiss === 1 ? ' Verletzungsjahr' : ' Verletzungsjahre'), false);
         if (w.spiele) merke(w.spiele + (w.spiele === 1 ? ' Spiel' : ' Spiele')
           + ' Sperre', false);
         if (w.gehalt) merke((w.gehalt > 0 ? '+' : '') + Math.round(w.gehalt * 100)
@@ -3242,6 +3285,42 @@ const PUCKERO = (() => {
         if (w.risiko) st.risikoBonus += w.risiko / 100;
         if (w.berater) st.beraterDraht = clamp(st.beraterDraht + w.berater, 0, 100);
         if (w.spiele) st.gesperrteSpiele = (st.gesperrteSpiele || 0) + w.spiele;
+        /* ------------------------------------------------------------------
+           Das Leben ausserhalb der Halle - es stand da und passierte nicht
+
+           36 Ausgaenge tragen eine leben-Wirkung: Vermoegen (20-mal,
+           -4,5 bis +5,5 Millionen), Heimweh (15-mal, -30 bis +18),
+           Wurzeln (5-mal) und der Partner, der mitzieht (3-mal). Kein
+           einziger davon wurde je angewandt - der Schluessel war in den
+           Ereignissen deklariert und im Anwender nicht vorgesehen.
+
+           Damit versprachen Texte wie "die Ablösesumme macht dich mit
+           einem Schlag reich" oder "das Heimweh laesst nach" etwas, das
+           nachweislich nichts bewirkte. Und weil Heimweh in die
+           Umfeldkraefte und in die Rueckkehrlogik eingeht, fehlte damit
+           auch dort eine der wenigen Stellschrauben, die der Spieler
+           selbst in der Hand hat.
+           ------------------------------------------------------------------ */
+        if (w.leben){
+          const L = st.leben;
+          if (w.leben.vermoegen !== undefined)
+            L.vermoegen = Math.round((L.vermoegen + w.leben.vermoegen) * 100) / 100;
+          if (w.leben.heimweh !== undefined)
+            L.heimweh = clamp(L.heimweh + w.leben.heimweh, 0, 100);
+          if (w.leben.wurzeln !== undefined)
+            L.wurzeln = clamp(L.wurzeln + w.leben.wurzeln, 0, 100);
+          if (w.leben.partnerMit !== undefined)
+            L.partnerMit = !!w.leben.partnerMit;
+          if (w.leben.kinder !== undefined)
+            L.kinder = Math.max(0, L.kinder + w.leben.kinder);
+          if (w.leben.familie) L.familie = w.leben.familie;
+        }
+        /* Verschleiss ist ein Verletzungsjahr auf dem Konto - dieselbe
+           Groesse, die auch das Koerperband anzeigt und die in die
+           Ruecktrittsfrage eingeht. Sechs Ausgaenge nannten sie, keiner
+           veraenderte sie. */
+        if (w.verschleiss)
+          st.verletzungsjahre = Math.max(0, (st.verletzungsjahre || 0) + w.verschleiss);
         /* "bessert deinen Vertrag nach" - das stand im Text und
            passierte nicht. gehaltFaktor ist die Groesse, die auch die
            Verhandlung bewegt. */
@@ -3603,6 +3682,7 @@ const PUCKERO = (() => {
       const mitspieler = clamp((klubStaerke(club) - ligaSchnittJetzt(club.lg)) * 0.006, -0.06, 0.07);
 
       const reihenWirkung = reihenWirkungJetzt();
+      const heimwehWirkung = heimwehWirkungJetzt();
       const stil = TRAINERSTILE[st.trainerStil] || null;
 
       /* ---- Kopf und Umfeld ----
@@ -3643,7 +3723,7 @@ const PUCKERO = (() => {
       /* Klassenunterschied zur Liga */
       const tagesform = 0.97 + r() * 0.04
                       + st.formzustand * 0.055
-                      + eingewoehnung + mitspieler + reihenWirkung
+                      + eingewoehnung + mitspieler + reihenWirkung + heimwehWirkung
                       + (stil ? stil.kante : 0)
                       + moralWirkung + standWirkung + bindungsWirkung
                       + (season.sternstunde ? 0.10 : 0) + st.formBonus;
@@ -3651,8 +3731,8 @@ const PUCKERO = (() => {
         moral: Math.round(moralWirkung * 1000) / 10,
         stand: Math.round(standWirkung * 1000) / 10,
         form:  Math.round(st.formzustand * 0.055 * 1000) / 10,
-        umfeld: Math.round((eingewoehnung + mitspieler + reihenWirkung + bindungsWirkung)
-                           * 1000) / 10,
+        umfeld: Math.round((eingewoehnung + mitspieler + reihenWirkung + heimwehWirkung
+                            + bindungsWirkung) * 1000) / 10,
         /* Die Handschrift des Trainers gehoert in dieselbe Aufstellung
            wie alles andere, was auf die Ausbeute wirkt - sonst fehlen
            in der Rechnung ploetzlich fuenf Prozent, die niemand
@@ -5496,10 +5576,28 @@ const PUCKERO = (() => {
       if (st.altersgrenze){
         const huerdeEnde = st.club && LG_MIN[st.club.lg] !== undefined
                          ? LG_MIN[st.club.lg] : 58;
-        if (bewertung >= huerdeEnde + 2 && st.zusatzjahre < 4){
+        /* ----------------------------------------------------------------
+           Ohne Verletzung wird gefragt, nicht beendet
+
+           Gemessen endeten 17 Prozent aller Laufbahnen, ohne dass der
+           Spieler je gefragt wurde - darunter "Regulaerer Ruecktritt mit
+           33" nach einer Saison, die niemand als Ende gelesen haette. Ein
+           Koerper, der nicht mehr kann, ist ein Grund; eine Wertung zwei
+           Punkte unter der Ligahuerde ist eine Entscheidung, und die
+           gehoert dem Spieler.
+
+           Die Bedingung faellt damit weg: an der Altersgrenze wird immer
+           gefragt. Was ein weiteres Jahr kostet, steht in der Frage - und
+           wer viermal angehaengt hat, bekommt sie besonders deutlich.
+           ---------------------------------------------------------------- */
+        if (true){
           st.ruecktrittsfrage = {
             alter: st.age, ovr: naechsterOvr, verschleiss,
             zusatzjahre: st.zusatzjahre, grund: 'ruhestand', altersgrenze: true,
+            /* Damit die Frage nicht beschoenigt: reicht es in dieser Liga
+               ueberhaupt noch, und wie lange haengst du schon an? */
+            reichtNoch: bewertung >= huerdeEnde + 2,
+            zuSchwach: bewertung < huerdeEnde,
             vermoegen: st.leben.vermoegen,
             abgesichert: st.leben.vermoegen >= 5,
             abbau: Math.round((5 + st.zusatzjahre * 2.2 + verschleiss * 0.8) * 10) / 10,
@@ -6249,6 +6347,29 @@ const PUCKERO = (() => {
        der Saison und die Abrechnung danach. Zeigten die beiden
        verschiedene Zahlen, waere die Vorschau eine Luege.
        ------------------------------------------------------------------ */
+    /* ------------------------------------------------------------------
+       Heimweh wirkt jetzt auch auf dem Eis
+
+       Es stand in der Rueckkehrlogik und in der Bewertung von Angeboten,
+       aber nicht in den Kraeften einer Saison - wer sich fremd fuehlt,
+       spielte trotzdem, als waere nichts. Dabei ist das Heimweh eine der
+       wenigen Groessen, die der Spieler selbst in der Hand hat: durch die
+       Wahl der Liga, durch eine Rueckkehr, durch Ereignisse.
+
+       Ab 45 wird es spuerbar, bei 100 kostet es gut vier Prozent - etwa
+       so viel wie ein schlechter Reihenpartner. Wer daheim spielt und
+       verwurzelt ist, bekommt einen kleinen Zuschlag zurueck.
+       ------------------------------------------------------------------ */
+    function heimwehWirkungJetzt(){
+      const L = st.leben || {};
+      const h = clamp(L.heimweh || 0, 0, 100);
+      const zieht = -clamp((h - 45) / 55, 0, 1) * 0.045;
+      /* Zuhause und verwurzelt: ein kleiner Rueckenwind, gedeckelt. */
+      const daheim = st.club && league(st.club.lg).land === player.nation
+        ? clamp((L.wurzeln || 0) / 100, 0, 1) * 0.012 : 0;
+      return zieht + daheim;
+    }
+
     function reihenWirkungJetzt(){
       if (!st.reihe) return 0;
       const chemie = st.reihe.chemie || 0;

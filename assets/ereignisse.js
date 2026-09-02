@@ -1984,7 +1984,11 @@ const EREIGNISSE = (() => {
       hinweis:'Gegen jeden ärztlichen Rat',
       gut:{ moral:15, ruf:12, trait:{ playoff:8 },
             text:'Du erzielst das Siegtor und kannst danach zwei Tage nicht laufen. Es war es wert.' },
-      schlecht:{ risiko:22, form:-0.14, text:'Kreuzband. Die Saison ist vorbei, und die nächste auch fast.' } },
+      /* Der schwerste Verletzungstext im ganzen Vorrat - und er kostete
+         kein einziges Spiel. "Die Saison ist vorbei" heisst: die Saison
+         ist vorbei. */
+      schlecht:{ risiko:22, form:-0.14, spiele:70, verschleiss:2,
+                 text:'Kreuzband. Die Saison ist vorbei, und die nächste auch fast.' } },
 
     krise1: { t:'Die ganze Mannschaft öffentlich in die Pflicht nehmen', chance:24,
       hinweis:'Vor laufenden Kameras statt hinter Türen',
@@ -2449,7 +2453,7 @@ const EREIGNISSE = (() => {
           gut:{ form:0.09, attr:{ antritt:3 }, risiko:4,
                 text:'Du bist im Januar in der besten Form deines Lebens. Der Preis steht '
                    + 'auf einem anderen Zettel.' },
-          schlecht:{ risiko:9, form:-0.05,
+          schlecht:{ risiko:9, form:-0.05, spiele:7,   /* zwei Wochen sind sieben Spiele */
                 text:'Der Körper macht die Rechnung nicht mit. Zwei Wochen Pause im Februar.' } },
         { t:'Nichts tun – der Platz ist deiner', chance:64,
           hinweis:'Wenn du recht behältst',
