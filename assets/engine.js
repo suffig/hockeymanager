@@ -1089,7 +1089,6 @@ const PUCKERO = (() => {
       nominierung: null,      // offene Frage des Verbands
       natGeprueft: false,
       natZusage: true,        // stehst du zur Verfuegung?
-      natRolle: null,         // 'fuehrung', wenn du sie eingefordert hast
       natAbsagen: 0,          // wie oft du abgesagt hast
       natGefragt: false,      // offene Zusage, die noch beantwortet werden muss
       natKapitaen: false,     // Kapitaen der Nationalmannschaft
@@ -1808,7 +1807,6 @@ const PUCKERO = (() => {
         st.natKapitaen = true;
         merke('Kapitän der Nationalmannschaft', true);
       }
-      st.natRolle = (o.fuehrung && gelungen) ? 'fuehrung' : null;
 
       if (!folge.wirkungen.length) merke('Keine bleibende Wirkung', true);
 

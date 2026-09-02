@@ -8,10 +8,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=2ebebb9e">
+<link rel="stylesheet" href="assets/style.css?v=5b95c160">
 
 <!-- Als App auf dem Startbildschirm -->
-<link rel="manifest" href="manifest.json?v=2ebebb9e">
+<link rel="manifest" href="manifest.json?v=5b95c160">
 <meta name="theme-color" content="#0b1220">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -51,17 +51,24 @@ try{var t=localStorage.getItem('rinkrise.thema')||localStorage.getItem('eiszeit.
 
     <div class="grid g2 mt-l">
       <div class="card">
-        <h3>Die vier Fragen</h3>
-        <p class="small" style="margin-top:0">Der Draft besteht aus vier Fragen, nicht aus
+        <h3>Die zwei Fragen</h3>
+        <p class="small" style="margin-top:0">Der Draft besteht aus zwei Fragen, nicht aus
           Kartenrunden. Jede Antwort verschiebt Werte <em>und</em> gibt dir mindestens eine
-          Eigenschaft, die deine ganze Laufbahn begleitet. Aus jedem Vorrat werden nur
-          drei Antworten gezogen – zwei Spieler bekommen selten dieselbe Auswahl.</p>
+          Eigenschaft, die deine ganze Laufbahn begleitet. Je Frage werden sechs Antworten
+          aus einem deutlich größeren Vorrat gezogen – zwei Spieler bekommen praktisch nie
+          dieselbe Auswahl.</p>
         <ol style="color:var(--muted);padding-left:20px;margin:0">
-          <li><b>Herkunft</b> – wo du Eishockey gelernt hast.</li>
-          <li><b>Waffe</b> – worüber du Spiele entscheidest, je nach Position.</li>
-          <li><b>Charakter</b> – wie du in einer Kabine wirkst.</li>
-          <li><b>Preis</b> – was du dafür in Kauf nimmst.</li>
+          <li><b>Herkunft</b> – wo du Eishockey gelernt hast. Deine Nation verschiebt,
+            welche Wege häufiger vorkommen.</li>
+          <li><b>Was dich ausmacht</b> – deine Waffe, deine Rolle in der Kabine oder der
+            Preis, den dein Spiel kostet. Alle drei liegen in einem Topf, sechsunddreißig
+            Karten, sechs davon stehen zur Wahl.</li>
         </ol>
+        <p class="small" style="margin-bottom:0">Danach kommen <b>drei Jugendmomente</b> –
+          sie machen dich nicht besser, sondern zu einem bestimmten Spieler – und der
+          <b>Feinschliff</b>: eine Eigenschaft aus dreien und zehn Punkte auf deine Werte.
+          Die dritte Eigenschaft ist ausgewürfelt und darf neu gewürfelt werden; der
+          Vorrat enthält auch, was einem schadet.</p>
       </div>
       <div class="card">
         <h3>Worauf es dabei ankommt</h3>
@@ -267,6 +274,13 @@ try{var t=localStorage.getItem('rinkrise.thema')||localStorage.getItem('eiszeit.
         <p class="small">Im Sommer selbst entscheidest du zwischen hartem Training, echter
           Erholung und öffentlichen Terminen. Wer viel einsteckt, bekommt irgendwann den
           Eingriff angeboten, der den Saisonstart kostet und dafür aufräumt.</p>
+        <p class="small" style="margin-bottom:0">Das Sommertraining bietet sechs Karten:
+          drei Werte, eine Eigenschaft, die <b>Doppelschicht</b> (anderthalbfacher Gewinn,
+          dafür geht der Körper müde in die Saison) und den <b>Sommer ohne Eis</b> (kein
+          Zuwachs, heilt dafür ein Verletzungsjahr weg). Überlässt du die Wahl dem
+          Trainerstab, entscheidet die eingestellte Stärke, wie viel er herausholt –
+          einfach 100, mittel 80, schwer 60 Prozent. Wer selbst die richtige Karte nimmt,
+          bekommt immer den vollen Wert.</p>
       </div>
     </div>
 
@@ -314,11 +328,11 @@ try{var t=localStorage.getItem('rinkrise.thema')||localStorage.getItem('eiszeit.
 
 <div id="ftr"></div>
 
-<script src="assets/data.js?v=2ebebb9e"></script>
-<script src="assets/draft.js?v=2ebebb9e"></script>
-<script src="assets/engine.js?v=2ebebb9e"></script>
-<script src="assets/wappen.js?v=2ebebb9e"></script>
-<script src="assets/ui.js?v=2ebebb9e"></script>
+<script src="assets/data.js?v=5b95c160"></script>
+<script src="assets/draft.js?v=5b95c160"></script>
+<script src="assets/engine.js?v=5b95c160"></script>
+<script src="assets/wappen.js?v=5b95c160"></script>
+<script src="assets/ui.js?v=5b95c160"></script>
 <script>
 /* ---- Gewichtstabelle ---- */
 (function(){
