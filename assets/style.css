@@ -5072,3 +5072,11 @@ hr, .trenner{
   .kr-zahlen b{font-size:15px}
 }
 @media (prefers-reduced-motion: reduce){ .kr-spieler{animation:none} }
+
+/* Gasteintraege in der Vereinschronik - dieselbe Marke wie in der
+   Bestenliste, damit klar ist, dass dahinter kein Konto steht. */
+.kr-sp-name .gastmarke{
+  font-weight:700; font-size:9px; letter-spacing:.05em; text-transform:uppercase;
+  color:var(--muted); border:1px solid var(--line); border-radius:99px;
+  padding:0 5px; margin-left:3px;
+}

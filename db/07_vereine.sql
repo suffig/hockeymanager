@@ -13,9 +13,18 @@
 --  Wertung und ob ein Titel dabei war.
 --
 --  Wie ueberall hier gilt: die Sicht ist die einzige Tuer. Sie laeuft
---  mit security_invoker = false, zeigt ausschliesslich Zeilen
---  freigegebener Profile und gibt nichts preis, was nicht ohnehin in
---  der Bestenliste steht.
+--  mit security_invoker = false und zeigt genau die Zeilen, die auch
+--  die Bestenliste zeigt - freigegebene Profile und Gasteintraege ohne
+--  Profil. Preisgegeben wird nichts, was dort nicht ohnehin steht.
+--
+--  DRITTE FASSUNG. Die zweite lieferte weiter nichts, und die
+--  Diagnosesicht sagte warum: davon_freigegeben war 0. Der Grund ist
+--  06_gast_eintrag.sql - dort werden bestenliste und karriere_ansicht
+--  NEU definiert, mit left join und "where k.profil_id is null or
+--  p.status = 'frei'", damit Gasteintraege ohne Profil durchkommen. Ich
+--  hatte die Vorlage aus 03_bestenliste.sql genommen und uebersehen,
+--  dass 06 sie ueberschreibt; mein inner join warf damit jede
+--  Gastkarriere weg - und genau eine solche liegt in der Datenbank.
 --
 --  ZWEITE FASSUNG. Die erste lieferte null Zeilen, obwohl die Daten da
 --  waren. Ursache war die Aufloesung des jsonb-Feldes: bei
@@ -49,7 +58,8 @@ as
     k.pos                                      as position,
     k.ist_torhueter                            as ist_torhueter,
     k.seed                                     as seed,
-    p.benutzername                             as profil,
+    coalesce(p.benutzername, k.gastname)       as profil,
+    (k.profil_id is null)                      as gast,
     (s.wert ->> 'k')                           as klub,
     (s.wert ->> 'l')                           as liga,
     nullif(s.wert ->> 'j', '')::int            as jahr,
@@ -60,17 +70,17 @@ as
     coalesce(nullif(s.wert ->> 'o',  '')::int, 0) as wertung,
     (s.wert ->> 'ti') is not null               as titel
     from public.karriere k
-    join public.profile  p on p.id = k.profil_id
+    left join public.profile p on p.id = k.profil_id
     cross join lateral jsonb_array_elements(
       case when jsonb_typeof(k.saisonwerte) = 'array'
            then k.saisonwerte
            else '[]'::jsonb
       end) as s(wert)
-   where p.status = 'frei'
+   where (k.profil_id is null or p.status = 'frei')
      and (s.wert ->> 'k') is not null;
 
 comment on view public.vereins_saison is
-  'Eine Zeile je gespielter Saison und Verein, nur aus freigegebenen Profilen';
+  'Eine Zeile je gespielter Saison und Verein, so sichtbar wie die Bestenliste';
 
 -- ---------------------------------------------------------------------
 --  Die Chronik je Verein
@@ -98,7 +108,7 @@ as
    group by klub;
 
 comment on view public.vereins_chronik is
-  'Je Verein zusammengezaehlt, ueber alle freigegebenen Laufbahnen';
+  'Je Verein zusammengezaehlt, ueber alle sichtbaren Laufbahnen';
 
 -- ---------------------------------------------------------------------
 --  Die Rangliste der Spieler je Verein
@@ -117,6 +127,7 @@ as
     max(position)                                as position,
     bool_or(ist_torhueter)                       as ist_torhueter,
     max(profil)                                  as profil,
+    bool_or(gast)                                as gast,
     max(seed)                                    as seed,
     count(*)                                     as saisons,
     sum(spiele)                                  as spiele,
@@ -142,8 +153,9 @@ comment on view public.vereins_spieler is
 --  Diagnose
 --
 --  Falls die Chronik leer bleibt, sagt diese Sicht in einer Zeile, wo
---  es haengt: wie viele Karrieren es gibt, wie viele davon zu einem
---  freigegebenen Profil gehoeren, wie viele ein Feld saisonwerte haben,
+--  es haengt: wie viele Karrieren es gibt, wie viele davon sichtbar
+--  sind (freigegebenes Profil oder Gasteintrag), wie viele ein Feld
+--  saisonwerte haben,
 --  wie viele davon tatsaechlich ein Array sind, und wie viele
 --  Saisonzeilen am Ende herauskommen.
 -- ---------------------------------------------------------------------
@@ -154,8 +166,8 @@ as
   select
     (select count(*) from public.karriere)                          as karrieren,
     (select count(*) from public.karriere k
-       join public.profile p on p.id = k.profil_id
-      where p.status = 'frei')                                      as davon_freigegeben,
+       left join public.profile p on p.id = k.profil_id
+      where k.profil_id is null or p.status = 'frei')               as davon_sichtbar,
     (select count(*) from public.karriere where saisonwerte is not null)
                                                                     as mit_saisonwerten,
     (select count(*) from public.karriere
