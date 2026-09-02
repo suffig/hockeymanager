@@ -2780,13 +2780,34 @@ function CareerGame(root, cfg){
                   Zwischen deiner ersten Wertung und dem, was in dir steckte,
                   lagen <b>${decke - start}</b> Punkte.
                   Geholt hast du <b>${Math.max(0, (res.peak || 0) - start)}</b> davon.
-                  ${/* An der neuen Verteilung geeicht (10/25/50/75/90 =
-                       70/80/89/94/100), nicht an runden Zahlen. */ ''}
-                  ${genutzt >= 95
-                    ? 'Mehr war aus diesem Körper nicht herauszuholen.'
-                    : genutzt >= 82
-                    ? 'Ein gutes Stück davon ist auf dem Eis geblieben.'
-                    : 'Da lag deutlich mehr drin, als am Ende dastand.'}
+                  ${/* ------------------------------------------------
+                       Sechs Stufen statt drei, und die Mitte lobt
+
+                       Die Schwellen stehen auf den gemessenen Perzentilen
+                       (10/25/50/75/90 = 92/96/98/99/100). Vorher lag die
+                       mittlere Stufe bei 82 bis 94 Prozent und sagte "ein
+                       gutes Stueck ist auf dem Eis geblieben" - das trifft
+                       den Median, also die Mehrheit aller Laufbahnen, und
+                       liest sich als Vorwurf. Wer neunzig Prozent seiner
+                       Anlage abruft, hat eine gute Karriere gespielt, und
+                       der Satz darf das sagen.
+                       ------------------------------------------------ */ ''}
+                  ${genutzt >= 100
+                    ? 'Du hast alles herausgeholt, was in dir steckte. Mehr geht nicht.'
+                    : genutzt >= 99
+                    ? 'Bis auf den letzten Rest ausgereizt – so sauber gelingt das '
+                      + 'nicht einmal jedem Vierten.'
+                    : genutzt >= 98
+                    ? 'Du hast das Meiste aus dir gemacht, mehr als die Hälfte '
+                      + 'deines Jahrgangs von sich sagen kann.'
+                    : genutzt >= 96
+                    ? 'Ein gutes Stück deines Weges bist du gegangen. Nicht alles, '
+                      + 'aber viel – und das ist eine Laufbahn, auf die man zurückblickt.'
+                    : genutzt >= 92
+                    ? 'Es ist etwas liegen geblieben. Trotzdem hast du gespielt, '
+                      + 'wovon die meisten nur reden.'
+                    : 'Da lag mehr drin, als am Ende dastand – und du wirst immer '
+                      + 'wissen, wie viel. Gespielt hast du trotzdem ganz oben.'}
                 </div>
               </div>`; })() : ''}
             </div>

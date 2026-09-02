@@ -332,8 +332,23 @@ const PUCKERO = (() => {
     /* 1,28 aus devAttrs mal dem Scheitel der Alterskurve (1,02). */
     const grenze = (player.potenzial || 99) / 1.31;
     const jetzt = overall(player, player.attrs);
-    const naehe = clamp((jetzt - (grenze - 10)) / 10, 0, 1);
-    return clamp(1 - naehe * naehe * 0.94, 0.06, 1);
+    /* ------------------------------------------------------------------
+       Die letzten Punkte muessen wehtun
+
+       Mit einem Boden von 0,06 kam ueber genug Sommer trotzdem jeder an
+       seiner Decke an: gemessen schoepften 56 Prozent aller Laufbahnen
+       ihre Anlage voll aus und weitere 39 Prozent zu 94 bis 99 Prozent.
+       Damit hatte die Frage "was waere moeglich gewesen" fuer
+       fuenfundneunzig Prozent aller Spieler dieselbe Antwort - und der
+       Balken am Karriereende zeigte bei fast allen dasselbe Bild.
+
+       Die Naehe wirkt jetzt frueher (fuenfzehn statt zehn Punkte vor der
+       Grenze) und der Boden liegt bei 0,015. Wer ganz oben ankommt, hat
+       dafuer etwas getan; die Decke wird dafuer angehoben, damit der
+       Gipfel bleibt, wo er war.
+       ------------------------------------------------------------------ */
+    const naehe = clamp((jetzt - (grenze - 15)) / 15, 0, 1);
+    return clamp(1 - Math.pow(naehe, 1.5) * 0.985, 0.015, 1);
   }
 
   function newPlayer(opt){
@@ -401,7 +416,17 @@ const PUCKERO = (() => {
          zwei Zuege hat: die Zahl der Eigenschaften je Spieler faellt damit
          von 8,46 auf 5,76, und die Talentgrenze traegt sich wieder
          weitgehend selbst. */
-      potenzial: zieheGrenze(r) - 1,
+      /* ------------------------------------------------------------
+         Eine Decke, die fast jeder erreicht, ist keine
+
+         Gemessen schoepften 56 Prozent der Laufbahnen ihre Anlage zu
+         hundert Prozent aus und weitere 39 Prozent zu 94 bis 99 - die
+         Frage "was waere moeglich gewesen" hatte damit fuer
+         fuenfundneunzig Prozent aller Spieler dieselbe Antwort. Die
+         Decke liegt jetzt hoeher; was ein Spieler tatsaechlich
+         erreicht, haelt der Trainingsgewinn in der Waage.
+         ------------------------------------------------------------ */
+      potenzial: zieheGrenze(r) + 1,
       /* ----------------------------------------------------------------
          Der Scheitelpunkt des Koerpers gehoert zum Spieler
 
