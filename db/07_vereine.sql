@@ -39,6 +39,16 @@
 --  Mehrfaches Ausfuehren ist unschaedlich.
 -- =====================================================================
 
+-- ---------------------------------------------------------------------
+--  Erst alles weg, und zwar von aussen nach innen
+--
+--  Die Reihenfolge ist nicht beliebig: vereins_diagnose liest aus
+--  vereins_chronik, und die liest aus vereins_saison. Wer die innere
+--  Sicht zuerst verwirft, bekommt "cannot drop view ... because other
+--  objects depend on it". Deshalb zuerst die Diagnose, dann die
+--  Auswertungen, zuletzt die Grundlage.
+-- ---------------------------------------------------------------------
+drop view if exists public.vereins_diagnose;
 drop view if exists public.vereins_spieler;
 drop view if exists public.vereins_chronik;
 drop view if exists public.vereins_saison;
@@ -159,7 +169,6 @@ comment on view public.vereins_spieler is
 --  wie viele davon tatsaechlich ein Array sind, und wie viele
 --  Saisonzeilen am Ende herauskommen.
 -- ---------------------------------------------------------------------
-drop view if exists public.vereins_diagnose;
 create view public.vereins_diagnose
 with (security_invoker = false)
 as
