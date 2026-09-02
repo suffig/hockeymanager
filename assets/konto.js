@@ -367,6 +367,43 @@ const KONTO = (() => {
   }
 
   /* ------------------------------------------------------------------
+     Die Vereinschronik ueber alle freigegebenen Laufbahnen
+
+     Dieselben Zahlen, die der Pokalraum lokal aus dem Browserarchiv
+     rechnet - nur eben ueber alle Spieler. Gelesen wird ausschliesslich
+     aus den Sichten aus db/07_vereine.sql; die Tabellen darunter
+     bleiben verschlossen.
+     ------------------------------------------------------------------ */
+  async function vereinsChronik(opt){
+    const o = opt || {};
+    if (!konfiguriert()) return { zeilen: [], fehler: 'nicht eingerichtet' };
+    try {
+      const c = await ladeClient();
+      const nach = ['saisons', 'titel', 'punkte', 'spieler'].includes(o.sortiert)
+        ? o.sortiert : 'saisons';
+      const { data, error } = await c.from('vereins_chronik')
+        .select('*')
+        .order(nach, { ascending: false })
+        .order('klub', { ascending: true })
+        .limit(o.wieviele || 40);
+      if (error) return { zeilen: [], fehler: error.message };
+      return { zeilen: data || [] };
+    } catch(e){ return { zeilen: [], fehler: 'Keine Verbindung' }; }
+  }
+
+  async function vereinsSpieler(klub){
+    if (!konfiguriert() || !klub) return { zeilen: [] };
+    try {
+      const c = await ladeClient();
+      const { data, error } = await c.from('vereins_spieler')
+        .select('*').eq('klub', klub)
+        .order('platz', { ascending: true }).limit(25);
+      if (error) return { zeilen: [], fehler: error.message };
+      return { zeilen: data || [] };
+    } catch(e){ return { zeilen: [], fehler: 'Keine Verbindung' }; }
+  }
+
+  /* ------------------------------------------------------------------
      Die Bestmarken aller Spieler
 
      Die Bestenliste beantwortet eine Frage: wer ist insgesamt der
@@ -431,7 +468,8 @@ const KONTO = (() => {
     profileLaden, freigeben, sperren,
     karriereSpeichern, alsGastEintragen, gastnamePruefen, gastnameLesen, rekorde,
     karrierenLaden, nichtUebertragen, uebertragen,
-    zieleLaden, zieleSpeichern, bestenliste, karriereAnsicht, eigenePlaetze
+    zieleLaden, zieleSpeichern, bestenliste, karriereAnsicht, eigenePlaetze,
+    vereinsChronik, vereinsSpieler
   };
 })();
 

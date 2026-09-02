@@ -8,10 +8,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="assets/style.css?v=5b95c160">
+<link rel="stylesheet" href="assets/style.css?v=83b68fb4">
 
 <!-- Als App auf dem Startbildschirm -->
-<link rel="manifest" href="manifest.json?v=5b95c160">
+<link rel="manifest" href="manifest.json?v=83b68fb4">
 <meta name="theme-color" content="#0b1220">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -42,16 +42,121 @@ try{var t=localStorage.getItem('rinkrise.thema')||localStorage.getItem('eiszeit.
   </div>
 </section>
 
+<!-- ================================================================
+     Die Vereine
+
+     Was der Pokalraum lokal zeigt, hier ueber alle freigegebenen
+     Laufbahnen. Bleibt verborgen, solange nichts zurueckkommt - eine
+     leere Ueberschrift ist schlimmer als keine.
+     ================================================================ -->
+<section class="block tight" id="vereine-block" hidden>
+  <div class="wrap">
+    <div class="row between">
+      <div>
+        <span class="eyebrow">Über alle Laufbahnen</span>
+        <h2 style="margin:2px 0 0">Die Vereine</h2>
+      </div>
+      <select id="v-sort" style="width:auto">
+        <option value="saisons">Nach Saisons</option>
+        <option value="titel">Nach Titeln</option>
+        <option value="punkte">Nach Ausbeute</option>
+        <option value="spieler">Nach Spielern</option>
+      </select>
+    </div>
+    <p class="small">Jede freigegebene Laufbahn zählt mit. Ein Klick auf einen Verein
+      zeigt, wer dort gespielt hat.</p>
+    <div id="vereine" class="mt"></div>
+  </div>
+</section>
+
 <div id="ftr"></div>
 
-<script src="assets/data.js?v=5b95c160"></script>
-<script src="assets/draft.js?v=5b95c160"></script>
-<script src="assets/engine.js?v=5b95c160"></script>
-<script src="assets/ereignisse.js?v=5b95c160"></script>
-<script src="assets/wappen.js?v=5b95c160"></script>
-<script src="assets/ui.js?v=5b95c160"></script>
-<script src="assets/konto-config.js?v=5b95c160"></script>
-<script src="assets/konto.js?v=5b95c160"></script>
-<script src="assets/bestenliste.js?v=5b95c160"></script>
+<script src="assets/data.js?v=83b68fb4"></script>
+<script src="assets/draft.js?v=83b68fb4"></script>
+<script src="assets/engine.js?v=83b68fb4"></script>
+<script src="assets/ereignisse.js?v=83b68fb4"></script>
+<script src="assets/wappen.js?v=83b68fb4"></script>
+<script src="assets/ui.js?v=83b68fb4"></script>
+<script src="assets/konto-config.js?v=83b68fb4"></script>
+<script src="assets/konto.js?v=83b68fb4"></script>
+<script src="assets/bestenliste.js?v=83b68fb4">
+/* ------------------------------------------------------------------
+   Die Vereinschronik
+
+   Gerechnet wird in der Datenbank (db/07_vereine.sql); hier steht nur
+   die Darstellung. Aufgeklappt wird immer nur ein Verein.
+   ------------------------------------------------------------------ */
+let vOffen = null, vGeladen = false;
+
+async function vereineZeichnen(){
+  const block = document.getElementById('vereine-block');
+  if (!block || typeof KONTO === 'undefined' || !KONTO.vereinsChronik) return;
+  const wie = (document.getElementById('v-sort') || {}).value || 'saisons';
+  const { zeilen, fehler } = await KONTO.vereinsChronik({ sortiert: wie });
+  if (fehler || !zeilen.length){ block.hidden = true; return; }
+  block.hidden = false;
+  vGeladen = true;
+
+  const esc = t => String(t == null ? '' : t)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+  document.getElementById('vereine').innerHTML = zeilen.map(c => {
+    const offen = vOffen === c.klub;
+    const torlastig = (c.siege || 0) > (c.punkte || 0);
+    return `
+      <div class="kr-verein ${offen ? 'offen' : ''}" data-klub="${esc(c.klub)}">
+        <button type="button" class="kr-kopf">
+          ${UI.wappenBild(c.klub, 34)}
+          <span class="kr-name">${esc(c.klub)}
+            <em>${esc(c.liga || '')} · ${c.von_jahr}–${c.bis_jahr}</em></span>
+          <span class="kr-zahlen"><b>${c.saisons}</b><i>Saisons</i></span>
+          <span class="kr-zahlen"><b>${torlastig ? c.siege : c.punkte}</b><i>${
+            torlastig ? 'Siege' : 'Punkte'}</i></span>
+          <span class="kr-zahlen ${c.titel ? 'gold' : ''}"><b>${c.titel}</b><i>Titel</i></span>
+          <span class="kr-zahlen"><b>${c.spieler}</b><i>Spieler</i></span>
+        </button>
+        ${offen ? '<div class="kr-spieler" data-fuer="' + esc(c.klub)
+          + '"><p class="small" style="margin:8px 0">Wird geladen …</p></div>' : ''}
+      </div>`;
+  }).join('');
+
+  document.getElementById('vereine').querySelectorAll('.kr-kopf').forEach(b =>
+    b.onclick = async () => {
+      const k = b.closest('[data-klub]').dataset.klub;
+      vOffen = vOffen === k ? null : k;
+      await vereineZeichnen();
+      if (vOffen) await spielerLaden(vOffen);
+    });
+}
+
+async function spielerLaden(klub){
+  const ziel = document.querySelector('.kr-spieler[data-fuer]');
+  if (!ziel) return;
+  const { zeilen, fehler } = await KONTO.vereinsSpieler(klub);
+  const esc = t => String(t == null ? '' : t)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  if (fehler || !zeilen.length){
+    ziel.innerHTML = '<p class="small" style="margin:8px 0">Keine Einträge.</p>';
+    return;
+  }
+  ziel.innerHTML = zeilen.map(sp => `
+    <div class="kr-zeile ${sp.platz === 1 ? 'bester' : ''}">
+      <span class="kr-platz">${sp.platz}</span>
+      <span class="kr-sp-name">${esc(sp.spieler)}
+        <em>${esc(sp.position)} · ${esc(sp.profil || '')} · ${sp.von_jahr}–${sp.bis_jahr}</em></span>
+      <span class="kr-sp-wert">${sp.saisons}<i>Sais.</i></span>
+      <span class="kr-sp-wert">${sp.ist_torhueter ? sp.siege : sp.punkte}<i>${
+        sp.ist_torhueter ? 'Siege' : 'Pkt'}</i></span>
+      <span class="kr-sp-wert">${sp.beste_wertung}<i>OVR</i></span>
+      ${sp.titel ? `<span class="kr-sp-titel">${sp.titel}×🏆</span>` : ''}
+    </div>`).join('');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const s = document.getElementById('v-sort');
+  if (s) s.onchange = () => { vOffen = null; vereineZeichnen(); };
+  vereineZeichnen();
+});
+</script>
 </body>
 </html>

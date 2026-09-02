@@ -10,16 +10,29 @@
 --  Neue Spalten braucht es dafuer nicht: public.karriere traegt seit
 --  03_bestenliste.sql das Feld saisonwerte als jsonb, und darin steht
 --  zu jeder Saison der Klub, die Liga, Spiele, Punkte, Siege, die
---  Wertung und ob ein Titel dabei war. Zwei Sichten genuegen.
+--  Wertung und ob ein Titel dabei war.
 --
 --  Wie ueberall hier gilt: die Sicht ist die einzige Tuer. Sie laeuft
 --  mit security_invoker = false, zeigt ausschliesslich Zeilen
 --  freigegebener Profile und gibt nichts preis, was nicht ohnehin in
 --  der Bestenliste steht.
 --
+--  ZWEITE FASSUNG. Die erste lieferte null Zeilen, obwohl die Daten da
+--  waren. Ursache war die Aufloesung des jsonb-Feldes: bei
+--  "jsonb_array_elements(...) as s" benennt der Alias je nach Kontext
+--  die Tabelle oder die Spalte, und "s ->> 'k'" traf damit nicht
+--  zuverlaessig die Spalte. Jetzt heisst die Spalte ausdruecklich
+--  "wert" - "as s(wert)" -, und darauf laesst sich nichts mehr
+--  missverstehen. Dazu unten eine Diagnosesicht, die zeigt, wo etwas
+--  verlorengeht, falls doch noch etwas fehlt.
+--
 --  Nach 01_schema.sql, 02_rls.sql und 03_bestenliste.sql ausfuehren.
 --  Mehrfaches Ausfuehren ist unschaedlich.
 -- =====================================================================
+
+drop view if exists public.vereins_spieler;
+drop view if exists public.vereins_chronik;
+drop view if exists public.vereins_saison;
 
 -- ---------------------------------------------------------------------
 --  Eine Zeile je Saison und Verein
@@ -27,30 +40,34 @@
 --  Die Grundlage fuer alles Weitere. Bewusst als eigene Sicht, damit
 --  die Aufloesung des jsonb nur an einer Stelle steht.
 -- ---------------------------------------------------------------------
-create or replace view public.vereins_saison
+create view public.vereins_saison
 with (security_invoker = false)
 as
   select
-    k.id                                    as karriere_id,
-    k.name                                  as spieler,
-    k.pos                                   as position,
-    k.ist_torhueter                         as ist_torhueter,
-    k.seed                                  as seed,
-    p.benutzername                          as profil,
-    (s ->> 'k')                             as klub,
-    (s ->> 'l')                             as liga,
-    (s ->> 'j')::int                        as jahr,
-    coalesce((s ->> 'sp')::int, 0)          as spiele,
-    coalesce((s ->> 'p')::int, 0)           as punkte,
-    coalesce((s ->> 't')::int, 0)           as tore,
-    coalesce((s ->> 'si')::int, 0)          as siege,
-    coalesce((s ->> 'o')::int, 0)           as wertung,
-    ((s ->> 'ti') is not null)              as titel
+    k.id                                       as karriere_id,
+    k.name                                     as spieler,
+    k.pos                                      as position,
+    k.ist_torhueter                            as ist_torhueter,
+    k.seed                                     as seed,
+    p.benutzername                             as profil,
+    (s.wert ->> 'k')                           as klub,
+    (s.wert ->> 'l')                           as liga,
+    nullif(s.wert ->> 'j', '')::int            as jahr,
+    coalesce(nullif(s.wert ->> 'sp', '')::int, 0) as spiele,
+    coalesce(nullif(s.wert ->> 'p',  '')::int, 0) as punkte,
+    coalesce(nullif(s.wert ->> 't',  '')::int, 0) as tore,
+    coalesce(nullif(s.wert ->> 'si', '')::int, 0) as siege,
+    coalesce(nullif(s.wert ->> 'o',  '')::int, 0) as wertung,
+    (s.wert ->> 'ti') is not null               as titel
     from public.karriere k
     join public.profile  p on p.id = k.profil_id
-    cross join lateral jsonb_array_elements(coalesce(k.saisonwerte, '[]'::jsonb)) as s
+    cross join lateral jsonb_array_elements(
+      case when jsonb_typeof(k.saisonwerte) = 'array'
+           then k.saisonwerte
+           else '[]'::jsonb
+      end) as s(wert)
    where p.status = 'frei'
-     and (s ->> 'k') is not null;
+     and (s.wert ->> 'k') is not null;
 
 comment on view public.vereins_saison is
   'Eine Zeile je gespielter Saison und Verein, nur aus freigegebenen Profilen';
@@ -59,11 +76,9 @@ comment on view public.vereins_saison is
 --  Die Chronik je Verein
 --
 --  Was in der Halle haengt: wie viele Spieler dort waren, wie lange,
---  was sie geholt haben. "punkte" zaehlt bei Torhuetern die Siege
---  doppelt, damit ein Torhueter neben einem Stuermer nicht verschwindet
---  - dieselbe Rechnung wie im Pokalraum.
+--  was sie geholt haben.
 -- ---------------------------------------------------------------------
-create or replace view public.vereins_chronik
+create view public.vereins_chronik
 with (security_invoker = false)
 as
   select
@@ -90,8 +105,10 @@ comment on view public.vereins_chronik is
 --
 --  Titel zuerst, dann die Ausbeute, dann die Treue - dieselbe Ordnung
 --  wie im Pokalraum, damit dieselbe Frage nicht zwei Antworten hat.
+--  Siege zaehlen doppelt, damit ein Torhueter neben einem Stuermer
+--  nicht verschwindet.
 -- ---------------------------------------------------------------------
-create or replace view public.vereins_spieler
+create view public.vereins_spieler
 with (security_invoker = false)
 as
   select
@@ -122,18 +139,52 @@ comment on view public.vereins_spieler is
   'Wer bei einem Verein gespielt hat, nach Titeln und Ausbeute geordnet';
 
 -- ---------------------------------------------------------------------
+--  Diagnose
+--
+--  Falls die Chronik leer bleibt, sagt diese Sicht in einer Zeile, wo
+--  es haengt: wie viele Karrieren es gibt, wie viele davon zu einem
+--  freigegebenen Profil gehoeren, wie viele ein Feld saisonwerte haben,
+--  wie viele davon tatsaechlich ein Array sind, und wie viele
+--  Saisonzeilen am Ende herauskommen.
+-- ---------------------------------------------------------------------
+drop view if exists public.vereins_diagnose;
+create view public.vereins_diagnose
+with (security_invoker = false)
+as
+  select
+    (select count(*) from public.karriere)                          as karrieren,
+    (select count(*) from public.karriere k
+       join public.profile p on p.id = k.profil_id
+      where p.status = 'frei')                                      as davon_freigegeben,
+    (select count(*) from public.karriere where saisonwerte is not null)
+                                                                    as mit_saisonwerten,
+    (select count(*) from public.karriere
+      where jsonb_typeof(saisonwerte) = 'array')                    as davon_array,
+    (select count(*) from public.vereins_saison)                    as saisonzeilen,
+    (select count(*) from public.vereins_chronik)                   as vereine;
+
+comment on view public.vereins_diagnose is
+  'Eine Zeile: wo die Vereinschronik ihre Daten verliert';
+
+-- ---------------------------------------------------------------------
 --  Lesen darf jeder, schreiben niemand
 --
 --  Die Sichten fassen nur zusammen, was ohnehin in der Bestenliste
 --  steht. Die Tabellen darunter bleiben durch RLS geschuetzt; erreicht
 --  werden sie nur ueber diese Tuer.
 -- ---------------------------------------------------------------------
-grant select on public.vereins_saison  to anon, authenticated;
-grant select on public.vereins_chronik to anon, authenticated;
-grant select on public.vereins_spieler to anon, authenticated;
+grant select on public.vereins_saison    to anon, authenticated;
+grant select on public.vereins_chronik   to anon, authenticated;
+grant select on public.vereins_spieler   to anon, authenticated;
+grant select on public.vereins_diagnose  to anon, authenticated;
 
 -- ---------------------------------------------------------------------
 --  Damit die Auswertung nicht ueber die ganze Tabelle laeuft
 -- ---------------------------------------------------------------------
 create index if not exists karriere_saisonwerte_gin
   on public.karriere using gin (saisonwerte);
+
+-- ---------------------------------------------------------------------
+--  Damit PostgREST die neuen Sichten sofort kennt
+-- ---------------------------------------------------------------------
+notify pgrst, 'reload schema';
