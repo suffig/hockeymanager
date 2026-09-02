@@ -4927,3 +4927,20 @@ hr, .trenner{
 @media (prefers-reduced-motion: reduce){
   .puck-streifen, .welle{ display:none }
 }
+
+
+/* Der Glücksgriff im Feinschliff */
+.fein-wurf{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  margin:10px 0 4px;
+}
+.fein-wurf .small{color:var(--muted)}
+.fein-wurf button[disabled]{opacity:.45}
+/* Die frisch gewürfelte Karte meldet sich kurz. */
+.fein-karte.frisch{animation:wurfRein .5s cubic-bezier(.2,.9,.25,1)}
+@keyframes wurfRein{
+  0%{transform:scale(.9) rotate(-2.5deg);opacity:.3}
+  60%{transform:scale(1.03) rotate(1deg)}
+  100%{transform:none;opacity:1}
+}
+@media (prefers-reduced-motion: reduce){ .fein-karte.frisch{animation:none} }

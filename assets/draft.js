@@ -105,83 +105,83 @@ const DRAFT = (() => {
     { id:'h_klein', n:'Kleinstadtverein', tag:'Herkunft',
       desc:'Eine Halle mit vierhundert Plätzen, ein Trainer für drei Jahrgänge, '
          + 'und ein Vater, der jedes Auswärtsspiel gefahren ist.',
-      b:{ zweikampf:9, nerven:8, defensive:6, praezision:-3,
-          reflexe:7, konstanz:8, stellung:5 },
+      b:{ zweikampf:12, nerven:10, defensive:8, praezision:-4,
+          reflexe:9, konstanz:10, stellung:6 },
       eig:['kabinenherz'] },
     { id:'h_akademie', n:'Eliteakademie', tag:'Herkunft',
       desc:'Videoanalyse ab vierzehn, Ernährungsplan, zwei Einheiten am Tag. '
          + 'Alles war durchdacht – nur nie deine Idee.',
-      b:{ skating:8, pass:8, uebersicht:7, zweikampf:-4,
-          stellung:9, lesen:7, puckspiel:5 },
+      b:{ skating:10, pass:10, uebersicht:9, zweikampf:-5,
+          stellung:12, lesen:9, puckspiel:6 },
       eig:['lernwillig'] },
     { id:'h_strasse', n:'Straße und Weiher', tag:'Herkunft',
       desc:'Zugefrorene Flächen ohne Bande, ohne Schiedsrichter, ohne Wechsel. '
          + 'Wer den Puck verliert, läuft ihn selbst wieder holen.',
-      b:{ puck:10, antritt:8, praezision:6, defensive:-5,
-          reflexe:9, beweglich:7, konstanz:-4 },
+      b:{ puck:13, antritt:10, praezision:8, defensive:-6,
+          reflexe:12, beweglich:9, konstanz:-5 },
       eig:['dickkopf'] },
     { id:'h_familie', n:'Eine Familie voller Spieler', tag:'Herkunft',
       desc:'Vater, Onkel, zwei Brüder. Beim Essen wurde über Bullys gestritten, '
          + 'und mit sechs wusstest du, was ein Icing ist.',
-      b:{ uebersicht:9, pass:7, nerven:6, antritt:-3,
-          lesen:9, konstanz:6, stellung:4 },
+      b:{ uebersicht:12, pass:9, nerven:8, antritt:-4,
+          lesen:12, konstanz:8, stellung:5 },
       eig:['heimverbunden','spielmacher'] },
     { id:'h_spaet', n:'Spät angefangen', tag:'Herkunft',
       desc:'Mit zwölf zum ersten Mal auf Kufen, weil ein Freund dich mitschleppte. '
          + 'Alles, was die anderen konnten, musstest du dir holen.',
-      b:{ zweikampf:7, nerven:9, schuss:6, skating:-5,
-          konstanz:7, beweglich:-4 },
+      b:{ zweikampf:9, nerven:12, schuss:8, skating:-6,
+          konstanz:9, beweglich:-5 },
       eig:['spaetzuender','arbeitstier'] },
     { id:'h_inline', n:'Vom Inlinehockey', tag:'Herkunft',
       desc:'Sommer auf Asphalt, kein Abseits, viel Raum. Das Eis kam später '
          + 'und fühlte sich lange zu schnell an.',
-      b:{ puck:9, praezision:8, antritt:6, defensive:-6,
-          fanghand:9, beweglich:8, stellung:-4 },
+      b:{ puck:12, praezision:10, antritt:8, defensive:-8,
+          fanghand:12, beweglich:10, stellung:-5 },
       eig:['medienliebling'] },
     { id:'h_ausland', n:'Als Kind ausgewandert', tag:'Herkunft',
       desc:'Neue Sprache, neue Halle, neue Regeln. Das Eis war das Einzige, '
          + 'was überall gleich funktioniert hat.',
-      b:{ skating:7, uebersicht:6, zweikampf:-3, lesen:8,
-          nerven:8, konstanz:5 },
+      b:{ skating:9, uebersicht:8, zweikampf:-4, lesen:10,
+          nerven:10, konstanz:6 },
       eig:['weltenbummler'] },
     { id:'h_grossverein', n:'Großverein mit langer Schlange', tag:'Herkunft',
       desc:'Hundertzwanzig Kinder im Jahrgang, drei Mannschaften, ein Kaderplatz. '
          + 'Du hast früh gelernt, dass Talent nicht reicht.',
-      b:{ antritt:8, zweikampf:8, defensive:5, puck:-4,
-          reflexe:8, stellung:6, konstanz:5 },
+      b:{ antritt:10, zweikampf:10, defensive:6, puck:-5,
+          reflexe:10, stellung:8, konstanz:6 },
       eig:['fleissbiene','einzelgaenger'] },
     { id:'h_torwartschule', n:'Ein Trainer, der an dich glaubte', tag:'Herkunft',
       desc:'Er blieb nach jedem Training eine halbe Stunde länger, nur mit dir. '
          + 'Erst Jahre später hast du verstanden, was das wert war.',
-      b:{ praezision:9, uebersicht:7, nerven:7, zweikampf:-4,
-          stellung:10, lesen:8, konstanz:6 },
+      b:{ praezision:12, uebersicht:9, nerven:9, zweikampf:-5,
+          stellung:13, lesen:10, konstanz:8 },
       eig:['lernwillig','kabinenherz'] },
     { id:'h_allein', n:'Meistens allein auf dem Eis', tag:'Herkunft',
       desc:'Frühe Hallenzeiten, wenn sonst niemand wollte. Tausend Schüsse '
          + 'gegen eine leere Bande, bis die Bewegung von selbst kam.',
-      b:{ schuss:10, praezision:9, puck:6, pass:-5,
-          reflexe:8, konstanz:9, puckspiel:-3 },
+      b:{ schuss:13, praezision:12, puck:8, pass:-6,
+          reflexe:10, konstanz:12, puckspiel:-4 },
       eig:['strassenkoeter','einzelgaenger'] },
     /* ---- Nachgelegt: mehr Wege ins Eishockey ---- */
     { id:'h_hallenkind', n:'Die Halle nebenan', tag:'Herkunft',
       desc:'Deine Mutter arbeitete an der Kasse, und du warst jeden Tag drin, '
          + 'bevor das Flutlicht anging. Das Eis war dein Hinterhof.',
-      b:{ skating:11, praezision:8, uebersicht:5, zweikampf:-4,
-          beweglich:9, stellung:7, konstanz:5, lesen:-3 },
+      b:{ skating:14, praezision:10, uebersicht:6, zweikampf:-5,
+          beweglich:12, stellung:9, konstanz:6, lesen:-4 },
       eig:['heimverbunden','fleissbiene'] },
 
     { id:'h_spaetstart', n:'Erst mit dreizehn', tag:'Herkunft',
       desc:'Andere standen mit vier auf Kufen. Du kamst spät, aus einem anderen Sport, '
          + 'und hast in drei Jahren aufgeholt, wofür andere zehn brauchten.',
-      b:{ antritt:9, zweikampf:8, nerven:7, praezision:-6,
-          beweglich:11, reflexe:7, lesen:-5, konstanz:-3 },
+      b:{ antritt:12, zweikampf:10, nerven:9, praezision:-8,
+          beweglich:14, reflexe:9, lesen:-6, konstanz:-4 },
       eig:['spaetzuender','lernwillig'] },
 
     { id:'h_sportschule', n:'Die Sportschule', tag:'Herkunft',
       desc:'Internat, Trainingsplan, Videoanalyse mit fünfzehn. Alles war organisiert – '
          + 'auch das, was du nie selbst herausfinden musstest.',
-      b:{ defensive:11, uebersicht:9, konstanz:8, puck:-5,
-          stellung:11, lesen:9, beweglich:-4 },
+      b:{ defensive:14, uebersicht:12, konstanz:10, puck:-6,
+          stellung:14, lesen:12, beweglich:-5 },
       eig:['arbeitstier','verbandsliebling'] }
   ];
 
@@ -190,70 +190,70 @@ const DRAFT = (() => {
   const CHARAKTER = [
     { id:'c_anfuehrer', n:'Der Anführer', tag:'Charakter',
       desc:'Wenn es still wird, redest du. Nicht laut, aber so, dass es sitzt.',
-      b:{ nerven:10, zweikampf:6, uebersicht:5, praezision:-3,
-          konstanz:7, lesen:4 },
+      b:{ nerven:13, zweikampf:8, uebersicht:6, praezision:-4,
+          konstanz:9, lesen:5 },
       eig:['kabinenherz','kaltbluetig'] },
     { id:'c_leise', n:'Der Stille', tag:'Charakter',
       desc:'Du sagst wenig und arbeitest viel. Die Mannschaft merkt es trotzdem.',
-      b:{ defensive:9, zweikampf:5, uebersicht:-3, stellung:9,
-          konstanz:11, rebound:5 },
+      b:{ defensive:12, zweikampf:6, uebersicht:-4, stellung:12,
+          konstanz:14, rebound:6 },
       eig:['arbeitstier','heimschwaeche'] },
     { id:'c_star', n:'Der Selbstbewusste', tag:'Charakter',
       desc:'Du weißt, was du kannst, und hast kein Problem damit, es zu sagen.',
-      b:{ schuss:9, antritt:7, puck:6, defensive:-5,
-          reflexe:9, fanghand:7, konstanz:-4 },
+      b:{ schuss:12, antritt:9, puck:8, defensive:-6,
+          reflexe:12, fanghand:9, konstanz:-5 },
       eig:['frueheBuerde','dickkopf'] },
     { id:'c_witzbold', n:'Der, der die Stimmung hält', tag:'Charakter',
       desc:'Nach einer Niederlage bist du der Erste, der wieder einen Spruch macht. '
          + 'Manche halten das für Leichtsinn.',
-      b:{ nerven:8, antritt:6, pass:5, beweglich:8,
-          konstanz:-4 },
+      b:{ nerven:10, antritt:8, pass:6, beweglich:10,
+          konstanz:-5 },
       eig:['kabinenherz','medienliebling'] },
     { id:'c_ruhepol', n:'Der Ruhepol', tag:'Charakter',
       desc:'Je größer das Spiel, desto langsamer wirst du. Das steckt an.',
-      b:{ nerven:11, uebersicht:6, praezision:5, antritt:-4,
-          stellung:7, lesen:6 },
+      b:{ nerven:14, uebersicht:8, praezision:6, antritt:-5,
+          stellung:9, lesen:8 },
       eig:['eisblock'] },
     { id:'c_streiter', n:'Der Streitbare', tag:'Charakter',
       desc:'Du sagst, was du denkst, auch wenn es niemand hören will. '
          + 'Das kostet dich Freunde und bringt dir Respekt.',
-      b:{ zweikampf:10, schuss:6, nerven:5, pass:-5,
-          rebound:6, puckspiel:-4 },
+      b:{ zweikampf:13, schuss:8, nerven:6, pass:-6,
+          rebound:8, puckspiel:-5 },
       eig:['knochenmuehle','einzelgaenger'] },
     { id:'c_vorbild', n:'Der, dem die Jungen zuschauen', tag:'Charakter',
       desc:'Du machst nichts Besonderes – du machst es nur jedes Mal richtig.',
-      b:{ defensive:7, uebersicht:6, schuss:-3, konstanz:9,
-          stellung:7, lesen:5 },
+      b:{ defensive:9, uebersicht:8, schuss:-4, konstanz:12,
+          stellung:9, lesen:6 },
       eig:['spielmacher','kabinenherz'] },
     { id:'c_ehrgeiz', n:'Der Getriebene', tag:'Charakter',
       desc:'Kein Sieg reicht dir lange. Am Morgen danach denkst du schon '
          + 'an das nächste Spiel.',
-      b:{ antritt:8, schuss:7, zweikampf:6, nerven:-4,
-          reflexe:9, beweglich:6 },
+      b:{ antritt:10, schuss:9, zweikampf:8, nerven:-5,
+          reflexe:12, beweglich:8 },
       eig:['fleissbiene','strassenkoeter'] },
     { id:'c_gelassen', n:'Der Gelassene', tag:'Charakter',
       desc:'Eishockey ist wichtig, aber nicht alles. Diese Haltung nimmt dir '
          + 'Druck – und manchmal auch den letzten Prozent.',
-      b:{ nerven:7, puck:6, pass:6, zweikampf:-5,
-          puckspiel:7, rebound:-3 },
+      b:{ nerven:9, puck:8, pass:8, zweikampf:-6,
+          puckspiel:9, rebound:-4 },
       eig:['kaltbluetig','weltenbummler'] },
     /* ---- Nachgelegt ---- */
     { id:'c_stiller', n:'Der Stille', tag:'Charakter',
       desc:'Du sagst in einer Saison weniger als andere in einer Kabinenansprache. '
          + 'Aber wenn du etwas sagst, hören zwanzig Männer zu.',
-      b:{ konstanz:9, nerven:7, uebersicht:5, zweikampf:-3, lesen:6, stellung:4 },
+      b:{ konstanz:12, nerven:9, uebersicht:6, zweikampf:-4, lesen:8, stellung:5 },
       eig:['einzelgaenger','eisblock'] },
 
     { id:'c_spassvogel', n:'Der Spaßvogel', tag:'Charakter',
       desc:'Nach der schlimmsten Niederlage der Saison bringst du die Kabine zum Lachen. '
          + 'Manche Trainer hassen das. Die Mannschaft nicht.',
-      b:{ nerven:9, antritt:5, praezision:-4, uebersicht:4, beweglich:7, konstanz:-4 },
+      b:{ nerven:12, antritt:6, praezision:-5, uebersicht:5, beweglich:9, konstanz:-5 },
       eig:['kabinenherz','medienliebling'] },
 
     { id:'c_streber', n:'Der Erste im Videoraum', tag:'Charakter',
       desc:'Du kennst die Schwächen des Gegners, bevor der Trainer sie zeigt. '
          + 'Manchmal weißt du zu viel und denkst zu lange.',
-      b:{ uebersicht:12, defensive:7, antritt:-4, praezision:4, lesen:12, reflexe:-4 },
+      b:{ uebersicht:16, defensive:9, antritt:-5, praezision:5, lesen:16, reflexe:-5 },
       eig:['lernwillig','fleissbiene'] }
   ];
 
@@ -262,121 +262,121 @@ const DRAFT = (() => {
     skater: [
       { id:'w_schuss', n:'Der Abschluss', tag:'Waffe',
         desc:'Ein Handgelenkschuss ohne Ausholbewegung. Der Torhüter sieht ihn zu spät.',
-        b:{ schuss:12, praezision:9, antritt:4, defensive:-4 },
+        b:{ schuss:16, praezision:12, antritt:5, defensive:-5 },
         eig:['frueheBuerde'] },
       { id:'w_kopf', n:'Die Übersicht', tag:'Waffe',
         desc:'Du siehst den Pass zwei Schritte früher als der Rest der Reihe.',
-        b:{ uebersicht:12, pass:10, puck:5, zweikampf:-5 },
+        b:{ uebersicht:16, pass:13, puck:6, zweikampf:-6 },
         eig:['lernwillig'] },
       { id:'w_koerper', n:'Die Präsenz', tag:'Waffe',
         desc:'An der Bande gewinnst du fast jeden Puck. Man spürt dich das ganze Spiel.',
-        b:{ zweikampf:12, defensive:9, nerven:4, skating:-4 },
+        b:{ zweikampf:16, defensive:12, nerven:5, skating:-5 },
         eig:['eisenmann'] },
       { id:'w_beine', n:'Die Beine', tag:'Waffe',
         desc:'Erster Schritt, erste Sekunde. Wer dich einholen will, kommt zu spät.',
-        b:{ antritt:12, skating:10, puck:4, zweikampf:-5 },
+        b:{ antritt:16, skating:13, puck:5, zweikampf:-6 },
         eig:['wunderkind'] },
       { id:'w_technik', n:'Die Hände', tag:'Waffe',
         desc:'Du löst Situationen mit den Händen, bevor sie zu Zweikämpfen werden.',
-        b:{ puck:12, praezision:8, pass:6, zweikampf:-6 },
+        b:{ puck:16, praezision:10, pass:8, zweikampf:-8 },
         eig:['medienliebling'] },
       { id:'w_kraft', n:'Das Kraftpaket', tag:'Waffe',
         desc:'Wo andere abdrehen, ziehst du durch. Zwei Gegenspieler reichen selten.',
-        b:{ zweikampf:11, schuss:8, defensive:6, skating:-6 },
+        b:{ zweikampf:14, schuss:10, defensive:8, skating:-8 },
         eig:['eisenmann','dickkopf'] },
       { id:'w_defensive', n:'Das Spiel nach hinten', tag:'Waffe',
         desc:'Du stehst da, wo der Gegner hinwollte, bevor er losläuft.',
-        b:{ defensive:12, uebersicht:8, nerven:5, schuss:-5 },
+        b:{ defensive:16, uebersicht:10, nerven:6, schuss:-6 },
         eig:['arbeitstier'] },
       { id:'w_bully', n:'Der Punkt', tag:'Waffe',
         desc:'Neun von zehn Bullys gehen an dich. In der Schlussminute steht die Halle auf.',
-        b:{ zweikampf:9, praezision:8, nerven:8, skating:-4 },
+        b:{ zweikampf:12, praezision:10, nerven:10, skating:-5 },
         eig:['eisblock'] },
       { id:'w_ausdauer', n:'Die Lunge', tag:'Waffe',
         desc:'Im dritten Drittel bist du so schnell wie im ersten. Das entscheidet Spiele.',
-        b:{ skating:10, antritt:7, nerven:6, schuss:-4 },
+        b:{ skating:13, antritt:9, nerven:8, schuss:-5 },
         eig:['strassenkoeter','eisenmann'] },
       { id:'w_moment', n:'Der Sinn für den Moment', tag:'Waffe',
         desc:'Zahlen sagen wenig über dich. Aber wenn es zählt, stehst du richtig.',
-        b:{ nerven:11, uebersicht:7, praezision:6, konstanz:-5 },
+        b:{ nerven:14, uebersicht:9, praezision:8, konstanz:-6 },
         eig:['kaltbluetig','spaetzuender'] },
       /* ---- Nachgelegt ---- */
       { id:'w_bullykreis', n:'Der Bullykreis', tag:'Waffe',
       desc:'Zwei Sekunden, in denen sich entscheidet, wem das Drittel gehört. '
          + 'Du gewinnst sie öfter als alle anderen.',
-      b:{ zweikampf:12, uebersicht:8, nerven:7, schuss:-4 },
+      b:{ zweikampf:16, uebersicht:10, nerven:9, schuss:-5 },
       eig:['kaltbluetig'] },
 
       { id:'w_verlaengerung', n:'Die dritte Verlängerung', tag:'Waffe',
       desc:'Wenn nach hundert Minuten alle stehen, läufst du noch. Nicht schneller '
          + 'als am Anfang – aber genauso schnell.',
-      b:{ antritt:7, skating:11, nerven:8, praezision:-3 },
+      b:{ antritt:9, skating:14, nerven:10, praezision:-4 },
       eig:['eisenmann','arbeitstier'] },
 
       { id:'w_wand', n:'Das Spiel an der Bande', tag:'Waffe',
       desc:'Dort, wo es weh tut und niemand hinsieht, holst du die Pucks heraus, '
          + 'aus denen die anderen Tore machen.',
-      b:{ zweikampf:13, puck:8, defensive:7, skating:-4 },
+      b:{ zweikampf:17, puck:10, defensive:9, skating:-5 },
       eig:['knochenmuehle'] }
     ],
     goalie: [
       { id:'w_reflex', n:'Der Reflex', tag:'Waffe',
         desc:'Was du hältst, kann niemand erklären – du am wenigsten.',
-        b:{ reflexe:13, beweglich:9, stellung:-5, konstanz:-3 },
+        b:{ reflexe:17, beweglich:12, stellung:-6, konstanz:-4 },
         eig:['frueheBuerde'] },
       { id:'w_stellung', n:'Das Stellungsspiel', tag:'Waffe',
         desc:'Du machst dich groß und stehst schon da, wo der Schuss hinwill.',
-        b:{ stellung:12, lesen:9, konstanz:6, reflexe:-4 },
+        b:{ stellung:16, lesen:12, konstanz:8, reflexe:-5 },
         eig:['spielmacher'] },
       { id:'w_ruhe', n:'Die Ruhe', tag:'Waffe',
         desc:'Nach einem Gegentor sieht man dir nichts an. Nach fünf auch nicht.',
-        b:{ nerven:12, konstanz:10, beweglich:-4, reflexe:-3 },
+        b:{ nerven:16, konstanz:13, beweglich:-5, reflexe:-4 },
         eig:['eisblock'] },
       { id:'w_fang', n:'Die Fanghand', tag:'Waffe',
         desc:'Oben rechts ist zu. Das spricht sich in der Liga herum.',
-        b:{ fanghand:13, reflexe:7, rebound:5, puckspiel:-5 },
+        b:{ fanghand:17, reflexe:9, rebound:6, puckspiel:-6 },
         eig:['medienliebling'] },
       { id:'w_rebound', n:'Die Nachkontrolle', tag:'Waffe',
         desc:'Der erste Schuss ist selten das Problem. Du sorgst dafür, dass es keinen zweiten gibt.',
-        b:{ rebound:12, stellung:8, konstanz:6, fanghand:-4 },
+        b:{ rebound:16, stellung:10, konstanz:8, fanghand:-5 },
         eig:['arbeitstier'] },
       { id:'w_puckspiel', n:'Der dritte Verteidiger', tag:'Waffe',
         desc:'Du spielst den Puck sauber aus dem Drittel. Deine Verteidiger danken es dir.',
-        b:{ puckspiel:12, lesen:8, stockhand:6, reflexe:-5 },
+        b:{ puckspiel:16, lesen:10, stockhand:8, reflexe:-6 },
         eig:['lernwillig','kabinenherz'] },
       { id:'w_lesen', n:'Das Spiel lesen', tag:'Waffe',
         desc:'Du weißt, wohin der Pass geht, bevor er gespielt wird.',
-        b:{ lesen:13, stellung:8, konstanz:5, beweglich:-4 },
+        b:{ lesen:17, stellung:10, konstanz:6, beweglich:-5 },
         eig:['kaltbluetig'] },
       { id:'w_beweglich', n:'Die Beweglichkeit', tag:'Waffe',
         desc:'Von Pfosten zu Pfosten, ohne den Blick vom Puck zu nehmen.',
-        b:{ beweglich:12, reflexe:8, stockhand:5, konstanz:-5 },
+        b:{ beweglich:16, reflexe:10, stockhand:6, konstanz:-6 },
         eig:['wunderkind'] },
       { id:'w_stock', n:'Die Stockhand', tag:'Waffe',
         desc:'Die untere Ecke gibst du nicht her, und Pässe durchs Slot enden bei dir.',
-        b:{ stockhand:12, lesen:7, rebound:6, fanghand:-4 },
+        b:{ stockhand:16, lesen:9, rebound:8, fanghand:-5 },
         eig:['strassenkoeter'] },
       { id:'w_serie', n:'Die Serie', tag:'Waffe',
         desc:'Wenn es läuft, läuft es wochenlang. Darauf baut eine ganze Mannschaft.',
-        b:{ konstanz:12, nerven:8, stellung:6, beweglich:-5 },
+        b:{ konstanz:16, nerven:10, stellung:8, beweglich:-6 },
         eig:['spaetzuender','eisenmann'] },
       /* ---- Nachgelegt ---- */
       { id:'wg_ruhe', n:'Die Ruhe im Tor', tag:'Waffe',
       desc:'Du bewegst dich weniger als jeder andere Torhüter der Liga – und stehst '
          + 'trotzdem immer da, wo der Puck hinkommt.',
-      b:{ stellung:13, lesen:9, konstanz:7, beweglich:-5 },
+      b:{ stellung:17, lesen:12, konstanz:9, beweglich:-6 },
       eig:['eisblock'] },
 
       { id:'wg_aufbau', n:'Der dritte Verteidiger', tag:'Waffe',
       desc:'Dein erster Pass ist der Beginn des Angriffs. Manche Trainer nennen das '
          + 'riskant. Deine Verteidiger nennen es Entlastung.',
-      b:{ puckspiel:15, lesen:8, beweglich:5, rebound:-4 },
+      b:{ puckspiel:20, lesen:10, beweglich:6, rebound:-5 },
       eig:['spielmacher'] },
 
       { id:'wg_serie', n:'Die Serie', tag:'Waffe',
       desc:'In der K.-o.-Runde wirst du ein anderer. Sechs Spiele, sechs Mal besser '
          + 'als der Mann gegenüber.',
-      b:{ reflexe:9, nerven:12, konstanz:5, stellung:-4 },
+      b:{ reflexe:12, nerven:16, konstanz:6, stellung:-5 },
       eig:['kaltbluetig'] }
     ]
   };
@@ -385,72 +385,72 @@ const DRAFT = (() => {
   const PREIS = [
     { id:'p_koerper', n:'Der Körper zahlt', tag:'Preis',
       desc:'Du gibst alles, jeden Wechsel. Der Körper führt darüber Buch.',
-      b:{ zweikampf:10, defensive:8, nerven:5, skating:-4,
-          reflexe:9, rebound:7, beweglich:-4 },
+      b:{ zweikampf:13, defensive:10, nerven:6, skating:-5,
+          reflexe:12, rebound:9, beweglich:-5 },
       eig:['glasknochen','arbeitstier'] },
     { id:'p_geduld', n:'Die späte Reife', tag:'Preis',
       desc:'Mit zwanzig bist du keiner, über den man redet. Mit dreißig schon.',
-      b:{ uebersicht:7, pass:5, antritt:-6, lesen:8,
-          konstanz:8, beweglich:-5 },
+      b:{ uebersicht:9, pass:6, antritt:-8, lesen:10,
+          konstanz:10, beweglich:-6 },
       eig:['spaetzuender'] },
     { id:'p_heimat', n:'Die Heimat hält', tag:'Preis',
       desc:'Du bist da geblieben, wo du herkommst. Das bringt Ruhe und kostet Angebote.',
-      b:{ defensive:6, zweikampf:5, skating:-3, nerven:8,
-          stellung:6, konstanz:5 },
+      b:{ defensive:8, zweikampf:6, skating:-4, nerven:10,
+          stellung:8, konstanz:6 },
       eig:['heimverbunden'] },
     { id:'p_ferne', n:'Der Koffer steht bereit', tag:'Preis',
       desc:'Jede Liga, jedes Land. Du kommst überall an – und nirgends ganz.',
-      b:{ skating:8, antritt:7, puck:5, nerven:-4,
-          beweglich:8, puckspiel:6 },
+      b:{ skating:10, antritt:9, puck:6, nerven:-5,
+          beweglich:10, puckspiel:8 },
       eig:['weltenbummler','heimschwaeche'] },
     { id:'p_frueh', n:'Zu früh zu weit', tag:'Preis',
       desc:'Mit achtzehn standest du oben. Was danach kommt, ist selten mehr.',
-      b:{ antritt:10, schuss:8, puck:6, reflexe:10,
-          beweglich:7, konstanz:-7 },
+      b:{ antritt:13, schuss:10, puck:8, reflexe:13,
+          beweglich:9, konstanz:-9 },
       eig:['wunderkind'] },
     { id:'p_kopf', n:'Der Kopf denkt zu viel', tag:'Preis',
       desc:'Du siehst jede Möglichkeit – auch die, die schiefgehen kann.',
-      b:{ uebersicht:10, pass:8, praezision:6, nerven:-6,
-          lesen:10, stellung:7 },
+      b:{ uebersicht:13, pass:10, praezision:8, nerven:-8,
+          lesen:13, stellung:9 },
       eig:['spielmacher','glasknochen'] },
     { id:'p_alles', n:'Nichts daneben', tag:'Preis',
       desc:'Kein Hobby, kein Ausgleich, kein Abschalten. Nur das hier.',
-      b:{ schuss:8, praezision:8, uebersicht:-4, konstanz:9,
-          stellung:7, lesen:-3 },
+      b:{ schuss:10, praezision:10, uebersicht:-5, konstanz:12,
+          stellung:9, lesen:-4 },
       eig:['strassenkoeter','fleissbiene'] },
     { id:'p_verband', n:'Das Trikot des Landes zuerst', tag:'Preis',
       desc:'Du sagst nie ab, wenn dein Land ruft. Dein Klub sieht das anders.',
-      b:{ nerven:7, uebersicht:6, zweikampf:5, lesen:6,
-          konstanz:-4 },
+      b:{ nerven:9, uebersicht:8, zweikampf:6, lesen:8,
+          konstanz:-5 },
       eig:['verbandsliebling'] },
     { id:'p_bequem', n:'Der Weg des geringsten Widerstands', tag:'Preis',
       desc:'Talent hat vieles leicht gemacht. Was schwer war, hast du seltener geübt.',
-      b:{ puck:10, antritt:8, praezision:7, defensive:-8,
-          fanghand:10, reflexe:8, stellung:-7 },
+      b:{ puck:13, antritt:10, praezision:9, defensive:-10,
+          fanghand:13, reflexe:10, stellung:-9 },
       eig:['frueheBuerde'] },
     { id:'p_vorauseilend', n:'Der Ruf eilt voraus', tag:'Preis',
       desc:'Man kennt deinen Namen, bevor man dein Spiel gesehen hat. '
          + 'Das öffnet Türen und setzt Maßstäbe, an denen du dich messen musst.',
-      b:{ schuss:8, nerven:7, uebersicht:5, zweikampf:-4,
-          reflexe:8, konstanz:-3 },
+      b:{ schuss:10, nerven:9, uebersicht:6, zweikampf:-5,
+          reflexe:10, konstanz:-4 },
       eig:['medienliebling','knochenmuehle'] },
     /* ---- Nachgelegt ---- */
     { id:'p_familie', n:'Die Familie zahlt mit', tag:'Preis',
       desc:'Vier Vereine in sechs Jahren, jedes Mal ein neuer Kindergarten. '
          + 'Zu Hause bist du da, wo dein Vertrag gilt.',
-      b:{ nerven:11, uebersicht:7, konstanz:-5, zweikampf:4, lesen:5, stellung:-4 },
+      b:{ nerven:14, uebersicht:9, konstanz:-6, zweikampf:5, lesen:6, stellung:-5 },
       eig:['weltenbummler','heimschwaeche'] },
 
     { id:'p_ruf', n:'Der Ruf eilt voraus', tag:'Preis',
       desc:'Man kennt dich, bevor du im Raum bist – und weiß auch schon, was man '
          + 'von dir hält. Ändern lässt sich das kaum noch.',
-      b:{ nerven:6, praezision:7, schuss:5, defensive:-6, fanghand:6, lesen:-5 },
+      b:{ nerven:8, praezision:9, schuss:6, defensive:-8, fanghand:8, lesen:-6 },
       eig:['medienliebling','dickkopf'] },
 
     { id:'p_zufrueh', n:'Zu früh zu viel', tag:'Preis',
       desc:'Mit siebzehn im Profikader, mit achtzehn im Nationalteam. Du hast Jahre '
          + 'übersprungen, die anderen später fehlen – und dir vielleicht auch.',
-      b:{ schuss:9, antritt:8, uebersicht:-5, nerven:-4, reflexe:9, lesen:-5 },
+      b:{ schuss:12, antritt:10, uebersicht:-6, nerven:-5, reflexe:12, lesen:-6 },
       eig:['wunderkind','frueheBuerde'] }
   ];
 
@@ -668,18 +668,32 @@ const DRAFT = (() => {
          statt einer Auswahl. Die Zahl der Zuege bleibt bei vier - der
          Spieler wird also nicht staerker, nur die Wege zu ihm werden
          mehr. */
+      /* ----------------------------------------------------------------
+         Zwei Fragen statt vier
+
+         Vier Fragen mit je vier Karten waren zwoelf Entscheidungen bis
+         zum ersten Bully, und sie haben den Spieler mit Eigenschaften
+         zugeschuettet - acht bis neun je Laufbahn, von denen die meisten
+         nie zur Sprache kamen. Jetzt sind es zwei Fragen mit je sechs
+         Karten: weniger Zuege, mehr Auswahl je Zug, und jede Karte
+         traegt schwerer.
+
+         Die zweite Frage zieht aus einem zusammengelegten Vorrat -
+         Waffe, Charakter und Preis in einem Topf, sechsunddreissig
+         Karten. Damit geht kein Inhalt verloren; im Gegenteil, die
+         Auswahl ist bunter als vorher, weil in derselben Frage die
+         Staerke, die Kabinenrolle und der Preis nebeneinander stehen
+         koennen.
+         ---------------------------------------------------------------- */
       { id:'herkunft',  frage:'Wo hast du Eishockey gelernt?',
         text:'Die ersten Jahre prägen mehr als jedes Profitraining.',
-        karten: ohneWiederholung(HERKUNFT, s0 + ':h', 4, HERKUNFT_LAND[nation], schonDa, verboten) },
-      { id:'waffe',     frage:'Was ist deine Waffe?',
-        text:'Wofür holt dich ein Trainer aufs Eis, wenn es eng wird?',
-        karten: ohneWiederholung(WAFFE[posGruppe] || WAFFE.skater, s0 + ':w', 4, null, schonDa, verboten) },
-      { id:'charakter', frage:'Wer bist du in der Kabine?',
-        text:'Zwanzig Männer, ein Raum. Deine Rolle darin entscheidet mehr, als du denkst.',
-        karten: ohneWiederholung(CHARAKTER, s0 + ':c', 4, null, schonDa, verboten) },
-      { id:'preis',     frage:'Was kostet dich dein Spiel?',
-        text:'Niemand bekommt alles. Wähle, womit du leben willst.',
-        karten: ohneWiederholung(PREIS, s0 + ':p', 4, null, schonDa, verboten) }
+        karten: ohneWiederholung(HERKUNFT, s0 + ':h', 6, HERKUNFT_LAND[nation], schonDa, verboten) },
+      { id:'wesen',     frage:'Was macht dich aus?',
+        text:'Deine Waffe, deine Rolle in der Kabine, der Preis dafür – '
+           + 'wähle das eine, was man über dich sagen wird.',
+        karten: ohneWiederholung(
+          (WAFFE[posGruppe] || WAFFE.skater).concat(CHARAKTER, PREIS),
+          s0 + ':m', 6, null, schonDa, verboten) }
     ];
   }
 
@@ -840,7 +854,8 @@ const DRAFT = (() => {
     return mische(JUGEND, String(seed || 'rinkrise') + ':jugend', JUGEND_RUNDEN);
   }
 
-  const RUNDEN = 4;
+  /* Zwei Zuege statt vier - siehe die Begruendung in fragen(). */
+  const RUNDEN = 2;
 
   return { EIGENSCHAFTEN, fragen, RUNDEN, HERKUNFT, CHARAKTER, WAFFE, PREIS,
            JUGEND, JUGEND_RUNDEN, jugendfragen };

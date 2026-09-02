@@ -179,6 +179,8 @@ function CareerGame(root, cfg){
         /* Ohne Jugendjahre und Feinschliff waere der nachgespielte
            Spieler ein anderer als der gespeicherte. */
         jugend: S.jugend || [],
+        /* Enthaelt auch die Zahl der Wuerfe - ohne sie waere die dritte
+           Eigenschaft beim Nachspielen eine andere. */
         fein: S.fein || null,
         zuege: S.zuege,
         /* Nur fuer die Anzeige des Angebots - so muss dafuer nicht die
@@ -673,9 +675,18 @@ function CareerGame(root, cfg){
      ungefaehr ein zusaetzlicher Sommer - genug, dass es sich lohnt
      nachzudenken, zu wenig, um die Laufbahn zu entscheiden.
      ================================================================== */
+  /* Die drei Karten: zwei feste und die ausgewuerfelte. Welche gerade
+     gewuerfelt ist, steht in S.fein.wuerfe - so bleibt sie ueber ein
+     Neuzeichnen hinweg dieselbe und ist beim Nachspielen reproduzierbar. */
+  function feinKarten(ang){
+    const i = Math.min(S.fein.wuerfe || 0, ang.wurfVorrat.length - 1);
+    return ang.eigenschaften.concat(ang.wurfVorrat[Math.max(0, i)] || []);
+  }
+
   function renderFein(){
     const ang = PUCKERO.feinschliffAngebot(S.player);
     if (!ang){ feinFertig(); return; }
+    if (S.fein.wuerfe === undefined) S.fein.wuerfe = 0;
     const gesetzt = Object.values(S.fein.punkte).reduce((a, b) => a + b, 0);
     const offen = ang.punkte - gesetzt;
     const bereit = S.fein.eig && offen === 0;
@@ -693,9 +704,15 @@ function CareerGame(root, cfg){
               und ab da entscheidet nur noch, was du aus ihm machst.</p>
 
             <h4 class="fein-titel">1 · Eine Eigenschaft, die dich prägt</h4>
-            <p class="small">Keine davon ist geschenkt – jede kostet auch etwas.</p>
+            <p class="small">Keine davon ist geschenkt – jede kostet auch etwas.
+              Die dritte ist ausgewürfelt: ${ang.wuerfe > (S.fein.wuerfe || 0)
+                ? 'du darfst sie noch <b>' + (ang.wuerfe - (S.fein.wuerfe || 0))
+                  + '</b>-mal neu würfeln'
+                : 'weitere Würfe hast du nicht mehr'}${ang.wurfGrund
+                ? ' – den zweiten Wurf hast du <b>' + esc(ang.wurfGrund) + '</b> zu verdanken'
+                : ''}. Der Vorrat enthält auch, was einem schadet.</p>
             <div class="fein-eig">
-              ${ang.eigenschaften.map(id => {
+              ${feinKarten(ang).map(id => {
                 const e = DRAFT.EIGENSCHAFTEN[id];
                 return `<button type="button" class="fein-karte ${S.fein.eig === id ? 'on' : ''}"
                           data-fein-eig="${id}">
@@ -707,6 +724,14 @@ function CareerGame(root, cfg){
                       (EIG_WORT[k] || k)} ${v > 0 ? '+' : ''}${v}</i>`).join('')}</span>
                 </button>`;
               }).join('')}
+            </div>
+            <div class="fein-wurf">
+              <button type="button" class="mini" id="fein-wuerfeln"
+                ${(S.fein.wuerfe || 0) >= ang.wuerfe ? 'disabled' : ''}>
+                ${UI.ikone('wuerfel', 14)} Dritte neu würfeln</button>
+              <span class="small">${(S.fein.wuerfe || 0) >= ang.wuerfe
+                ? 'Keine Würfe mehr übrig.'
+                : 'Was kommt, kommt – auch das Unangenehme.'}</span>
             </div>
 
             <h4 class="fein-titel">2 · Zehn Punkte auf deine Werte</h4>
@@ -727,7 +752,7 @@ function CareerGame(root, cfg){
                 /* Die Rohwerte sind intern gebrochen - hier wird gerundet,
                    sonst steht "55.392941176470586" auf dem Schirm. */
                 const w = Math.round(x.wert);
-                return `<div class="fw-zeile ${n ? 'gesetzt' : ''}">
+                return `<div class="fw-zeile ${n ? 'gesetzt' : ''}" data-zeile="${x.k}">
                   <span class="fw-name">${esc(x.n)}</span>
                   <span class="fw-balken"><i style="width:${Math.min(100, w)}%"></i>
                     <b style="width:${Math.min(100 - w, n)}%"></b></span>
@@ -752,9 +777,61 @@ function CareerGame(root, cfg){
         </div>
       </div>`;
 
+    /* ------------------------------------------------------------------
+       Punkte vergeben, ohne dass die Seite springt
+
+       Jeder Klick auf + oder - hat den ganzen Bildschirm neu gebaut
+       (root.innerHTML = ...). Auf dem Handy heisst das: die Ansicht
+       springt bei jedem einzelnen Punkt an den Anfang zurueck, und die
+       gewaehlte Eigenschaft ist aus dem Bild - sie sah abgewaehlt aus,
+       obwohl sie es nie war. Zehn Punkte zu verteilen hiess zehnmal
+       zurueckscrollen.
+
+       Jetzt wird nur nachgezogen, was sich geaendert hat: die Zahl der
+       offenen Punkte, die betroffene Wertezeile, die Tasten und der
+       Weiter-Knopf. Kein innerHTML, kein Sprung, keine verlorene
+       Auswahl.
+       ------------------------------------------------------------------ */
+    function feinAuffrischen(){
+      const gesetztJetzt = Object.values(S.fein.punkte).reduce((a, b) => a + b, 0);
+      const offenJetzt = ang.punkte - gesetztJetzt;
+      const bereitJetzt = S.fein.eig && offenJetzt === 0;
+
+      const rest = root.querySelector('.fein-rest');
+      if (rest){
+        rest.classList.toggle('leer', offenJetzt === 0);
+        rest.innerHTML = '<b>' + offenJetzt + '</b> '
+          + (offenJetzt === 1 ? 'Punkt' : 'Punkte') + ' übrig';
+      }
+      ang.werte.forEach(x => {
+        const zeile = root.querySelector('[data-zeile="' + x.k + '"]');
+        if (!zeile) return;
+        const n = S.fein.punkte[x.k] || 0;
+        const w = Math.round(x.wert);
+        zeile.classList.toggle('gesetzt', !!n);
+        const b = zeile.querySelector('.fw-balken b');
+        if (b) b.style.width = Math.min(100 - w, n) + '%';
+        const zahl = zeile.querySelector('.fw-zahl');
+        if (zahl) zahl.innerHTML = w + (n ? '<em>+' + n + '</em>' : '');
+        const ab = zeile.querySelector('[data-fein-ab]');
+        const auf = zeile.querySelector('[data-fein-auf]');
+        if (ab) ab.disabled = !n;
+        if (auf) auf.disabled = !(offenJetzt > 0 && n < ang.proWert);
+      });
+      const weiter = root.querySelector('#fein-weiter');
+      if (weiter){
+        weiter.disabled = !bereitJetzt;
+        weiter.textContent = bereitJetzt ? 'Karriere beginnen →'
+          : !S.fein.eig ? 'Wähle eine Eigenschaft'
+          : 'Noch ' + offenJetzt + (offenJetzt === 1 ? ' Punkt' : ' Punkte') + ' zu verteilen';
+      }
+      root.querySelectorAll('[data-fein-eig]').forEach(k =>
+        k.classList.toggle('on', k.dataset.feinEig === S.fein.eig));
+    }
+
     root.querySelectorAll('[data-fein-eig]').forEach(b => b.onclick = () => {
       S.fein.eig = S.fein.eig === b.dataset.feinEig ? null : b.dataset.feinEig;
-      renderFein();
+      feinAuffrischen();
     });
     root.querySelectorAll('[data-fein-auf]').forEach(b => b.onclick = () => {
       const k = b.dataset.feinAuf;
@@ -762,20 +839,34 @@ function CareerGame(root, cfg){
       if (g >= ang.punkte) return;
       if ((S.fein.punkte[k] || 0) >= ang.proWert) return;
       S.fein.punkte[k] = (S.fein.punkte[k] || 0) + 1;
-      renderFein();
+      feinAuffrischen();
     });
     root.querySelectorAll('[data-fein-ab]').forEach(b => b.onclick = () => {
       const k = b.dataset.feinAb;
       if (!S.fein.punkte[k]) return;
       S.fein.punkte[k]--;
       if (!S.fein.punkte[k]) delete S.fein.punkte[k];
-      renderFein();
+      feinAuffrischen();
     });
+    root.querySelector('#fein-wuerfeln').onclick = () => {
+      if ((S.fein.wuerfe || 0) >= ang.wuerfe) return;
+      S.fein.wuerfe = (S.fein.wuerfe || 0) + 1;
+      /* Die gewuerfelte Karte ist weg - wer sie gewaehlt hatte, waehlt neu. */
+      const jetzt = feinKarten(ang);
+      if (S.fein.eig && jetzt.indexOf(S.fein.eig) < 0) S.fein.eig = null;
+      renderFein();
+      const k = root.querySelectorAll('.fein-karte');
+      const letzte = k[k.length - 1];
+      if (letzte){
+        letzte.classList.add('frisch');
+        letzte.scrollIntoView({ block: 'nearest' });
+      }
+    };
     root.querySelector('#fein-auto').onclick = () => {
       S.fein.punkte = PUCKERO.feinschliffVorschlag(S.player, ang);
-      renderFein();
+      feinAuffrischen();
     };
-    root.querySelector('#fein-null').onclick = () => { S.fein.punkte = {}; renderFein(); };
+    root.querySelector('#fein-null').onclick = () => { S.fein.punkte = {}; feinAuffrischen(); };
     root.querySelector('#fein-weiter').onclick = () => { feinFertig(); scrollTop(); };
     root.querySelector('#restart').onclick = bestaetigtNeustart;
   }

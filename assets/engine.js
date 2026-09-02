@@ -397,7 +397,11 @@ const PUCKERO = (() => {
          der Anteil Journeyman fiel von 27 auf 17 Prozent. Die
          Entscheidungen sollen faerben, nicht das Spiel leichter machen.
          ------------------------------------------------------------ */
-      potenzial: zieheGrenze(r) - 5,
+      /* Der Ausgleich ist kleiner, seit die Charaktererstellung nur noch
+         zwei Zuege hat: die Zahl der Eigenschaften je Spieler faellt damit
+         von 8,46 auf 5,76, und die Talentgrenze traegt sich wieder
+         weitgehend selbst. */
+      potenzial: zieheGrenze(r) - 1,
       /* ----------------------------------------------------------------
          Der Scheitelpunkt des Koerpers gehoert zum Spieler
 
@@ -600,8 +604,29 @@ const PUCKERO = (() => {
     const frei = Object.keys(DRAFT.EIGENSCHAFTEN).filter(id => !hat.includes(id));
     if (!frei.length) return null;
     const w = pos(player.pos).w;
+    /* ------------------------------------------------------------------
+       Der Glücksgriff
+
+       Zwei Eigenschaften stehen fest zur Wahl; die dritte wird
+       ausgewuerfelt und darf neu gewuerfelt werden. Sie kommt aus dem
+       ganzen Vorrat, also auch aus dem, was einem schadet - der Wurf ist
+       ein Wagnis, kein Geschenk. Wer neu wuerfelt, kann sich
+       verschlechtern, und genau das macht die Entscheidung zu einer.
+
+       Ein Wurf steht jedem zu. Wer in den ersten Fragen eine Eigenschaft
+       gewaehlt hat, die vom Ausprobieren lebt, bekommt einen zweiten -
+       lernwillig, dickkopf und wunderkind sind die drei, bei denen das
+       im Text schon so steht.
+       ------------------------------------------------------------------ */
+    const gemischt = shuffle(r, frei);
+    const ZWEIT_WURF = ['lernwillig', 'dickkopf', 'wunderkind'];
     return {
-      eigenschaften: shuffle(r, frei).slice(0, 3),
+      /* Die ersten beiden liegen fest, die dritte ist der Wurf. */
+      eigenschaften: gemischt.slice(0, 2),
+      wurfVorrat: gemischt.slice(2),
+      wuerfe: 1 + (hat.some(id => ZWEIT_WURF.includes(id)) ? 1 : 0),
+      wurfGrund: hat.filter(id => ZWEIT_WURF.includes(id))
+        .map(id => (DRAFT.EIGENSCHAFTEN[id] || {}).n).filter(Boolean)[0] || null,
       punkte: FEIN_PUNKTE,
       proWert: FEIN_PRO_WERT,
       werte: attrsOf(player.pos)
@@ -7451,17 +7476,17 @@ const PUCKERO = (() => {
      haette.
      ------------------------------------------------------------------ */
   const RAENGE = [
-    { n:'Unsterblich',     ab:3243, c:'gold',
+    { n:'Unsterblich',     ab:3249, c:'gold',
       d:'Ein Name, den man in hundert Jahren noch kennt.' },
-    { n:'Hall of Fame',    ab:2468, c:'gold',
+    { n:'Hall of Fame',    ab:2266, c:'gold',
       d:'Trikot unter dem Hallendach, Platz in der Ruhmeshalle.' },
-    { n:'Franchise-Ikone', ab:1848, c:'',
+    { n:'Franchise-Ikone', ab:1800, c:'',
       d:'Ein Klub hat eine Ära nach dir benannt.' },
-    { n:'Topstar',         ab:1447, c:'',
+    { n:'Topstar',         ab:1412, c:'',
       d:'Jahrelang erste Reihe, erste Wahl, erste Schlagzeile.' },
-    { n:'Leistungsträger', ab:973,  c:'',
+    { n:'Leistungsträger', ab:896,  c:'',
       d:'Solide Karriere in starken Ligen.' },
-    { n:'Profi',           ab:610,  c:'',
+    { n:'Profi',           ab:551,  c:'',
       d:'Ein ehrliches Eishockeyleben.' }
   ];
 

@@ -67,7 +67,10 @@ const UI = (() => {
     haken:     '<path d="M5 12.5l4.5 4.5L19 7" fill="none" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>',
     kreuz:     '<path d="M6 6l12 12M18 6L6 18" fill="none" stroke-width="2.4" stroke-linecap="round"/>',
     pfeife:    '<circle cx="8.5" cy="13" r="5.5" fill="none" stroke-width="1.8"/><path d="M13.5 10.5H21v4h-7.5" fill="none" stroke-width="1.8" stroke-linejoin="round"/>',
-    auge:      '<path d="M2.5 12S6 6.5 12 6.5 21.5 12 21.5 12 18 17.5 12 17.5 2.5 12 2.5 12z" fill="none" stroke-width="1.8"/><circle cx="12" cy="12" r="2.6"/>'
+    auge:      '<path d="M2.5 12S6 6.5 12 6.5 21.5 12 21.5 12 18 17.5 12 17.5 2.5 12 2.5 12z" fill="none" stroke-width="1.8"/><circle cx="12" cy="12" r="2.6"/>',
+    /* Der Wuerfel fuer den Glueckgriff im Feinschliff - fuenf Augen,
+       damit er auch bei 14 Pixeln noch als Wuerfel zu erkennen ist. */
+    wuerfel:   '<rect x="4" y="4" width="16" height="16" rx="3.4" fill="none" stroke-width="1.8"/><circle cx="8.6" cy="8.6" r="1.4"/><circle cx="15.4" cy="8.6" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="8.6" cy="15.4" r="1.4"/><circle cx="15.4" cy="15.4" r="1.4"/>'
   };
 
   /* Ein Icon als Inline-SVG. Groesse in Pixeln, Farbe kommt vom Text. */
